@@ -3,10 +3,11 @@
 Hobo.
 
 Usage:
-    hobo up | start [--gui]
-    hobo down | stop
+    hobo (up | start) [<name> --gui]
+    hobo (down | stop) [<name>]
     hobo pause
     hobo ssh
+    hobo ip
     hobo list
     hobo -h | --help
     hobo --version
@@ -14,7 +15,6 @@ Usage:
 Options:
     -h --help     Show this screen.
     --version     Show version.
-
 '''
 from clint.textui import colored, puts
 from docopt import docopt
@@ -30,10 +30,14 @@ def get_vmx():
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='hobo 0.1')
-    print(arguments)
 
-    vm = get_vmx()
-    vm = Vmrun(vm, debug=True)
+    if arguments['list']:
+        vm = Vmrun('')
+        puts("".join(vm.list()))
+        exit()
+
+    vm = arguments['<name>'] if arguments['<name>'] else get_vmx()
+    vm = Vmrun(vm, user='user', password='user', debug=True)
 
     if arguments['up'] or arguments['start']:
         puts(colored.yellow("Starting", vm))
@@ -50,12 +54,17 @@ if __name__ == '__main__':
         puts(colored.yellow("Stopping", vm))
         vm.pause()
 
-    if arguments['list']:
-        vm = Vmrun('')
-        puts("".join(vm.list()))
-
     if arguments['ssh']:
         ip = vm.ip()
-        puts(colored.green(ip))
-        os.system('ssh user@{}'.format(ip))
+        if ip:
+            puts(colored.green(ip))
+            os.system('ssh user@{}'.format(ip))
+        else:
+            puts(colored.red("IP not found, could not SSH "))
 
+    if arguments['ip']:
+        ip = vm.ip()
+        if ip:
+            puts(ip)
+        else:
+            puts(colored.red("IP not found"))

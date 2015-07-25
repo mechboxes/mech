@@ -17,6 +17,7 @@ __license__     = "GNU GPL v2"
 #
 import os
 import subprocess
+import socket
 
 class Vmrun:
 
@@ -24,7 +25,7 @@ class Vmrun:
 
         cmds   = list(cmd)
         cmds.insert( 1, "\"%s\"" % self.VM_FILE )
-        cmds[0] = "-T ws -gu %s -gp %s %s" % (self.VM_ADMIN, self.VM_PASS, cmds[0])
+        cmds[0] = "-T fusion -gu %s -gp %s %s" % (self.VM_ADMIN, self.VM_PASS, cmds[0])
         params = " ".join( cmds )
 
         if self.DEBUG: print "[DEBUG] %s" % params
@@ -353,14 +354,19 @@ class Vmrun:
             return self.vmrun( 'readVariable', v_name )
 
 
-    def ip( self ):
+    def ip( self, wait=True):
         '''
         getGuestIPAddress        Path to vmx file     Gets the IP address of the guest
         '''
-        ip = self.vmrun( 'getGuestIPAddress' )
-        if ip:
-            return ip[0].strip()
-        return None
+        if wait:
+            ip = self.vmrun( 'getGuestIPAddress', '-wait')[0].strip()
+        else:
+            ip = self.vmrun( 'getGuestIPAddress')[0].strip()
+        try:
+            socket.inet_aton(ip)
+            return ip
+        except:
+            return None
 
     #
     # VPROBE COMMANDS
