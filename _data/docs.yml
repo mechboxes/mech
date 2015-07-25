@@ -1,0 +1,26 @@
+- title: Wrlcome
+  docs:
+    - home
+    - unified-workflow
+    - cross-platform
+    - enforce-consistency
+
+- title: Getting Started
+  docs:
+    - installation
+    - project-setup
+    - boxes
+    - up-n-ssh
+    - synced-folders
+    - provisioning
+    - networking
+    - share
+    - teardown
+    - rebuild
+
+- title: Miscellaneous
+  docs:
+    - faq
+    - contributing
+    - conduct
+    - history
