@@ -32,25 +32,22 @@ if __name__ == '__main__':
     arguments = docopt(__doc__, version='hobo 0.1')
     print(arguments)
 
+    vm = get_vmx()
+    vm = Vmrun(vm, debug=True)
+
     if arguments['up'] or arguments['start']:
-        vm = get_vmx()
         puts(colored.yellow("Starting", vm))
-        vm = Vmrun(vm, debug=True)
         if arguments['--gui']:
             vm.start(gui=True)
         else:
             vm.start()
 
     if arguments['down'] or arguments['stop']:
-        vm = get_vmx()
         puts(colored.yellow("Stopping", vm))
-        vm = Vmrun(vm, debug=True)
         vm.stop()
 
     if arguments['pause']:
-        vm = get_vmx()
         puts(colored.yellow("Stopping", vm))
-        vm = Vmrun(vm, debug=True)
         vm.pause()
 
     if arguments['list']:
@@ -58,8 +55,6 @@ if __name__ == '__main__':
         puts("".join(vm.list()))
 
     if arguments['ssh']:
-        vm = get_vmx()
-        vm = Vmrun(vm)
         ip = vm.ip()
         puts(colored.green(ip))
         os.system('ssh user@{}'.format(ip))
