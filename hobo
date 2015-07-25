@@ -1,0 +1,66 @@
+#!/usr/bin/env python
+'''
+Hobo.
+
+Usage:
+    hobo up | start [--gui]
+    hobo down | stop
+    hobo pause
+    hobo ssh
+    hobo list
+    hobo -h | --help
+    hobo --version
+
+Options:
+    -h --help     Show this screen.
+    --version     Show version.
+
+'''
+from clint.textui import colored, puts
+from docopt import docopt
+from vmrun import Vmrun
+import glob
+import os
+
+def get_vmx():
+    files = glob.glob('*.vmx')
+    if files:
+        return files[0]
+    raise IOError
+
+if __name__ == '__main__':
+    arguments = docopt(__doc__, version='hobo 0.1')
+    print(arguments)
+
+    if arguments['up'] or arguments['start']:
+        vm = get_vmx()
+        puts(colored.yellow("Starting", vm))
+        vm = Vmrun(vm, debug=True)
+        if arguments['--gui']:
+            vm.start(gui=True)
+        else:
+            vm.start()
+
+    if arguments['down'] or arguments['stop']:
+        vm = get_vmx()
+        puts(colored.yellow("Stopping", vm))
+        vm = Vmrun(vm, debug=True)
+        vm.stop()
+
+    if arguments['pause']:
+        vm = get_vmx()
+        puts(colored.yellow("Stopping", vm))
+        vm = Vmrun(vm, debug=True)
+        vm.pause()
+
+    if arguments['list']:
+        vm = Vmrun('')
+        puts("".join(vm.list()))
+
+    if arguments['ssh']:
+        vm = get_vmx()
+        vm = Vmrun(vm)
+        ip = vm.ip()
+        puts(colored.green(ip))
+        os.system('ssh user@{}'.format(ip))
+
