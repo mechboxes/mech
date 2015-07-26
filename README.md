@@ -9,7 +9,7 @@ Usage:
     mech (up | start) [options] [<name> --gui]
     mech (down | stop) [options] [<name>]
     mech pause [options]
-    mech ssh [options]
+    mech ssh [options] [--user]
     mech ip [options]
     mech (list | status) [options]
     mech -h | --help
