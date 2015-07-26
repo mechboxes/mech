@@ -31,10 +31,9 @@ def get_vmx():
         return files[0]
     else:
         puts(colored.red("No vmx found. Please specify one with --name"))
-        raise IOError
 
 def main(args=None):
-    arguments = docopt(__doc__, version='mech 0.1')
+    arguments = docopt(__doc__, version='mech 0.2')
 
     DEBUG = arguments['--debug']
 
@@ -69,7 +68,7 @@ def main(args=None):
         if ip:
             puts(colored.green(ip))
             user = arguments['--user'] if arguments['--user'] else "mech"
-            os.system('ssh user@{}'.format(ip))
+            os.system('ssh {}@{}'.format(user, ip))
         else:
             puts(colored.red("IP not found, could not SSH "))
 
