@@ -29,7 +29,9 @@ def get_vmx():
     files = glob.glob('*.vmx')
     if files:
         return files[0]
-    raise IOError
+    else:
+        puts(colored.red("No vmx found. Please specify one with --name"))
+        raise IOError
 
 def main(args=None):
     arguments = docopt(__doc__, version='mech 0.1')
