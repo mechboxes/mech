@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 '''
-Hobo.
+mech.
 
 Usage:
-    hobo (up | start) [options] [<name> --gui]
-    hobo (down | stop) [options] [<name>]
-    hobo pause [options]
-    hobo ssh [options]
-    hobo ip [options]
-    hobo (list | status) [options]
-    hobo -h | --help
-    hobo --version
+    mech (up | start) [options] [<name> --gui]
+    mech (down | stop) [options] [<name>]
+    mech pause [options]
+    mech ssh [options]
+    mech ip [options]
+    mech (list | status) [options]
+    mech -h | --help
+    mech --version
 
 Options:
     -h --help     Show this screen.
@@ -32,7 +32,7 @@ def get_vmx():
     raise IOError
 
 def main(args=None):
-    arguments = docopt(__doc__, version='hobo 0.1')
+    arguments = docopt(__doc__, version='mech 0.1')
 
     DEBUG = arguments['--debug']
 

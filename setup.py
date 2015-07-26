@@ -1,11 +1,11 @@
 from setuptools import setup
 
 setup(
-    name='hobo',
-    packages=['hobo'],
+    name='mech',
+    packages=['mech'],
     entry_points={
         'console_scripts': [
-            'hobo = hobo.__main__:main'
+            'mech = mech.__main__:main'
         ]
     },
     install_requires=['clint'],
@@ -13,8 +13,8 @@ setup(
     description='Tool for command line virtual machines',
     author='Kevin Chung',
     author_email='kchung@nyu.edu',
-    url='https://github.com/ColdHeat/hobo',
-    download_url='https://github.com/ColdHeat/hobo/tarball/0.1',
+    url='https://github.com/ColdHeat/mech',
+    download_url='https://github.com/ColdHeat/mech/tarball/0.1',
     keywords=['vagrant', 'vmware', 'vmrun', 'tool', 'virtualization'],
     classifiers=[],
 )
