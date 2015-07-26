@@ -17,6 +17,7 @@ Options:
     --version     Show version.
     --debug       Show debug messages.
 '''
+
 from clint.textui import colored, puts
 from clint.textui.progress import mill
 from docopt import docopt
@@ -30,7 +31,7 @@ def get_vmx():
         return files[0]
     raise IOError
 
-if __name__ == '__main__':
+def main(args=None):
     arguments = docopt(__doc__, version='hobo 0.1')
 
     DEBUG = arguments['--debug']
@@ -75,3 +76,6 @@ if __name__ == '__main__':
             puts(ip)
         else:
             puts(colored.red("IP not found"))
+
+if __name__ == "__main__":
+    main()

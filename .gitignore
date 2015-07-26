@@ -1,1 +1,5 @@
 *.pyc
+.idea/
+build/
+dist/
+hobo.egg-info/
