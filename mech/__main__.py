@@ -6,7 +6,7 @@ Usage:
     mech (up | start) [options] [<name> --gui]
     mech (down | stop) [options] [<name>]
     mech pause [options]
-    mech ssh [options] [--user]
+    mech ssh [options] [--user=<user>]
     mech ip [options]
     mech (list | status) [options]
     mech -h | --help
@@ -33,7 +33,7 @@ def get_vmx():
         puts(colored.red("No vmx found. Please specify one with --name"))
 
 def main(args=None):
-    arguments = docopt(__doc__, version='mech 0.2')
+    arguments = docopt(__doc__, version='mech 0.2.2')
 
     DEBUG = arguments['--debug']
 
