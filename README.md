@@ -25,4 +25,4 @@ You can simply be in the folder where the vmx is or specify the path to it.
 
 # Install
 
-`pip install git+https://github.com/ColdHeat/mech.git`
+`pip install mech`
