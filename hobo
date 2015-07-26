@@ -3,20 +3,22 @@
 Hobo.
 
 Usage:
-    hobo (up | start) [<name> --gui]
-    hobo (down | stop) [<name>]
-    hobo pause
-    hobo ssh
-    hobo ip
-    hobo list
+    hobo (up | start) [options] [<name> --gui]
+    hobo (down | stop) [options] [<name>]
+    hobo pause [options]
+    hobo ssh [options]
+    hobo ip [options]
+    hobo (list | status) [options]
     hobo -h | --help
     hobo --version
 
 Options:
     -h --help     Show this screen.
     --version     Show version.
+    --debug       Show debug messages.
 '''
 from clint.textui import colored, puts
+from clint.textui.progress import mill
 from docopt import docopt
 from vmrun import Vmrun
 import glob
@@ -31,13 +33,15 @@ def get_vmx():
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='hobo 0.1')
 
-    if arguments['list']:
+    DEBUG = arguments['--debug']
+
+    if arguments['list'] or arguments['status']:
         vm = Vmrun('')
         puts("".join(vm.list()))
         exit()
 
     vm = arguments['<name>'] if arguments['<name>'] else get_vmx()
-    vm = Vmrun(vm, user='user', password='user', debug=True)
+    vm = Vmrun(vm, debug=DEBUG)
 
     if arguments['up'] or arguments['start']:
         puts(colored.yellow("Starting", vm))
@@ -45,10 +49,13 @@ if __name__ == '__main__':
             vm.start(gui=True)
         else:
             vm.start()
+            ip = vm.ip()
+            puts(colored.green("VM started on {}".format(ip)))
 
     if arguments['down'] or arguments['stop']:
         puts(colored.yellow("Stopping", vm))
         vm.stop()
+        puts(colored.green("Stopped", vm))
 
     if arguments['pause']:
         puts(colored.yellow("Stopping", vm))
