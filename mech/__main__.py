@@ -6,7 +6,7 @@ Usage:
     mech (up | start) [options] [<name> --gui]
     mech (down | stop) [options] [<name>]
     mech pause [options]
-    mech ssh [options]
+    mech ssh [options] [--user]
     mech ip [options]
     mech (list | status) [options]
     mech -h | --help
@@ -68,6 +68,7 @@ def main(args=None):
         ip = vm.ip()
         if ip:
             puts(colored.green(ip))
+            user = arguments['--user'] if arguments['--user'] else "mech"
             os.system('ssh user@{}'.format(ip))
         else:
             puts(colored.red("IP not found, could not SSH "))

@@ -14,7 +14,7 @@ setup(
     author='Kevin Chung',
     author_email='kchung@nyu.edu',
     url='https://github.com/ColdHeat/mech',
-    download_url='https://github.com/ColdHeat/mech/tarball/0.1',
+    download_url='https://github.com/ColdHeat/mech/tarball/master',
     keywords=['vagrant', 'vmware', 'vmrun', 'tool', 'virtualization'],
     classifiers=[],
 )
