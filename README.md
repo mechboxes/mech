@@ -6,22 +6,23 @@ Usage is pretty straightforward:
 
 ```
 Usage:
+    mech init <url>
     mech (up | start) [options] [<name> --gui]
     mech (down | stop) [options] [<name>]
+    mech suspend [options]
     mech pause [options]
-    mech ssh [options] [--user]
+    mech ssh [options] [--user=<user>]
     mech ip [options]
     mech (list | status) [options]
     mech -h | --help
     mech --version
-
 Options:
     -h --help     Show this screen.
     --version     Show version.
     --debug       Show debug messages.
 ```
 
-You can simply be in the folder where the vmx is or specify the path to it.
+`mech init` can be used to pull a box file which will be installed and generate a mechfile in the current directory. Barring that, mech up <name> can also be used to specify a vmx file to start. 
 
 # Install
 
