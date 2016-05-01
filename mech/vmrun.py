@@ -23,9 +23,13 @@ class Vmrun:
 
     def execute( self, path, *cmd ):
 
-        cmds   = list(cmd)
+        if os.name == 'nt':
+            self.provider = 'ws'
+        elif os.name == 'darwin':
+            self.provider = 'fusion'
+        cmds = list(cmd)
         cmds.insert( 1, "\"%s\"" % self.VM_FILE )
-        cmds[0] = "-T fusion -gu %s -gp %s %s" % (self.VM_ADMIN, self.VM_PASS, cmds[0])
+        cmds[0] = "-T {} -gu {} -gp {} {}".format(self.provider, self.VM_ADMIN, self.VM_PASS, cmds[0])
         params = " ".join( cmds )
 
         if self.DEBUG: print "[DEBUG] %s" % params

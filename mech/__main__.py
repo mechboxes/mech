@@ -35,6 +35,7 @@ import tempfile
 
 HOME = os.path.expanduser("~/.mech")
 
+
 def get_vm():
     mechfile = load_mechfile()
     vmx = mechfile.get('vmx')
@@ -43,6 +44,7 @@ def get_vm():
         return vm
     puts(colored.red("Couldn't find a vmx"))
     exit()
+
 
 def load_mechfile():
     pwd = os.getcwd()
@@ -97,6 +99,7 @@ def setup_url(url):
 
 
 def setup_tar(filename):
+    puts(colored.yellow("Checking box integrity..."))
     tar = tarfile.open(filename, 'r')
     files = tar.getnames()
     vmx = None
@@ -116,10 +119,13 @@ def setup_tar(filename):
         tar.extractall(path)
         return os.path.join(path, vmx)
 
+
 def mech_init(url):
     if url.startswith("http"):
+        puts(colored.green("Downloading box from the internet"))
         vmx = setup_url(url)
     else:
+        puts(colored.green("Installing box from local file"))
         vmx = setup_tar(url)
         url = None
     print "Setting up", vmx
@@ -131,14 +137,17 @@ def mech_init(url):
     json.dump(mechfile, open('mechfile', 'w+'), sort_keys=True, indent=4, separators=(',', ': '))
     puts(colored.green("Finished."))
 
+
 def mech_list():
     vms = glob.glob(os.path.join(HOME, '*'))
     for vm in vms:
         print os.path.basename(vm)
 
+
 def mech_status():
     vm = Vmrun('')
     puts("".join(vm.list()))
+
 
 def mech_start(filename=False, gui=False):
     if filename:
@@ -152,20 +161,24 @@ def mech_start(filename=False, gui=False):
     ip = vm.ip()
     puts(colored.green("VM started on {}".format(ip)))
 
+
 def mech_stop():
     vm = get_vm()
     vm.stop()
     puts(colored.green("Stopped", vm))
+
 
 def mech_suspend():
     vm = get_vm()
     vm.suspend()
     puts(colored.green("Suspended", vm))
 
+
 def mech_pause():
     vm = get_vm()
     puts(colored.yellow("Pausing", vm))
     vm.pause()
+
 
 def mech_ssh(user="mech"):
     vm = get_vm()
@@ -176,6 +189,7 @@ def mech_ssh(user="mech"):
     else:
         puts(colored.red("IP not found"))
         return
+
 
 def mech_ip():
     vm = get_vm()
@@ -192,6 +206,7 @@ def main(args=None):
     DEBUG = arguments['--debug']
 
     if arguments['init'] and arguments['<url>']:
+        puts(colored.green("Initializing mech"))
         mech_init(arguments['<url>'])
         exit()
 
@@ -221,7 +236,9 @@ def main(args=None):
         exit()
 
     elif arguments['ssh']:
-        name = arguments.get("--user", "mech")
+        name = arguments.get("--user")
+        if not name:
+            name = "mech"
         mech_ssh(name)
         exit()
 
