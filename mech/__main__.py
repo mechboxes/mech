@@ -158,7 +158,12 @@ def mech_start(filename=False, gui=False):
         vm.start(gui=True)
     else:
         vm.start()
+    puts(colored.yellow("Getting IP address..."))
     ip = vm.ip()
+    puts(colored.green("VM started on {}".format(ip)))
+    puts(colored.yellow("Sharing current folder..."))
+    vm.enableSharedFolders()
+    vm.addSharedFolder('mech', os.getcwd())
     puts(colored.green("VM started on {}".format(ip)))
 
 
