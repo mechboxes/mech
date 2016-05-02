@@ -23,9 +23,9 @@ class Vmrun:
 
     def execute( self, path, *cmd ):
 
-        if os.name == 'nt':
+        if os.sys.platform == 'win32':
             self.provider = 'ws'
-        elif os.name == 'darwin':
+        elif os.sys.platform == 'darwin':
             self.provider = 'fusion'
         cmds = list(cmd)
         cmds.insert( 1, "\"%s\"" % self.VM_FILE )
