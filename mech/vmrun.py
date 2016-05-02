@@ -59,7 +59,9 @@ class Vmrun:
         if vmrun != '':
             self.VMRUN_PATH = vmrun
         else:
-            if os.sys.platform == "win32":
+            if os.sys.platform == 'darwin':
+                self.VMRUN_PATH = '/Applications/VMware\ Fusion.app/Contents/Library/vmrun'
+            elif os.sys.platform == "win32":
                 # get vmrun.exe's full path via registry
                 import _winreg
                 reg = _winreg.ConnectRegistry( None, _winreg.HKEY_LOCAL_MACHINE )
