@@ -26,4 +26,4 @@ Options:
 
 # Install
 
-`pip install mech`
+`pip install git+https://github.com/ColdHeat/mech.git` for the lastest or `pip install mech` for what I last pushed to PyPi
