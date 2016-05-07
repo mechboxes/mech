@@ -3,12 +3,13 @@
 mech.
 
 Usage:
-    mech init <url>
+    mech init [<url>]
     mech (up | start) [options] [<name> --gui]
     mech (down | stop) [options] [<name>]
     mech suspend [options]
     mech pause [options]
     mech ssh [options] [--user=<user>]
+    mech scp <src> <dst> [--user=<user>]
     mech ip [options]
     mech (list | status) [options]
     mech -h | --help
@@ -22,6 +23,7 @@ Options:
 
 from clint.textui import colored, puts
 from clint.textui import progress
+from clint.textui import prompt
 from docopt import docopt
 from vmrun import Vmrun
 from pprint import pprint
@@ -36,6 +38,15 @@ import tempfile
 HOME = os.path.expanduser("~/.mech")
 
 
+def locate_vmx():
+    vmx_files = glob.glob("*.vmx")
+    if len(vmx_files) != 1:
+        puts(colored.red("There are {} vmx files in the current directory. There must only be one.".format(
+            len(vmx_files))))
+        exit()
+    return os.path.join(os.getcwd(), vmx_files[0])
+
+
 def get_vm():
     mechfile = load_mechfile()
     vmx = mechfile.get('vmx')
@@ -44,6 +55,15 @@ def get_vm():
         return vm
     puts(colored.red("Couldn't find a vmx"))
     exit()
+
+
+def get_vm_user():
+    mechfile = load_mechfile()
+    user = mechfile.get('user')
+    if user:
+        return user
+    else:
+        return "mech"
 
 
 def load_mechfile():
@@ -62,7 +82,33 @@ def load_mechfile():
                 with open(test_mechfile) as mechfile:
                     mech_data = json.load(mechfile)
                 break
+    if mech_data == None:
+        vmx = locate_vmx()
+
+        decision = prompt.yn("It appears you do not have a mechfile, would you like to create one?")
+        if decision:
+            mech_data = {}
+            mech_data["vmx"] = prompt.query("Vmx absolute path:", default=vmx)
+            mech_data["url"] = "None"
+            mech_data["user"] = "mech"
+
+            save_mechfile(mech_data)
+        else:
+            puts(colored.red("Unable to load mechfile"))
+            exit()
     return mech_data
+
+
+def save_mechfile(config):
+    puts("Saving {}".format(config.get('vmx')))
+
+    mechfile = {
+        'vmx':config.get('vmx'),
+        'url':config.get('url'),
+        'user':config.get('user')
+    }
+    json.dump(mechfile, open('mechfile', 'w+'), sort_keys=True, indent=4, separators=(',', ': '))
+    puts(colored.green("Finished."))
 
 
 def setup_url(url):
@@ -121,18 +167,22 @@ def setup_tar(filename):
 
 
 def mech_init(url):
-    if url.startswith("http"):
+    if url == None:
+        puts(colored.green("Creating Mechfile from existing VM"))
+        vmx = locate_vmx()
+    elif url.startswith("http"):
         puts(colored.green("Downloading box from the internet"))
         vmx = setup_url(url)
     else:
         puts(colored.green("Installing box from local file"))
         vmx = setup_tar(url)
         url = None
-    print "Setting up", vmx
+    puts("Setting up {}".format(vmx))
 
     mechfile = {
         'vmx':vmx,
-        'url':url
+        'url':url,
+        'user': "mech"
     }
     json.dump(mechfile, open('mechfile', 'w+'), sort_keys=True, indent=4, separators=(',', ': '))
     puts(colored.green("Finished."))
@@ -141,7 +191,7 @@ def mech_init(url):
 def mech_list():
     vms = glob.glob(os.path.join(HOME, '*'))
     for vm in vms:
-        print os.path.basename(vm)
+        puts(os.path.basename(vm))
 
 
 def mech_status():
@@ -185,16 +235,44 @@ def mech_pause():
     vm.pause()
 
 
-def mech_ssh(user="mech"):
+def mech_ssh(user):
     vm = get_vm()
     ip = vm.ip()
+    if user == None:
+        user = get_vm_user()
     if ip:
-        puts(colored.green(ip))
+        puts("Connecting to {}".format(colored.green(ip)))
         os.system('ssh {}@{}'.format(user, ip))
     else:
         puts(colored.red("IP not found"))
         return
 
+def mech_scp(user, src, dst):
+    vm = get_vm()
+    ip = vm.ip()
+    if user == None:
+        user = get_vm_user()
+    if ip:
+        src_is_host = src.startswith(":")
+        dst_is_host = dst.startswith(":")
+
+        if src_is_host and dst_is_host:
+            puts(colored.red("Both src and host are host destinations"))
+            exit()
+
+        if dst_is_host:
+            dst = dst[1:]
+            puts("Sending {} to {}@{}:{}".format(
+                src, colored.green(user), colored.green(ip), dst))
+            os.system('scp {} {}@{}:{}'.format(src, user, ip, dst))
+        else:
+            src = src[1:]
+            puts("Getting {} from {}@{}:{}".format(
+                dst, colored.green(user), colored.green(ip), src))
+            os.system('scp {}@{}:{} {}'.format(user, ip, src, dst))
+    else:
+        puts(colored.red("IP not found"))
+        return
 
 def mech_ip():
     vm = get_vm()
@@ -210,7 +288,10 @@ def main(args=None):
 
     DEBUG = arguments['--debug']
 
-    if arguments['init'] and arguments['<url>']:
+    if not os.path.exists(HOME):
+        os.makedirs(HOME)
+
+    if arguments['init']:
         puts(colored.green("Initializing mech"))
         mech_init(arguments['<url>'])
         exit()
@@ -242,9 +323,12 @@ def main(args=None):
 
     elif arguments['ssh']:
         name = arguments.get("--user")
-        if not name:
-            name = "mech"
         mech_ssh(name)
+        exit()
+
+    elif arguments['scp']:
+        name = arguments.get("--user")
+        mech_scp(name, arguments['<src>'], arguments['<dst>'])
         exit()
 
     elif arguments['ip']:
