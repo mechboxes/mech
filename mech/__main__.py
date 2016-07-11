@@ -3,7 +3,7 @@
 mech.
 
 Usage:
-    mech init [<url>]
+    mech init [<url>] [--name=<name>]
     mech (up | start) [options] [<name> --gui]
     mech (down | stop) [options] [<name>]
     mech suspend [options]
@@ -111,7 +111,7 @@ def save_mechfile(config):
     puts(colored.green("Finished."))
 
 
-def setup_url(url):
+def setup_url(url, name):
     r = requests.get(url, stream=True)
     filename = os.path.basename(url)
     path = os.path.join(HOME, 'tmp', filename)
@@ -135,16 +135,21 @@ def setup_url(url):
                 exit()
         if vmx:
             puts(colored.green("Extracting..."))
-            os.path.basename(vmx)
-            folder, dot, ext = vmx.rpartition('.')
-            path = os.path.join(HOME, folder)
-            os.mkdir(os.path.join(HOME, folder), 0755)
-            tar.extractall(path)
-            return os.path.join(path, vmx)
+            if not name:
+                folder, dot, ext = vmx.rpartition('.')
+                path = os.path.join(HOME, folder)
+                os.mkdir(os.path.join(HOME, folder), 0755)
+                tar.extractall(path)
+                return os.path.join(path, vmx)
+            else:
+                path = os.path.join(HOME, name)
+                os.mkdir(os.path.join(HOME, name), 0755)
+                tar.extractall(path)
+                return os.path.join(path, vmx)
     return os.path.abspath(path)
 
 
-def setup_tar(filename):
+def setup_tar(filename, name):
     puts(colored.yellow("Checking box integrity..."))
     tar = tarfile.open(filename, 'r')
     files = tar.getnames()
@@ -158,24 +163,29 @@ def setup_tar(filename):
             exit()
     if vmx:
         puts(colored.green("Extracting..."))
-        os.path.basename(vmx)
-        folder, dot, ext = vmx.rpartition('.')
-        path = os.path.join(HOME, folder)
-        os.mkdir(os.path.join(HOME, folder), 0755)
-        tar.extractall(path)
-        return os.path.join(path, vmx)
+        if not name:
+            folder, dot, ext = vmx.rpartition('.')
+            path = os.path.join(HOME, folder)
+            os.mkdir(os.path.join(HOME, folder), 0755)
+            tar.extractall(path)
+            return os.path.join(path, vmx)
+        else:
+            path = os.path.join(HOME, name)
+            os.mkdir(os.path.join(HOME, name), 0755)
+            tar.extractall(path)
+            return os.path.join(path, vmx)
 
 
-def mech_init(url):
+def mech_init(url, name):
     if url == None:
         puts(colored.green("Creating Mechfile from existing VM"))
         vmx = locate_vmx()
     elif url.startswith("http"):
         puts(colored.green("Downloading box from the internet"))
-        vmx = setup_url(url)
+        vmx = setup_url(url, name)
     else:
         puts(colored.green("Installing box from local file"))
-        vmx = setup_tar(url)
+        vmx = setup_tar(url, name)
         url = None
     puts("Setting up {}".format(vmx))
 
@@ -293,7 +303,7 @@ def main(args=None):
 
     if arguments['init']:
         puts(colored.green("Initializing mech"))
-        mech_init(arguments['<url>'])
+        mech_init(arguments['<url>'], arguments['--name'])
         exit()
 
     elif arguments['list']:
