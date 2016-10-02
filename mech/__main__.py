@@ -6,12 +6,13 @@ Usage:
     mech init [<url>] [--name=<name>]
     mech (up | start) [options] [<name> --gui]
     mech (down | stop) [options] [<name>]
-    mech suspend [options]
-    mech pause [options]
-    mech ssh [options] [--user=<user>]
+    mech suspend [options] [<name>]
+    mech pause [options] [<name>]
+    mech ssh [options] [<name> --user=<user>]
     mech scp <src> <dst> [--user=<user>]
-    mech ip [options]
-    mech (list | status) [options]
+    mech ip [options] [<name>]
+    mech (list | ls) [options]
+    mech (status | ps) [options]
     mech -h | --help
     mech --version
 
@@ -37,14 +38,18 @@ import tempfile
 
 HOME = os.path.expanduser("~/.mech")
 
+if not os.path.exists(HOME):
+    os.makedirs(HOME)
 
-def locate_vmx():
-    vmx_files = glob.glob("*.vmx")
+
+def locate_vmx(directory='.'):
+    path = os.path.join(directory, "*.vmx")
+    vmx_files = glob.glob(path)
     if len(vmx_files) != 1:
         puts(colored.red("There are {} vmx files in the current directory. There must only be one.".format(
             len(vmx_files))))
         exit()
-    return os.path.join(os.getcwd(), vmx_files[0])
+    return os.path.join(vmx_files[0])
 
 
 def get_vm():
@@ -211,9 +216,14 @@ def mech_status():
 
 def mech_start(filename=False, gui=False):
     if filename:
-        vm = Vmrun(filename)
+        if os.path.exists(os.path.join(os.getcwd(), filename)):
+            vm = Vmrun(filename)
+        elif os.path.exists(os.path.join(HOME, filename)):
+            vmx = locate_vmx(os.path.join(HOME, filename))
+            vm = Vmrun(vmx)
     else:
         vm = get_vm()
+
     if gui:
         vm.start(gui=True)
     else:
@@ -227,29 +237,58 @@ def mech_start(filename=False, gui=False):
     puts(colored.green("VM started on {}".format(ip)))
 
 
-def mech_stop():
-    vm = get_vm()
+def mech_stop(filename=False):
+    if filename:
+        if os.path.exists(os.path.join(os.getcwd(), filename)):
+            vm = Vmrun(filename)
+        elif os.path.exists(os.path.join(HOME, filename)):
+            vmx = locate_vmx(os.path.join(HOME, filename))
+            vm = Vmrun(vmx)
+    else:
+        vm = get_vm()
+
     vm.stop()
     puts(colored.green("Stopped", vm))
 
 
-def mech_suspend():
-    vm = get_vm()
+def mech_suspend(filename=False):
+    if filename:
+        if os.path.exists(os.path.join(os.getcwd(), filename)):
+            vm = Vmrun(filename)
+        elif os.path.exists(os.path.join(HOME, filename)):
+            vmx = locate_vmx(os.path.join(HOME, filename))
+            vm = Vmrun(vmx)
+    else:
+        vm = get_vm()
     vm.suspend()
     puts(colored.green("Suspended", vm))
 
 
-def mech_pause():
-    vm = get_vm()
+def mech_pause(filename=False):
+    if filename:
+        if os.path.exists(os.path.join(os.getcwd(), filename)):
+            vm = Vmrun(filename)
+        elif os.path.exists(os.path.join(HOME, filename)):
+            vmx = locate_vmx(os.path.join(HOME, filename))
+            vm = Vmrun(vmx)
+    else:
+        vm = get_vm()
     puts(colored.yellow("Pausing", vm))
     vm.pause()
 
 
-def mech_ssh(user):
-    vm = get_vm()
+def mech_ssh(filename=False, user=False):
+    if filename:
+        if os.path.exists(os.path.join(os.getcwd(), filename)):
+            vm = Vmrun(filename)
+        elif os.path.exists(os.path.join(HOME, filename)):
+            vmx = locate_vmx(os.path.join(HOME, filename))
+            vm = Vmrun(vmx)
+    else:
+        vm = get_vm()
     ip = vm.ip()
-    if user == None:
-        user = get_vm_user()
+    if not user:
+        user = 'mech'
     if ip:
         puts("Connecting to {}".format(colored.green(ip)))
         os.system('ssh {}@{}'.format(user, ip))
@@ -284,8 +323,15 @@ def mech_scp(user, src, dst):
         puts(colored.red("IP not found"))
         return
 
-def mech_ip():
-    vm = get_vm()
+def mech_ip(filename=False):
+    if filename:
+        if os.path.exists(os.path.join(os.getcwd(), filename)):
+            vm = Vmrun(filename)
+        elif os.path.exists(os.path.join(HOME, filename)):
+            vmx = locate_vmx(os.path.join(HOME, filename))
+            vm = Vmrun(vmx)
+    else:
+        vm = get_vm()
     ip = vm.ip()
     if ip:
         puts(ip)
@@ -306,11 +352,11 @@ def main(args=None):
         mech_init(arguments['<url>'], arguments['--name'])
         exit()
 
-    elif arguments['list']:
+    elif arguments['list'] or arguments['ls']:
         mech_list()
         exit()
 
-    elif arguments['status']:
+    elif arguments['status'] or arguments['ps']:
         mech_status()
         exit()
 
@@ -320,20 +366,24 @@ def main(args=None):
         exit()
 
     elif arguments['down'] or arguments['stop']:
-        mech_stop()
+        name = arguments.get('<name>')
+        mech_stop(name)
         exit()
 
     elif arguments['pause']:
-        mech_pause()
+        name = arguments.get('<name>')
+        mech_pause(name)
         exit()
 
     elif arguments['suspend']:
-        mech_suspend()
+        name = arguments.get('<name>')
+        mech_suspend(name)
         exit()
 
     elif arguments['ssh']:
-        name = arguments.get("--user")
-        mech_ssh(name)
+        user = arguments.get("--user")
+        name = arguments.get('<name>')
+        mech_ssh(name, user)
         exit()
 
     elif arguments['scp']:
@@ -342,7 +392,8 @@ def main(args=None):
         exit()
 
     elif arguments['ip']:
-        mech_ip()
+        name = arguments.get("--user")
+        mech_ip(name)
         exit()
 
 if __name__ == "__main__":
