@@ -49,24 +49,6 @@ def load_mechfile(name=None):
         return mech_data
 
 
-def get_vm():
-    mechfile = load_mechfile()
-    vmx = mechfile.get('vmx')
-    if vmx:
-        vm = Vmrun(vmx)
-        return vm
-    puts(colored.red("Couldn't find a vmx"))
-    exit()
-
-
-def get_vm_user():
-    mechfile = load_mechfile()
-    user = mechfile.get('user')
-    if user:
-        return user
-    else:
-        return "mech"
-
 def setup_url(url, name):
     r = requests.get(url, stream=True)
     filename = os.path.basename(url)
@@ -95,13 +77,19 @@ def setup_url(url, name):
                 folder, dot, ext = vmx.rpartition('.')
                 path = os.path.join(HOME, folder)
                 os.mkdir(os.path.join(HOME, folder), 0755)
-                tar.extractall(path)
-                return os.path.join(path, vmx)
             else:
                 path = os.path.join(HOME, name)
                 os.mkdir(os.path.join(HOME, name), 0755)
-                tar.extractall(path)
-                return os.path.join(path, vmx)
+
+            config = {
+                'vmx':os.path.join(path, vmx),
+                'url':url,
+                'user': prompt.query("What username would you like to save?", default='mech')
+            }
+            tar.extractall(path)
+            save_mechfile(config, path)
+            save_mechfile(config, '.')
+            return os.path.join(path, vmx)
     return os.path.abspath(path)
 
 
@@ -123,22 +111,27 @@ def setup_tar(filename, name):
             folder, dot, ext = vmx.rpartition('.')
             path = os.path.join(HOME, folder)
             os.mkdir(os.path.join(HOME, folder), 0755)
-            tar.extractall(path)
-            return os.path.join(path, vmx)
         else:
             path = os.path.join(HOME, name)
             os.mkdir(os.path.join(HOME, name), 0755)
-            tar.extractall(path)
-            return os.path.join(path, vmx)
+        tar.extractall(path)
+        config = {
+            'vmx': os.path.join(path, vmx),
+            'url': None,
+            'user': prompt.query("What username would you like to save?", default='mech')
+        }
+        save_mechfile(config, path)
+        save_mechfile(config, '.')
+        return os.path.join(path, vmx)
 
 
-def save_mechfile(config):
-    puts("Saving {}".format(config.get('vmx')))
+def save_mechfile(config, directory='.'):
+    puts("Saving {}".format(os.path.join(directory, 'mechfile')))
 
     mechfile = {
         'vmx':config.get('vmx'),
         'url':config.get('url'),
         'user':config.get('user')
     }
-    json.dump(mechfile, open('mechfile', 'w+'), sort_keys=True, indent=4, separators=(',', ': '))
+    json.dump(mechfile, open(os.path.join(directory, 'mechfile'), 'w+'), sort_keys=True, indent=4, separators=(',', ': '))
     puts(colored.green("Finished."))

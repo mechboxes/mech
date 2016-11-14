@@ -73,7 +73,9 @@ def main(args=None):
 
     if arguments['init']:
         puts(colored.green("Initializing mech"))
-        mech_init(arguments['<url>'], arguments['--name'])
+        url = arguments['<url>']
+        name = arguments['--name']
+        Mech.setup(url, name)
         exit()
 
     elif arguments['list'] or arguments['ls']:

@@ -2,6 +2,7 @@ from vmrun import Vmrun
 from clint.textui import colored, puts
 import os
 import glob
+import utils
 
 HOME = os.path.expanduser("~/.mech")
 
@@ -19,12 +20,11 @@ class Mech(object):
 
 
     @classmethod
-    def setup(cls, obj):
+    def setup(cls, obj, name):
         if obj.startswith("http"):
-            vmx = setup_url(url, name)
+            vmx = utils.setup_url(obj, name)
         else:
-            vmx = setup_tar(url, name)
-            url = None
+            vmx = utils.setup_tar(obj, name)
 
     @classmethod
     def status(self):
