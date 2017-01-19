@@ -2,6 +2,8 @@
 
 I made this because I don't like VirtualBox and I wanted to use vagrant with VMWare Fusion but was too cheap to buy the Vagrant plugin.
 
+https://blog.kchung.co/mech-vagrant-with-vmware-integration-for-free/
+
 Usage is pretty straightforward:
 
 ```
