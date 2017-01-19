@@ -369,7 +369,7 @@ class Vmrun:
         else:
             ip = self.vmrun( 'getGuestIPAddress')[0].strip()
         try:
-            socket.inet_aton(ip)
+            # socket.inet_aton(ip)
             return ip
         except:
             return None

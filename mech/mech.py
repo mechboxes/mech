@@ -74,6 +74,7 @@ class Mech(object):
 
     def ssh(self):
         vm = Vmrun(self.vmx)
+        print self.vmx
         ip = vm.ip()
         if ip:
             puts("Connecting to {}".format(colored.green(ip)))
@@ -83,4 +84,7 @@ class Mech(object):
 
     def ip(self):
         vm = Vmrun(self.vmx)
-        return vm.ip()
+        print self.vmx
+        ip = vm.ip()
+        puts(colored.green(ip))
+        return ip

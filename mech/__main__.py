@@ -64,7 +64,7 @@ def operation(op, name, options=None):
             puts(colored.red("Couldn't find a VMX in the mechfile"))
 
 def main(args=None):
-    arguments = docopt(__doc__, version='mech 0.3')
+    arguments = docopt(__doc__, version='mech 0.4.1')
 
     DEBUG = arguments['--debug']
 
@@ -125,7 +125,7 @@ def main(args=None):
 
     elif arguments['ip']:
         name = arguments['<name>']
-        operation(op='ip', name=name, options={'user':user})
+        operation(op='ip', name=name)
         exit()
 
 if __name__ == "__main__":
