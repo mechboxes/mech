@@ -22,11 +22,10 @@ import socket
 class Vmrun:
 
     def execute( self, path, *cmd ):
-
-        if os.sys.platform == 'win32':
-            self.provider = 'ws'
-        elif os.sys.platform == 'darwin':
+        if os.sys.platform == 'darwin':
             self.provider = 'fusion'
+        else:
+            self.provider = 'ws'
         cmds = list(cmd)
         cmds.insert( 1, "\"%s\"" % self.VM_FILE )
         cmds[0] = "-T {} -gu {} -gp {} {}".format(self.provider, self.VM_ADMIN, self.VM_PASS, cmds[0])
@@ -66,7 +65,15 @@ class Vmrun:
                 import _winreg
                 reg = _winreg.ConnectRegistry( None, _winreg.HKEY_LOCAL_MACHINE )
                 try:
+                    # Known registry key location in Windows 10
                     rh = _winreg.OpenKey( reg, r'SOFTWARE\WOW6432Node\VMware, Inc.\VMware Workstation' )
+                    try:
+                        vw_dir = _winreg.QueryValueEx( rh, 'InstallPath' )[0]
+                    finally:
+                        _winreg.CloseKey( rh )
+                except WindowsError:
+                    # Previously used registry key location
+                    rh = _winreg.OpenKey( reg, r'SOFTWARE\VMware, Inc.\VMware Workstation' )
                     try:
                         vw_dir = _winreg.QueryValueEx( rh, 'InstallPath' )[0]
                     finally:
