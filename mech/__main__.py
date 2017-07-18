@@ -52,7 +52,7 @@ def operation(op, name, options=None):
             return
     else:
         mechfile = utils.load_mechfile()
-        if mechfile is None
+        if mechfile is None:
             puts(colored.red("Couldn't find a mechfile in the current directory any deeper directories"))
             puts(colored.red("You can specify the name of the VM you'd like to start with mech up <name>"))
             puts(colored.red("Or run mech init to setup a tarball of your VM or download the VM"))

@@ -66,7 +66,7 @@ class Vmrun:
                 import _winreg
                 reg = _winreg.ConnectRegistry( None, _winreg.HKEY_LOCAL_MACHINE )
                 try:
-                    rh = _winreg.OpenKey( reg, r'SOFTWARE\VMware, Inc.\VMware Workstation' )
+                    rh = _winreg.OpenKey( reg, r'SOFTWARE\WOW6432Node\VMware, Inc.\VMware Workstation' )
                     try:
                         vw_dir = _winreg.QueryValueEx( rh, 'InstallPath' )[0]
                     finally:
