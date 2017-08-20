@@ -8,14 +8,17 @@ Usage is pretty straightforward:
 
 ```
 Usage:
-    mech init <url>
+    mech init [<url>] [--name=<name>]
+    mech rm [<name>]
     mech (up | start) [options] [<name> --gui]
     mech (down | stop) [options] [<name>]
-    mech suspend [options]
-    mech pause [options]
-    mech ssh [options] [--user=<user>]
-    mech ip [options]
-    mech (list | status) [options]
+    mech suspend [options] [<name>]
+    mech pause [options] [<name>]
+    mech ssh [options] [<name> --user=<user>]
+    mech scp <src> <dst> [--user=<user>]
+    mech ip [options] [<name>]
+    mech (list | ls) [options]
+    mech (status | ps) [options]
     mech -h | --help
     mech --version
 Options:
