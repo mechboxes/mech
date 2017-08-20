@@ -1,8 +1,10 @@
 from vmrun import Vmrun
-from clint.textui import colored, puts
+from clint.textui import colored, puts, prompt
 import os
 import glob
 import utils
+import requests
+import shutil
 
 HOME = os.path.expanduser("~/.mech")
 
@@ -23,8 +25,22 @@ class Mech(object):
     def setup(cls, obj, name):
         if obj.startswith("http"):
             vmx = utils.setup_url(obj, name)
-        else:
+        elif os.path.isfile(obj):
             vmx = utils.setup_tar(obj, name)
+        else:
+            account, box = obj.split('/')
+            url = "https://app.vagrantup.com/{account}/boxes/{box}".format(account=account, box=box)
+            data = requests.get(url).json()
+            versions = data['versions']
+            for v in versions:
+                for provider in v['providers']:
+                    if 'vmware' in provider['name']:
+                        url = provider['url']
+                        print "Found url {} with provider {}".format(url, provider['name'])
+                        utils.setup_url(url, box)
+                        return
+            else:
+                puts(colored.red("Couldn't find a VMWare compatible VM"))
 
     @classmethod
     def status(self):
@@ -54,11 +70,21 @@ class Mech(object):
         puts(colored.green("VM started on {}".format(ip)))
 
 
+    def remove(self):
+        directory = os.path.dirname(self.vmx)
+        name = os.path.basename(directory)
+        if utils.confirm("Are you sure you want to delete {name} at {directory}".format(name=name, directory=directory), default='n'):
+            print "Deleting..."
+            shutil.rmtree(directory)
+        else:
+            print "Deletion aborted"
+
+
     def stop(self):
         vm = Vmrun(self.vmx)
         vm.stop()
         puts(colored.green("Stopped", vm))
-
+        puts(colored.yellow("Getting IP address..."))
 
     def pause(self):
         vm = Vmrun(self.vmx)

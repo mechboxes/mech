@@ -5,6 +5,7 @@ from docopt import docopt
 from vmrun import Vmrun
 from pprint import pprint
 from fnmatch import fnmatch
+from re import match, I
 import tarfile
 import requests
 import glob
@@ -135,3 +136,26 @@ def save_mechfile(config, directory='.'):
     }
     json.dump(mechfile, open(os.path.join(directory, 'mechfile'), 'w+'), sort_keys=True, indent=4, separators=(',', ': '))
     puts(colored.green("Finished."))
+
+
+def confirm(prompt, default='y'):
+    default = default.lower()
+    if default not in ['y', 'n']:
+        default = 'y'
+    choicebox = '[Y/n]' if default == 'y' else '[y/N]'
+    prompt = prompt + ' ' + choicebox + ' '
+
+    while True:
+        input = raw_input(prompt).strip()
+        print input
+        if input == '':
+            if default == 'y':
+                return True
+            else:
+                return False
+
+        if match('y(?:es)?', input, I):
+            return True
+
+        elif match('n(?:o)?', input, I):
+            return False

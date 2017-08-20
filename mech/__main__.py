@@ -4,6 +4,7 @@ mech.
 
 Usage:
     mech init [<url>] [--name=<name>]
+    mech rm [<name>]
     mech (up | start) [options] [<name> --gui]
     mech (down | stop) [options] [<name>]
     mech suspend [options] [<name>]
@@ -84,6 +85,11 @@ def main(args=None):
 
     elif arguments['status'] or arguments['ps']:
         Mech.status()
+        exit()
+
+    elif arguments['rm'] or arguments['del']:
+        name = arguments['<name>']
+        operation(op='remove', name=name)
         exit()
 
     elif arguments['up'] or arguments['start']:
