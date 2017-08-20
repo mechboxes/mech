@@ -50,8 +50,14 @@ def operation(op, name, options=None):
             method()
         else:
             puts(colored.red("Couldn't find a VMX in the specified directory"))
+            return
     else:
         mechfile = utils.load_mechfile()
+        if mechfile is None:
+            puts(colored.red("Couldn't find a mechfile in the current directory any deeper directories"))
+            puts(colored.red("You can specify the name of the VM you'd like to start with mech up <name>"))
+            puts(colored.red("Or run mech init to setup a tarball of your VM or download the VM"))
+            return
         vmx = mechfile.get('vmx')
         if vmx:
             m = Mech()
@@ -63,6 +69,7 @@ def operation(op, name, options=None):
             method()
         else:
             puts(colored.red("Couldn't find a VMX in the mechfile"))
+            return
 
 def main(args=None):
     arguments = docopt(__doc__, version='mech 0.4.1')
