@@ -10,7 +10,7 @@ Usage:
     mech suspend [options] [<name>]
     mech pause [options] [<name>]
     mech ssh [options] [<name> --user=<user>]
-    mech scp <src> <dst> [--user=<user>]
+    mech scp [<name>] <src> <dst> [--user=<user>]
     mech ip [options] [<name>]
     mech (list | ls) [options]
     mech (status | ps) [options]
@@ -34,7 +34,7 @@ import utils
 
 HOME = os.path.expanduser("~/.mech")
 
-def operation(op, name, options=None):
+def operation(op, name, options=None, kwargs=None):
     if options is None:
         options = {}
     if name:
@@ -47,7 +47,10 @@ def operation(op, name, options=None):
             for key, value in options.iteritems():
                 setattr(m, key, value)
             method = getattr(m, op)
-            method()
+            if kwargs:
+                method(**kwargs)
+            else:
+                method()
         else:
             puts(colored.red("Couldn't find a VMX in the specified directory"))
             return
@@ -66,7 +69,10 @@ def operation(op, name, options=None):
             for key, value in options.iteritems():
                 setattr(m, key, value)
             method = getattr(m, op)
-            method()
+            if kwargs:
+                method(**kwargs)
+            else:
+                method()
         else:
             puts(colored.red("Couldn't find a VMX in the mechfile"))
             return
@@ -94,7 +100,7 @@ def main(args=None):
         Mech.status()
         exit()
 
-    elif arguments['rm'] or arguments['del']:
+    elif arguments['rm']:
         name = arguments['<name>']
         operation(op='remove', name=name)
         exit()
@@ -132,8 +138,14 @@ def main(args=None):
 
     elif arguments['scp']:
         name = arguments['<name>']
-        name = arguments.get("--user")
-        operation(op='scp', name=name, options={'user':user})
+        user = arguments.get("--user")
+        if user:
+            options = {'user':user}
+        else:
+            options = {}
+        src = arguments['<src>']
+        dst = arguments['<dst>']
+        operation(op='scp', name=name, options=options, kwargs={'src':src, 'dst':dst})
         exit()
 
     elif arguments['ip']:

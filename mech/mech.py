@@ -100,13 +100,48 @@ class Mech(object):
 
     def ssh(self):
         vm = Vmrun(self.vmx)
-        print self.vmx
         ip = vm.ip()
         if ip:
             puts("Connecting to {}".format(colored.green(ip)))
             os.system('ssh {}@{}'.format(self.user, ip))
         else:
             puts(colored.red("IP not found"))
+
+
+    def scp(self, src, dst):
+        vm = Vmrun(self.vmx)
+        ip = vm.ip()
+        user = self.user
+        if ip:
+            src_is_host = src.startswith(":")
+            dst_is_host = dst.startswith(":")
+
+            if src_is_host and dst_is_host:
+                puts(colored.red("Both src and host are host destinations"))
+                exit()
+
+            if dst_is_host:
+                dst = dst[1:]
+                puts("Sending {src} to {user}@{ip}:{dst}".format(
+                    user=colored.green(user),
+                    ip=colored.green(ip),
+                    src=src,
+                    dst=dst,
+                ))
+                os.system('scp {} {}@{}:{}'.format(src, user, ip, dst))
+            else:
+                src = src[1:]
+                puts("Getting {user}@{ip}:{src} and saving in {dst}".format(
+                    user=colored.green(user),
+                    ip=colored.green(ip),
+                    src=src,
+                    dst=dst,
+                ))
+                os.system('scp {}@{}:{} {}'.format(user, ip, src, dst))
+        else:
+            puts(colored.red("IP not found"))
+            return
+
 
     def ip(self):
         vm = Vmrun(self.vmx)
