@@ -12,6 +12,7 @@ import glob
 import os
 import json
 import tempfile
+import collections
 
 
 HOME = os.path.expanduser("~/.mech")
@@ -23,6 +24,34 @@ def locate_vmx(vm_name):
         return vmx_files[0]
     else:
         return None
+
+
+def parse_vmx(path):
+    vmx = collections.OrderedDict()
+    with open(path) as f:
+        for line in f:
+            line = line.strip().split('=', 1)
+            vmx[line[0]] = line[1]
+    return vmx
+
+
+def rewrite_vmx(path):
+    vmx = parse_vmx(path)
+    vmx["ethernet0.addresstype"] = "generated"
+    vmx["ethernet0.bsdname"] = "en0"
+    vmx["ethernet0.connectiontype"] = "nat"
+    vmx["ethernet0.displayname"] = "Ethernet"
+    vmx["ethernet0.linkstatepropagation.enable"] = "FALSE"
+    vmx["ethernet0.pcislotnumber"] = "32"
+    vmx["ethernet0.present"] = "TRUE"
+    vmx["ethernet0.virtualdev"] = "e1000"
+    vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
+    with open(path, 'w') as new_vmx:
+        for key in vmx:
+            value = vmx[key]
+            row = "{}={}".format(key, value)
+            new_vmx.write(row + os.linesep)
+    return True
 
 
 def load_mechfile(name=None):
@@ -82,14 +111,16 @@ def setup_url(url, name):
                 path = os.path.join(HOME, name)
                 os.mkdir(os.path.join(HOME, name), 0755)
 
+            vmx_path = os.path.join(path, vmx)
             config = {
-                'vmx':os.path.join(path, vmx),
+                'vmx':vmx_path,
                 'url':url,
                 'user': prompt.query("What username would you like to save?", default='mech')
             }
             tar.extractall(path)
             save_mechfile(config, path)
             save_mechfile(config, '.')
+            rewrite_vmx(vmx_path)
             return os.path.join(path, vmx)
     return os.path.abspath(path)
 
@@ -116,13 +147,15 @@ def setup_tar(filename, name):
             path = os.path.join(HOME, name)
             os.mkdir(os.path.join(HOME, name), 0755)
         tar.extractall(path)
+        vmx_path = os.path.join(path, vmx)
         config = {
-            'vmx': os.path.join(path, vmx),
+            'vmx': vmx_path,
             'url': None,
             'user': prompt.query("What username would you like to save?", default='mech')
         }
         save_mechfile(config, path)
         save_mechfile(config, '.')
+        rewrite_vmx(vmx_path)
         return os.path.join(path, vmx)
 
 
@@ -147,7 +180,6 @@ def confirm(prompt, default='y'):
 
     while True:
         input = raw_input(prompt).strip()
-        print input
         if input == '':
             if default == 'y':
                 return True
