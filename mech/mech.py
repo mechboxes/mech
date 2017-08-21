@@ -84,7 +84,7 @@ class Mech(object):
         vm = Vmrun(self.vmx)
         vm.stop()
         puts(colored.green("Stopped", vm))
-        puts(colored.yellow("Getting IP address..."))
+
 
     def pause(self):
         vm = Vmrun(self.vmx)
