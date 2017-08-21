@@ -476,5 +476,21 @@ class Vmrun:
         '''
         return self.vmrun( 'clone', dest_vmx, mode, snap_name )
 
+    def check_tools(self):
+        '''
+        checkToolsState          Path to vmx file     Check the current Tools state
+        '''
+        state = self.vmrun('checkToolsState')
+        if state == 'installed':
+            return True
+        else:
+            return False
+
+    def install_tools(self):
+        '''
+        installTools             Path to vmx file     Install Tools in Guest
+        '''
+        return self.vmrun('installTools')
+
 if __name__ == '__main__':
     print 'Hello World'
