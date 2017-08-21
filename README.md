@@ -35,4 +35,9 @@ Options:
 
 # Shared Folders
 
-If the box you init was created properly, you will be able to access the host's current working directory in `/mnt/hgfs/mech`.
+If the box you init was created properly, you will be able to access the host's current working directory in `/mnt/hgfs/mech`. If you are having trouble try running: 
+
+```bash
+sudo apt-get install linux-headers-$(uname -r)
+sudo vmware-config-tools.pl
+```
