@@ -9,7 +9,7 @@ setup(
         ]
     },
     install_requires=['requests', 'clint'],
-    version='0.4.1',
+    version='0.5',
     description='Tool for command line virtual machines',
     author='Kevin Chung',
     author_email='kchung@nyu.edu',

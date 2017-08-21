@@ -78,7 +78,7 @@ def operation(op, name, options=None, kwargs=None):
             return
 
 def main(args=None):
-    arguments = docopt(__doc__, version='mech 0.4.1')
+    arguments = docopt(__doc__, version='mech 0.5')
 
     DEBUG = arguments['--debug']
 
