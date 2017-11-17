@@ -31,25 +31,33 @@ def parse_vmx(path):
     with open(path) as f:
         for line in f:
             line = line.strip().split('=', 1)
-            vmx[line[0]] = line[1]
+            vmx[line[0].rstrip()] = line[1].lstrip()
     return vmx
 
 
 def rewrite_vmx(path):
     vmx = parse_vmx(path)
-    vmx["ethernet0.addresstype"] = "generated"
-    vmx["ethernet0.bsdname"] = "en0"
-    vmx["ethernet0.connectiontype"] = "nat"
-    vmx["ethernet0.displayname"] = "Ethernet"
-    vmx["ethernet0.linkstatepropagation.enable"] = "FALSE"
-    vmx["ethernet0.pcislotnumber"] = "32"
-    vmx["ethernet0.present"] = "TRUE"
-    vmx["ethernet0.virtualdev"] = "e1000"
-    vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
+
+    # Check if there is an existing interface
+    for vmx_key in vmx:
+        if vmx_key.startswith('ethernet'):
+            break
+    else:
+        # Write one if there is not
+        vmx["ethernet0.addresstype"] = "generated"
+        vmx["ethernet0.bsdname"] = "en0"
+        vmx["ethernet0.connectiontype"] = "nat"
+        vmx["ethernet0.displayname"] = "Ethernet"
+        vmx["ethernet0.linkstatepropagation.enable"] = "FALSE"
+        vmx["ethernet0.pcislotnumber"] = "32"
+        vmx["ethernet0.present"] = "TRUE"
+        vmx["ethernet0.virtualdev"] = "e1000"
+        vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
+
     with open(path, 'w') as new_vmx:
         for key in vmx:
             value = vmx[key]
-            row = "{}={}".format(key, value)
+            row = "{} = {}".format(key, value)
             new_vmx.write(row + os.linesep)
     return True
 

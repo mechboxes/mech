@@ -37,7 +37,7 @@ class Mech(object):
                     if 'vmware' in provider['name']:
                         url = provider['url']
                         print "Found url {} with provider {}".format(url, provider['name'])
-                        utils.setup_url(url, box)
+                        utils.setup_url(url, name)
                         return
             else:
                 puts(colored.red("Couldn't find a VMWare compatible VM"))
