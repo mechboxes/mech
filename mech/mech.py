@@ -61,13 +61,17 @@ class Mech(object):
             vm.start(gui=True)
         else:
             vm.start()
-        puts(colored.yellow("Getting IP address..."))
-        ip = vm.ip()
-        puts(colored.green("VM started on {}".format(ip)))
-        puts(colored.yellow("Sharing current folder..."))
-        vm.enableSharedFolders()
-        vm.addSharedFolder('mech', os.getcwd())
-        puts(colored.green("VM started on {}".format(ip)))
+        if vm.check_tools() is True:
+            puts(colored.yellow("Getting IP address..."))
+            ip = vm.ip()
+            puts(colored.green("VM started on {}".format(ip)))
+            puts(colored.yellow("Sharing current folder..."))
+            vm.enableSharedFolders()
+            vm.addSharedFolder('mech', os.getcwd())
+            puts(colored.green("VM started on {}".format(ip)))
+        else:
+            puts(colored.yellow("VMWare Tools is not installed or running..."))
+            puts(colored.green("VM started"))
 
 
     def remove(self):
@@ -82,7 +86,10 @@ class Mech(object):
 
     def stop(self):
         vm = Vmrun(self.vmx)
-        vm.stop()
+        if vm.check_tools() is True:
+            vm.stop()
+        else:
+            vm.stop(mode='hard')
         puts(colored.green("Stopped", vm))
 
 
@@ -147,5 +154,8 @@ class Mech(object):
         vm = Vmrun(self.vmx)
         print self.vmx
         ip = vm.ip()
-        puts(colored.green(ip))
+        if ip:
+            puts(colored.green(ip))
+        else:
+            puts(colored.red("IP not found"))
         return ip

@@ -371,14 +371,14 @@ class Vmrun:
         '''
         getGuestIPAddress        Path to vmx file     Gets the IP address of the guest
         '''
-        if wait:
-            ip = self.vmrun( 'getGuestIPAddress', '-wait')[0].strip()
-        else:
-            ip = self.vmrun( 'getGuestIPAddress')[0].strip()
-        try:
-            # socket.inet_aton(ip)
+        if self.check_tools() is True:
+            if wait:
+                ip = self.vmrun( 'getGuestIPAddress', '-wait')[0].strip()
+            else:
+                ip = self.vmrun( 'getGuestIPAddress')[0].strip()
             return ip
-        except:
+        else:
+            print("VMWare Tools is not installed, IP address cannot be determined")
             return None
 
     #
@@ -480,8 +480,8 @@ class Vmrun:
         '''
         checkToolsState          Path to vmx file     Check the current Tools state
         '''
-        state = self.vmrun('checkToolsState')
-        if state == 'installed':
+        state = self.vmrun('checkToolsState')[0].strip()
+        if state == 'installed' or state == 'running':
             return True
         else:
             return False
