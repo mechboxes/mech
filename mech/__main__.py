@@ -24,118 +24,83 @@ Options:
     --debug       Show debug messages.
 '''
 
-from clint.textui import colored, puts
-from docopt import docopt
-from mech import Mech
 import os
-import utils
+import sys
+import logging
+
+from mech import Mech
+from docopt import docopt
+
 
 HOME = os.path.expanduser('~/.mech')
-
-
-def operation(op, options=None, kwargs=None):
-    if options is None:
-        options = {}
-    mechfile = utils.load_mechfile()
-    if mechfile is None:
-        puts(colored.red("Couldn't find a mechfile in the current directory any deeper directories"))
-        puts(colored.red("You can specify the name of the VM you'd like to start with mech up <name>"))
-        puts(colored.red("Or run mech init to setup a tarball of your VM or download the VM"))
-        return
-    vmx = mechfile.get('vmx')
-    if vmx:
-        m = Mech()
-        m.vmx = vmx
-        m.user = mechfile.get('user')
-        for key, value in options.iteritems():
-            setattr(m, key, value)
-        method = getattr(m, op)
-        if kwargs:
-            method(**kwargs)
-        else:
-            method()
-    else:
-        puts(colored.red("Couldn't find a VMX in the mechfile"))
-        return
 
 
 def main(args=None):
     arguments = docopt(__doc__, version='mech 0.6')
     # print(arguments)
 
-    # DEBUG = arguments['--debug']
+    logger = logging.getLogger()
+    handler = logging.StreamHandler(sys.stderr)
+    formatter = logging.Formatter('%(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    if arguments['--debug']:
+        logger.setLevel(logging.DEBUG)
 
     if not os.path.exists(HOME):
         os.makedirs(HOME)
 
-    if arguments['init']:
-        puts(colored.green("Initializing mech"))
-        name = arguments['<name>']
-        url = arguments['<url>'] or arguments['<path>']
-        version = arguments.get('<VERSION>')
-        Mech.init(name, url, version, arguments['-f'] or arguments['--force'])
-        exit()
+    mech = Mech()
 
-    elif arguments['box']:
+    if arguments['box']:
+
         if arguments['list'] or arguments['ls']:
-            Mech.list()
-            exit()
-        elif arguments['add']:
+            return mech.box_list()
+
+        if arguments['add']:
             name = arguments['<name>']
             url = arguments['<url>'] or arguments['<path>']
             version = arguments.get('<VERSION>')
-            Mech.add(name, url, version)
-            exit()
+            return mech.box_add(name, url, version=version)
 
-    elif arguments['status'] or arguments['ps']:
-        Mech.status()
-        exit()
-
-    elif arguments['destroy']:
+    if arguments['init']:
+        name = arguments['<name>']
+        url = arguments['<url>'] or arguments['<path>']
+        version = arguments.get('<VERSION>')
         force = arguments['-f'] or arguments['--force']
-        operation(op='destroy', options={'force': force})
-        exit()
+        return mech.init(name, url, version=version, force=force)
 
-    elif arguments['up'] or arguments['start']:
-        gui = arguments['--gui']
-        operation(op='start', options={'gui': gui})
-        exit()
+    if arguments['status'] or arguments['ps']:
+        return mech.status()
 
-    elif arguments['down'] or arguments['stop']:
-        operation(op='stop')
-        exit()
+    if arguments['destroy']:
+        force = arguments['-f'] or arguments['--force']
+        return mech.destroy(force=force)
 
-    elif arguments['pause']:
-        operation(op='pause')
-        exit()
+    if arguments['up'] or arguments['start']:
+        return mech.start(gui=arguments['--gui'])
 
-    elif arguments['suspend']:
-        operation(op='suspend')
-        exit()
+    if arguments['down'] or arguments['stop']:
+        return mech.stop()
 
-    elif arguments['ssh']:
+    if arguments['pause']:
+        return mech.pause()
+
+    if arguments['suspend']:
+        return mech.suspend()
+
+    if arguments['ssh']:
         user = arguments.get('--user')
-        if user:
-            options = {'user': user}
-        else:
-            options = {}
-        operation(op='ssh', options=options)
-        exit()
+        return mech.ssh(user=user)
 
-    elif arguments['scp']:
-        user = arguments.get('--user')
-        if user:
-            options = {'user': user}
-        else:
-            options = {}
+    if arguments['scp']:
         src = arguments['<src>']
         dst = arguments['<dst>']
-        operation(op='scp', options=options, kwargs={'src': src, 'dst': dst})
-        exit()
+        user = arguments.get('--user')
+        return mech.scp(src, dst, user=user)
 
-    elif arguments['ip']:
-        operation(op='ip')
-        exit()
+    if arguments['ip']:
+        return mech.ip()
 
 
 if __name__ == "__main__":

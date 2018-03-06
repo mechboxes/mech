@@ -1,19 +1,21 @@
 from __future__ import print_function, division
 
-from clint.textui import colored, puts
-from clint.textui import progress
-from clint.textui import prompt
-from re import match, I
-from shutil import copyfile
-import requests
-import glob
 import os
 import sys
+import glob
 import json
+import tarfile
 import tempfile
 import subprocess
 import collections
-import tarfile
+from re import match, I
+from shutil import copyfile
+
+import requests
+
+from clint.textui import colored, puts
+from clint.textui import progress
+from clint.textui import prompt
 
 
 HOME = os.path.expanduser('~/.mech')
@@ -62,21 +64,16 @@ def rewrite_vmx(path):
 
 def load_mechfile():
     pwd = os.getcwd()
-    test_mechfile = os.path.join(pwd, 'mechfile')
-    mech_data = None
-    if os.path.isfile(test_mechfile):
-        with open(test_mechfile) as mechfile:
-            mech_data = json.load(mechfile)
-    else:
-        for i in xrange(1, pwd.count(os.sep) + 1):
-            amt = (os.pardir,) * i
-            parent = os.path.join(*amt)
-            end = os.path.join(pwd, parent, 'mechfile')
-            if os.path.isfile(end):
-                with open(test_mechfile) as mechfile:
-                    mech_data = json.load(mechfile)
-                break
-    return mech_data
+    while pwd:
+        mechfile = os.path.join(pwd, 'mechfile')
+        if os.path.isfile(mechfile):
+            with open(mechfile) as f:
+                return json.load(f)
+        pwd = os.path.basename(pwd)
+    puts(colored.red("Couldn't find a mechfile in the current directory any deeper directories"))
+    puts(colored.red("You can specify the name of the VM you'd like to start with mech up <name>"))
+    puts(colored.red("Or run mech init to setup a tarball of your VM or download the VM"))
+    sys.exit(1)
 
 
 def add_box_url(name, url):
@@ -115,7 +112,7 @@ def add_box_tar(name, filename, url=None):
             if i.startswith('/') or i.startswith('..'):
                 puts(colored.red("This box is comprised of filenames starting with '/' or '..'"))
                 puts(colored.red("Exiting for the safety of your files"))
-                exit()
+                sys.exit(1)
 
     if valid_tar:
         boxname = os.path.basename(url if url else filename)
@@ -137,7 +134,7 @@ def init_box(filename, url):
             proc = subprocess.Popen(['tar', '-xf', filename], cwd='.mech')
             if proc.wait():
                 puts(colored.red("Cannot extract box"))
-                exit()
+                sys.exit(1)
         else:
             tar = tarfile.open(filename, 'r')
             tar.extractall('.mech')

@@ -28,9 +28,7 @@ import sys
 import logging
 import subprocess
 
-logging.basicConfig()
 logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
 
 
 def get_fallback_executable():
@@ -107,9 +105,16 @@ class VMrun(object):
         stdoutdata, stderrdata = proc.communicate()
 
         if stderrdata:
-            print(stderrdata, file=sys.stderr)
+            logger.error(stderrdata.strip())
+        logger.debug("(⏎ %s)" % proc.returncode)
 
-        return stdoutdata
+        if not proc.returncode:
+            stdoutdata = stdoutdata.strip()
+            logger.debug(repr(stdoutdata))
+            return stdoutdata
+
+        if stdoutdata:
+            logger.error(stdoutdata.strip())
 
     ############################################################################
     # POWER COMMANDS           PARAMETERS           DESCRIPTION

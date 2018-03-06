@@ -1,12 +1,17 @@
 from __future__ import print_function
 
-from vmrun import VMrun
-from clint.textui import colored, puts
 import os
+import sys
 import glob
+import time
 import utils
-import requests
 import shutil
+
+import requests
+from clint.textui import colored, puts
+
+from vmrun import VMrun
+
 
 HOME = os.path.expanduser("~/.mech")
 
@@ -15,14 +20,31 @@ if not os.path.exists(HOME):
 
 
 class Mech(object):
-    def __init__(self):
-        self.vmx = None
-        self.url = None
-        self.user = None
-        self.gui = None
+    def get(self, name):
+        if not hasattr(self, 'mechfile'):
+            self.mechfile = utils.load_mechfile()
+        return self.mechfile.get(name)
 
-    @classmethod
-    def add(cls, name, url, version):
+    @property
+    def vmx(self):
+        vmx = self.get('vmx')
+        if vmx:
+            return vmx
+        puts(colored.red("Couldn't find a VMX in the mechfile"))
+        sys.exit(1)
+
+    @property
+    def user(self):
+        return self.get('user')
+
+    ####################################################################
+
+    def box_list(self):
+        vms = glob.glob(os.path.join(HOME, 'boxes', '*'))
+        for vm in vms:
+            puts(os.path.basename(vm))
+
+    def box_add(self, name, url, version=None):
         if url:
             if version:
                 name = os.path.join(name, version)
@@ -52,34 +74,26 @@ class Mech(object):
             except requests.ConnectionError:
                 puts(colored.red("Couldn't connect to Vagrant cloud API"))
 
-    @classmethod
-    def init(cls, name, url, version, force):
+    def init(self, name, url, version=None, force=False):
         if os.path.exists('mechfile') and not force:
-            puts(colored.red("`mechfile` already exists in this directory. Remove it before"))
-            puts(colored.red("running `mech init`."))
+            puts(colored.red("`mechfile` already exists in this directory."))
+            puts(colored.red("Remove it before running `mech init`."))
             return
 
-        box = cls.add(name, url, version)
-        if not box:
-            puts(colored.red("Couldn't initialize mech"))
-            return
+        puts(colored.green("Initializing mech"))
+        box = self.box_add(name, url, version)
+        if box:
+            utils.init_box(box, url)
+        puts(colored.red("Couldn't initialize mech"))
 
-        utils.init_box(box, url)
-
-    @classmethod
     def status(self):
-        vm = VMrun('')
+        vm = VMrun()
         puts(vm.list())
 
-    @classmethod
-    def list(self):
-        vms = glob.glob(os.path.join(HOME, '*'))
-        for vm in vms:
-            puts(os.path.basename(vm))
-
-    def start(self):
+    def start(self, gui=False):
         vm = VMrun(self.vmx)
-        vm.start(gui=self.gui)
+        vm.start(gui=gui)
+        time.sleep(3)
         if vm.installedTools():
             puts(colored.yellow("Getting IP address..."))
             ip = vm.getGuestIPAddress()
@@ -92,11 +106,14 @@ class Mech(object):
             puts(colored.yellow("VMWare Tools is not installed or running..."))
             puts(colored.green("VM started"))
 
-    def destroy(self):
+    def destroy(self, force=False):
         directory = os.path.dirname(self.vmx)
         name = os.path.basename(directory)
-        if self.force or utils.confirm("Are you sure you want to delete {name} at {directory}".format(name=name, directory=directory), default='n'):
+        if force or utils.confirm("Are you sure you want to delete {name} at {directory}".format(name=name, directory=directory), default='n'):
             puts(colored.green("Deleting..."))
+            vm = VMrun(self.vmx)
+            vm.stop(mode='hard')
+            time.sleep(3)
             shutil.rmtree(directory)
         else:
             puts(colored.red("Deletion aborted"))
@@ -104,10 +121,13 @@ class Mech(object):
     def stop(self):
         vm = VMrun(self.vmx)
         if vm.installedTools():
-            vm.stop()
+            stopped = vm.stop()
         else:
-            vm.stop(mode='hard')
-        puts(colored.green("Stopped", vm))
+            stopped = vm.stop(mode='hard')
+        if stopped is None:
+            puts(colored.red("Not stopped", vm))
+        else:
+            puts(colored.green("Stopped", vm))
 
     def pause(self):
         vm = VMrun(self.vmx)
@@ -119,26 +139,29 @@ class Mech(object):
         vm.suspend()
         puts(colored.green("Suspended", vm))
 
-    def ssh(self):
+    def ssh(self, user=None):
+        if user is None:
+            user = self.user
         vm = VMrun(self.vmx)
         ip = vm.getGuestIPAddress()
         if ip:
             puts("Connecting to {}".format(colored.green(ip)))
-            os.system('ssh {}@{}'.format(self.user, ip))
+            os.system('ssh {}@{}'.format(user, ip))
         else:
             puts(colored.red("IP not found"))
 
-    def scp(self, src, dst):
+    def scp(self, src, dst, user=None):
+        if user is None:
+            user = self.user
         vm = VMrun(self.vmx)
         ip = vm.getGuestIPAddress()
-        user = self.user
         if ip:
             src_is_host = src.startswith(":")
             dst_is_host = dst.startswith(":")
 
             if src_is_host and dst_is_host:
                 puts(colored.red("Both src and host are host destinations"))
-                exit()
+                sys.exit(1)
 
             if dst_is_host:
                 dst = dst[1:]
@@ -160,14 +183,11 @@ class Mech(object):
                 os.system('scp {}@{}:{} {}'.format(user, ip, src, dst))
         else:
             puts(colored.red("IP not found"))
-            return
 
     def ip(self):
         vm = VMrun(self.vmx)
-        print(self.vmx)
         ip = vm.getGuestIPAddress()
         if ip:
             puts(colored.green(ip))
         else:
             puts(colored.red("IP not found"))
-        return ip
