@@ -30,7 +30,7 @@ import subprocess
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 
 
 def get_fallback_executable():
