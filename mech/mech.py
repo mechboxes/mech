@@ -1,5 +1,7 @@
+from __future__ import print_function
+
 from vmrun import Vmrun
-from clint.textui import colored, puts, prompt
+from clint.textui import colored, puts
 import os
 import glob
 import utils
@@ -11,42 +13,63 @@ HOME = os.path.expanduser("~/.mech")
 if not os.path.exists(HOME):
     os.makedirs(HOME)
 
+
 class Mech(object):
-    """docstring for Mech"""
     def __init__(self):
-        super(Mech, self).__init__()
         self.vmx = None
         self.url = None
         self.user = None
         self.gui = None
 
+    @classmethod
+    def add(cls, name, url, version):
+        if url:
+            if version:
+                name = os.path.join(name, version)
+            if any(url.startswith(s) for s in ('https://', 'http://', 'ftp://')):
+                return utils.add_box_url(name, url)
+            elif os.path.isfile(url):
+                return utils.add_box_tar(name, url)
+            else:
+                return utils.add_box_url(name, 'https://' + url)
+
+        elif name:
+            account, _, box = name.partition('/')
+            url = 'https://app.vagrantup.com/{account}/boxes/{box}'.format(account=account, box=box)
+            try:
+                data = requests.get(url).json()
+                versions = data['versions']
+                for v in versions:
+                    current_version = v['version']
+                    if not version or current_version == version:
+                        for provider in v['providers']:
+                            if 'vmware' in provider['name']:
+                                url = provider['url']
+                                print("Found url {} with provider {}".format(url, provider['name']))
+                                name = os.path.join(name, current_version)
+                                return utils.add_box_url(name, url)
+                puts(colored.red("Couldn't find a VMWare compatible VM"))
+            except requests.ConnectionError:
+                puts(colored.red("Couldn't connect to Vagrant cloud API"))
 
     @classmethod
-    def setup(cls, obj, name):
-        if obj.startswith("http"):
-            vmx = utils.setup_url(obj, name)
-        elif os.path.isfile(obj):
-            vmx = utils.setup_tar(obj, name)
-        else:
-            account, box = obj.split('/')
-            url = "https://app.vagrantup.com/{account}/boxes/{box}".format(account=account, box=box)
-            data = requests.get(url).json()
-            versions = data['versions']
-            for v in versions:
-                for provider in v['providers']:
-                    if 'vmware' in provider['name']:
-                        url = provider['url']
-                        print "Found url {} with provider {}".format(url, provider['name'])
-                        utils.setup_url(url, name)
-                        return
-            else:
-                puts(colored.red("Couldn't find a VMWare compatible VM"))
+    def init(cls, name, url, version, force):
+        if os.path.exists('mechfile') and not force:
+            puts(colored.red("`mechfile` already exists in this directory. Remove it before"))
+            puts(colored.red("running `mech init`."))
+            return
+
+        box = cls.add(name, url, version)
+        if not box:
+            puts(colored.red("Couldn't initialize mech"))
+            return
+
+        utils.init_box(box, url)
 
     @classmethod
     def status(self):
         vm = Vmrun('')
         puts("".join(vm.list()))
-
 
     @classmethod
     def list(self):
@@ -54,13 +77,9 @@ class Mech(object):
         for vm in vms:
             puts(os.path.basename(vm))
 
-
     def start(self):
         vm = Vmrun(self.vmx)
-        if self.gui:
-            vm.start(gui=True)
-        else:
-            vm.start()
+        vm.start(gui=self.gui)
         if vm.check_tools() is True:
             puts(colored.yellow("Getting IP address..."))
             ip = vm.ip()
@@ -73,16 +92,14 @@ class Mech(object):
             puts(colored.yellow("VMWare Tools is not installed or running..."))
             puts(colored.green("VM started"))
 
-
-    def remove(self):
+    def destroy(self):
         directory = os.path.dirname(self.vmx)
         name = os.path.basename(directory)
-        if utils.confirm("Are you sure you want to delete {name} at {directory}".format(name=name, directory=directory), default='n'):
-            print "Deleting..."
+        if self.force or utils.confirm("Are you sure you want to delete {name} at {directory}".format(name=name, directory=directory), default='n'):
+            puts(colored.green("Deleting..."))
             shutil.rmtree(directory)
         else:
-            print "Deletion aborted"
-
+            puts(colored.red("Deletion aborted"))
 
     def stop(self):
         vm = Vmrun(self.vmx)
@@ -92,18 +109,15 @@ class Mech(object):
             vm.stop(mode='hard')
         puts(colored.green("Stopped", vm))
 
-
     def pause(self):
         vm = Vmrun(self.vmx)
         vm.pause()
         puts(colored.yellow("Paused", vm))
 
-
     def suspend(self):
         vm = Vmrun(self.vmx)
         vm.suspend()
         puts(colored.green("Suspended", vm))
-
 
     def ssh(self):
         vm = Vmrun(self.vmx)
@@ -113,7 +127,6 @@ class Mech(object):
             os.system('ssh {}@{}'.format(self.user, ip))
         else:
             puts(colored.red("IP not found"))
-
 
     def scp(self, src, dst):
         vm = Vmrun(self.vmx)
@@ -149,10 +162,9 @@ class Mech(object):
             puts(colored.red("IP not found"))
             return
 
-
     def ip(self):
         vm = Vmrun(self.vmx)
-        print self.vmx
+        print(self.vmx)
         ip = vm.ip()
         if ip:
             puts(colored.green(ip))

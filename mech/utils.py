@@ -1,29 +1,27 @@
+from __future__ import print_function, division
+
 from clint.textui import colored, puts
 from clint.textui import progress
 from clint.textui import prompt
-from docopt import docopt
-from vmrun import Vmrun
-from pprint import pprint
-from fnmatch import fnmatch
 from re import match, I
-import tarfile
+from shutil import copyfile
 import requests
 import glob
 import os
+import sys
 import json
 import tempfile
+import subprocess
 import collections
+import tarfile
 
 
-HOME = os.path.expanduser("~/.mech")
+HOME = os.path.expanduser('~/.mech')
 
-def locate_vmx(vm_name):
-    path = os.path.join(HOME, vm_name, "*.vmx")
-    vmx_files = glob.glob(path)
-    if len(vmx_files):
-        return vmx_files[0]
-    else:
-        return None
+
+def locate_vmx(path):
+    vmx_files = glob.glob(os.path.join(path, '*.vmx'))
+    return vmx_files[0] if vmx_files else None
 
 
 def parse_vmx(path):
@@ -62,120 +60,102 @@ def rewrite_vmx(path):
     return True
 
 
-def load_mechfile(name=None):
-    if name:
-        mechfile = os.path.join(HOME, name, 'mechfile')
-        with open(mechfile) as data:
-            mech_data = json.load(data)
-        return mech_data
+def load_mechfile():
+    pwd = os.getcwd()
+    test_mechfile = os.path.join(pwd, 'mechfile')
+    mech_data = None
+    if os.path.isfile(test_mechfile):
+        with open(test_mechfile) as mechfile:
+            mech_data = json.load(mechfile)
     else:
-        pwd = os.getcwd()
-        test_mechfile = os.path.join(pwd, "mechfile")
-        mech_data = None
-        if os.path.isfile(test_mechfile):
-            with open(test_mechfile) as mechfile:
-                mech_data = json.load(mechfile)
-        else:
-            for i in xrange(1 ,pwd.count(os.sep) + 1):
-                amt = (os.pardir,) * i
-                parent = os.path.join(*amt)
-                end = os.path.join(pwd, parent, "mechfile")
-                if os.path.isfile(end):
-                    with open(test_mechfile) as mechfile:
-                        mech_data = json.load(mechfile)
-                    break
-        return mech_data
+        for i in xrange(1, pwd.count(os.sep) + 1):
+            amt = (os.pardir,) * i
+            parent = os.path.join(*amt)
+            end = os.path.join(pwd, parent, 'mechfile')
+            if os.path.isfile(end):
+                with open(test_mechfile) as mechfile:
+                    mech_data = json.load(mechfile)
+                break
+    return mech_data
 
 
-def setup_url(url, name):
-    r = requests.get(url, stream=True)
-    filename = os.path.basename(url)
-    path = os.path.join(HOME, 'tmp', filename)
-    length = int(r.headers['content-length'])
-    with tempfile.TemporaryFile() as f:
-        for chunk in progress.bar(r.iter_content(chunk_size=1024), label=filename, expected_size=(length/1024) + 1):
-            if chunk:
-                f.write(chunk)
+def add_box_url(name, url):
+    boxname = os.path.basename(url)
+    box = os.path.join(HOME, 'boxes', name, boxname)
+    if not os.path.exists(box):
+        try:
+            r = requests.get(url, stream=True)
+            length = int(r.headers['content-length'])
+            with tempfile.NamedTemporaryFile() as f:
+                for chunk in progress.bar(r.iter_content(chunk_size=1024), label=boxname, expected_size=(length // 1024) + 1):
+                    if chunk:
+                        f.write(chunk)
                 f.flush()
-        f.flush()
-        f.seek(0)
-        tar = tarfile.open(fileobj=f)
+                add_box_tar(name, f.name, url)
+        except requests.ConnectionError:
+            puts(colored.red("Couldn't connect to %s" % url))
+            return
+    return box
+
+
+def add_box_tar(name, filename, url=None):
+    puts(colored.yellow("Checking box integrity..."))
+
+    if os.name == 'posix':
+        proc = subprocess.Popen(['tar', '-tqf' if sys.platform.startswith('darwin') else '-tf', filename, '*.vmx'])
+        valid_tar = not proc.wait()
+    else:
+        tar = tarfile.open(filename, 'r')
         files = tar.getnames()
-        vmx = None
+        valid_tar = False
         for i in files:
             if i.endswith('vmx'):
-                vmx = i
+                valid_tar = True
+                break
             if i.startswith('/') or i.startswith('..'):
                 puts(colored.red("This box is comprised of filenames starting with '/' or '..'"))
                 puts(colored.red("Exiting for the safety of your files"))
                 exit()
-        if vmx:
-            puts(colored.green("Extracting..."))
-            if not name:
-                folder, dot, ext = vmx.rpartition('.')
-                path = os.path.join(HOME, folder)
-                os.mkdir(os.path.join(HOME, folder), 0755)
-            else:
-                path = os.path.join(HOME, name)
-                os.mkdir(os.path.join(HOME, name), 0755)
 
-            vmx_path = os.path.join(path, vmx)
-            config = {
-                'vmx':vmx_path,
-                'url':url,
-                'user': prompt.query("What username would you like to save?", default='mech')
-            }
-            tar.extractall(path)
-            save_mechfile(config, path)
-            save_mechfile(config, '.')
-            rewrite_vmx(vmx_path)
-            return os.path.join(path, vmx)
-    return os.path.abspath(path)
+    if valid_tar:
+        boxname = os.path.basename(url if url else filename)
+        box = os.path.join(HOME, 'boxes', name, boxname)
+        path = os.path.dirname(box)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        if not os.path.exists(box):
+            copyfile(filename, box)
+        return box
 
 
-def setup_tar(filename, name):
-    puts(colored.yellow("Checking box integrity..."))
-    tar = tarfile.open(filename, 'r')
-    files = tar.getnames()
-    vmx = None
-    for i in files:
-        if i.endswith('vmx'):
-            vmx = i
-        if i.startswith('/') or i.startswith('..'):
-            puts(colored.red("This box is comprised of filenames starting with '/' or '..'"))
-            puts(colored.red("Exiting for the safety of your files"))
-            exit()
-    if vmx:
-        puts(colored.green("Extracting..."))
-        if not name:
-            folder, dot, ext = vmx.rpartition('.')
-            path = os.path.join(HOME, folder)
-            os.mkdir(os.path.join(HOME, folder), 0755)
+def init_box(filename, url):
+    puts(colored.green("Extracting..."))
+    if not os.path.exists('.mech'):
+        os.makedirs('.mech')
+
+        if os.name == 'posix':
+            proc = subprocess.Popen(['tar', '-xf', filename], cwd='.mech')
+            if proc.wait():
+                puts(colored.red("Cannot extract box"))
+                exit()
         else:
-            path = os.path.join(HOME, name)
-            os.mkdir(os.path.join(HOME, name), 0755)
-        tar.extractall(path)
-        vmx_path = os.path.join(path, vmx)
-        config = {
-            'vmx': vmx_path,
-            'url': None,
-            'user': prompt.query("What username would you like to save?", default='mech')
-        }
-        save_mechfile(config, path)
-        save_mechfile(config, '.')
-        rewrite_vmx(vmx_path)
-        return os.path.join(path, vmx)
+            tar = tarfile.open(filename, 'r')
+            tar.extractall('.mech')
+
+    vmx = locate_vmx('.mech')
+    save_mechfile({
+        'box': filename,
+        'vmx': vmx,
+        'url': url,
+        'user': prompt.query("What username would you like to save?", default='vagrant')
+    }, '.')
+    # rewrite_vmx(vmx)
 
 
-def save_mechfile(config, directory='.'):
-    puts("Saving {}".format(os.path.join(directory, 'mechfile')))
-
-    mechfile = {
-        'vmx':config.get('vmx'),
-        'url':config.get('url'),
-        'user':config.get('user')
-    }
-    json.dump(mechfile, open(os.path.join(directory, 'mechfile'), 'w+'), sort_keys=True, indent=4, separators=(',', ': '))
+def save_mechfile(mechfile, directory='.'):
+    puts(colored.yellow("Saving {}".format(os.path.join(directory, 'mechfile'))))
+    with open(os.path.join(directory, 'mechfile'), 'w+') as f:
+        json.dump(mechfile, f, sort_keys=True, indent=4, separators=(',', ': '))
     puts(colored.green("Finished."))
 
 
