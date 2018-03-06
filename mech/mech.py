@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from vmrun import Vmrun
+from vmrun import VMrun
 from clint.textui import colored, puts
 import os
 import glob
@@ -68,8 +68,8 @@ class Mech(object):
 
     @classmethod
     def status(self):
-        vm = Vmrun('')
-        puts("".join(vm.list()))
+        vm = VMrun('')
+        puts(vm.list())
 
     @classmethod
     def list(self):
@@ -78,11 +78,11 @@ class Mech(object):
             puts(os.path.basename(vm))
 
     def start(self):
-        vm = Vmrun(self.vmx)
+        vm = VMrun(self.vmx)
         vm.start(gui=self.gui)
-        if vm.check_tools() is True:
+        if vm.installedTools():
             puts(colored.yellow("Getting IP address..."))
-            ip = vm.ip()
+            ip = vm.getGuestIPAddress()
             puts(colored.green("VM started on {}".format(ip)))
             puts(colored.yellow("Sharing current folder..."))
             vm.enableSharedFolders()
@@ -102,26 +102,26 @@ class Mech(object):
             puts(colored.red("Deletion aborted"))
 
     def stop(self):
-        vm = Vmrun(self.vmx)
-        if vm.check_tools() is True:
+        vm = VMrun(self.vmx)
+        if vm.installedTools():
             vm.stop()
         else:
             vm.stop(mode='hard')
         puts(colored.green("Stopped", vm))
 
     def pause(self):
-        vm = Vmrun(self.vmx)
+        vm = VMrun(self.vmx)
         vm.pause()
         puts(colored.yellow("Paused", vm))
 
     def suspend(self):
-        vm = Vmrun(self.vmx)
+        vm = VMrun(self.vmx)
         vm.suspend()
         puts(colored.green("Suspended", vm))
 
     def ssh(self):
-        vm = Vmrun(self.vmx)
-        ip = vm.ip()
+        vm = VMrun(self.vmx)
+        ip = vm.getGuestIPAddress()
         if ip:
             puts("Connecting to {}".format(colored.green(ip)))
             os.system('ssh {}@{}'.format(self.user, ip))
@@ -129,8 +129,8 @@ class Mech(object):
             puts(colored.red("IP not found"))
 
     def scp(self, src, dst):
-        vm = Vmrun(self.vmx)
-        ip = vm.ip()
+        vm = VMrun(self.vmx)
+        ip = vm.getGuestIPAddress()
         user = self.user
         if ip:
             src_is_host = src.startswith(":")
@@ -163,9 +163,9 @@ class Mech(object):
             return
 
     def ip(self):
-        vm = Vmrun(self.vmx)
+        vm = VMrun(self.vmx)
         print(self.vmx)
-        ip = vm.ip()
+        ip = vm.getGuestIPAddress()
         if ip:
             puts(colored.green(ip))
         else:
