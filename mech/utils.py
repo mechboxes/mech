@@ -1,14 +1,15 @@
 from __future__ import print_function, division
 
 import os
+import re
 import sys
 import glob
 import json
 import tarfile
+import logging
 import tempfile
 import subprocess
 import collections
-from re import match, I
 from shutil import copyfile
 
 import requests
@@ -17,8 +18,39 @@ from clint.textui import colored, puts
 from clint.textui import progress
 from clint.textui import prompt
 
+logger = logging.getLogger(__name__)
+
 
 HOME = os.path.expanduser('~/.mech')
+
+
+def confirm(prompt, default='y'):
+    default = default.lower()
+    if default not in ['y', 'n']:
+        default = 'y'
+    choicebox = '[Y/n]' if default == 'y' else '[y/N]'
+    prompt = prompt + ' ' + choicebox + ' '
+
+    while True:
+        input = raw_input(prompt).strip()
+        if input == '':
+            if default == 'y':
+                return True
+            else:
+                return False
+
+        if re.match('y(?:es)?', input, re.IGNORE_CASE):
+            return True
+
+        elif re.match('n(?:o)?', input, re.IGNORE_CASE):
+            return False
+
+
+def save_mechfile(mechfile, directory='.'):
+    puts(colored.blue("Saving {}".format(os.path.join(directory, 'mechfile'))))
+    with open(os.path.join(directory, 'mechfile'), 'w+') as f:
+        json.dump(mechfile, f, sort_keys=True, indent=4, separators=(',', ': '))
+    puts(colored.green("Finished."))
 
 
 def locate_vmx(path):
@@ -76,26 +108,64 @@ def load_mechfile():
     sys.exit(1)
 
 
-def add_box_url(name, url):
+def add_box(descriptor, name=None, version=None, force=False, requests_kwargs={}):
+    if name is None:
+        name = os.path.splitext(os.path.basename(descriptor))[0]
+
+    if any(descriptor.startswith(s) for s in ('https://', 'http://', 'ftp://')):
+        if version:
+            name = os.path.join(name, version)
+        return add_box_url(name, descriptor, force=force, requests_kwargs=requests_kwargs)
+    elif os.path.isfile(descriptor):
+        try:
+            with open(descriptor) as f:
+                catalog = json.load(f)
+        except Exception:
+            if version:
+                name = os.path.join(name, version)
+            return add_box_tar(name, descriptor, force=force)
+    else:
+        account, _, box = descriptor.partition('/')
+        url = 'https://app.vagrantup.com/{account}/boxes/{box}'.format(account=account, box=box)
+        try:
+            catalog = requests.get(url, **requests_kwargs).json()
+        except requests.ConnectionError:
+            puts(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
+            return
+
+    versions = catalog.get('versions', [])
+    for v in versions:
+        current_version = v['version']
+        if not version or current_version == version:
+            for provider in v['providers']:
+                if 'vmware' in provider['name']:
+                    url = provider['url']
+                    print("Found url {} with provider {}".format(url, provider['name']))
+                    name = os.path.join(name, current_version)
+                    return add_box_url(name, url, force=force, requests_kwargs=requests_kwargs)
+    puts(colored.red("Couldn't find a VMWare compatible VM"))
+
+
+def add_box_url(name, url, force=False, requests_kwargs={}):
     boxname = os.path.basename(url)
     box = os.path.join(HOME, 'boxes', name, boxname)
-    if not os.path.exists(box):
+    if not os.path.exists(box) or force:
         try:
-            r = requests.get(url, stream=True)
+            r = requests.get(url, stream=True, **requests_kwargs)
             length = int(r.headers['content-length'])
             with tempfile.NamedTemporaryFile() as f:
                 for chunk in progress.bar(r.iter_content(chunk_size=1024), label=boxname, expected_size=(length // 1024) + 1):
                     if chunk:
                         f.write(chunk)
                 f.flush()
-                add_box_tar(name, f.name, url)
+                add_box_tar(name, f.name, url=url, force=force)
         except requests.ConnectionError:
             puts(colored.red("Couldn't connect to %s" % url))
             return
     return box
 
 
-def add_box_tar(name, filename, url=None):
+def add_box_tar(name, filename, url=None, force=False):
     puts(colored.blue("Checking box integrity..."))
 
     if os.name == 'posix':
@@ -120,7 +190,7 @@ def add_box_tar(name, filename, url=None):
         path = os.path.dirname(box)
         if not os.path.exists(path):
             os.makedirs(path)
-        if not os.path.exists(box):
+        if not os.path.exists(box) or force:
             copyfile(filename, box)
         return box
 
@@ -147,32 +217,3 @@ def init_box(filename, url):
         'user': prompt.query("What username would you like to save?", default='vagrant')
     }, '.')
     # rewrite_vmx(vmx)
-
-
-def save_mechfile(mechfile, directory='.'):
-    puts(colored.blue("Saving {}".format(os.path.join(directory, 'mechfile'))))
-    with open(os.path.join(directory, 'mechfile'), 'w+') as f:
-        json.dump(mechfile, f, sort_keys=True, indent=4, separators=(',', ': '))
-    puts(colored.green("Finished."))
-
-
-def confirm(prompt, default='y'):
-    default = default.lower()
-    if default not in ['y', 'n']:
-        default = 'y'
-    choicebox = '[Y/n]' if default == 'y' else '[y/N]'
-    prompt = prompt + ' ' + choicebox + ' '
-
-    while True:
-        input = raw_input(prompt).strip()
-        if input == '':
-            if default == 'y':
-                return True
-            else:
-                return False
-
-        if match('y(?:es)?', input, I):
-            return True
-
-        elif match('n(?:o)?', input, I):
-            return False

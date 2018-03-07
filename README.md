@@ -7,31 +7,48 @@ https://blog.kchung.co/mech-vagrant-with-vmware-integration-for-free/
 Usage is pretty straightforward:
 
 ```
-Usage:
-    mech init [<url>] [--name=<name>]
-    mech rm [<name>]
-    mech (up | start) [options] [<name> --gui]
-    mech (down | stop) [options] [<name>]
-    mech suspend [options] [<name>]
-    mech pause [options] [<name>]
-    mech ssh [options] [<name> --user=<user>]
-    mech scp <src> <dst> [--user=<user>]
-    mech ip [options] [<name>]
-    mech (list | ls) [options]
-    mech (status | ps) [options]
-    mech -h | --help
-    mech --version
+Usage: mech [options] <command> [<args>...]
+
 Options:
-    -h --help     Show this screen.
-    --version     Show version.
-    --debug       Show debug messages.
+    -v, --version                    Print the version and exit.
+    -h, --help                       Print this help.
+    --debug                          Show debug messages.
+
+Common commands:
+    init              initializes a new mech environment by creating a mechfile
+    destroy           stops and deletes all traces of the mech machine
+    (up|start)        starts and provisions the mech environment
+    (down|stop|halt)  stops the mech machine
+    suspend           suspends the machine
+    pause             pauses the mech machine
+    ssh               connects to machine via SSH
+    scp               copies files to and from the machine via SCP
+    ip                outputs ip of the mech machine
+    box               manages boxes: installation, removal, etc.
+    (status|ps)       outputs status mech environments for this user
+    provision         provisions the mech machine
+    reload            restarts mech machine, loads new mechfile configuration
+    resume            resume a paused/suspended mech machine
+    snapshot          manages snapshots: saving, restoring, etc.
+    port              displays information about guest port mappings
+    push              deploys code in this environment to a configured destination
+
+For help on any individual command run `mech <command> -h`
+
+Example:
+
+    Initializing and using a machine from HashiCorp's Vagrant Cloud:
+
+        mech init bento/ubuntu-14.04
+        mech up
+        mech ssh
 ```
 
-`mech init` can be used to pull a box file which will be installed and generate a mechfile in the current directory. You can also pull boxes from Vagrant Cloud with `mech init bento/ubuntu-14.04`. Barring that, `mech up <name>` can also be used to specify a vmx file to start. 
+`mech init` can be used to pull a box file which will be installed and generate a mechfile in the current directory. You can also pull boxes from Vagrant Cloud with `mech init bento/ubuntu-14.04`. Barring that, `mech up <name>` can also be used to specify a vmx file to start.
 
 # Install
 
-`pip install git+https://github.com/ColdHeat/mech.git` for the lastest or `pip install mech` for what I last pushed to PyPi
+`pip install git+https://github.com/Kronuz/mech.git`
 
 # Shared Folders
 

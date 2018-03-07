@@ -8,13 +8,13 @@ setup(
             'mech = mech.__main__:main'
         ]
     },
-    install_requires=['requests', 'clint'],
-    version='0.5',
+    install_requires=['requests', 'clint', 'docopt'],
+    version='0.6',
     description='Tool for command line virtual machines',
     author='Kevin Chung',
     author_email='kchung@nyu.edu',
-    url='https://github.com/ColdHeat/mech',
-    download_url='https://github.com/ColdHeat/mech/tarball/master',
+    url='https://github.com/Kronuz/mech',
+    download_url='https://github.com/Kronuz/mech/tarball/master',
     keywords=['vagrant', 'vmware', 'vmrun', 'tool', 'virtualization'],
     classifiers=[],
 )
