@@ -55,7 +55,7 @@ def save_mechfile(mechfile, directory='.'):
 
 def locate_vmx(path):
     vmx_files = glob.glob(os.path.join(path, '*.vmx'))
-    return vmx_files[0] if vmx_files else None
+    return os.path.abspath(vmx_files[0]) if vmx_files else None
 
 
 def parse_vmx(path):
@@ -211,6 +211,10 @@ def init_box(filename, url):
             tar.extractall('.mech')
 
     vmx = locate_vmx('.mech')
+    if not vmx:
+        puts(colored.red("Cannot locate vmx"))
+        sys.exit(1)
+
     if update_vmx(vmx):
         puts(colored.yellow("Added network interface to vmx"))
 
