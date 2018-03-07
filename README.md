@@ -37,11 +37,17 @@ For help on any individual command run `mech <command> -h`
 
 Example:
 
-    Initializing and using a machine from HashiCorp's Vagrant Cloud:
+    Initialize and use a FreeBSD instance with a machine from HashiCorp's Vagrant Cloud:
 
         mech init freebsd/FreeBSD-11.1-RELEASE
         mech up
         mech ssh
+
+    Initialize and use an Ubuntu instance with a machine from HashiCorp's Vagrant Cloud:
+        mech init bento/ubuntu-14.04
+        mech up
+        mech ssh
+
 ```
 
 `mech init` can be used to pull a box file which will be installed and generate a mechfile in the current directory. You can also pull boxes from Vagrant Cloud with `mech init freebsd/FreeBSD-11.1-RELEASE`. Barring that, `mech up <name>` can also be used to specify a vmx file to start.
