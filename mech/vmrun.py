@@ -319,16 +319,16 @@ class VMrun(object):
     # deleteDirectoryInGuest   Path to vmx file     Delete a directory in Guest OS
     #                          Directory path in guest
     #
-    # CreateTempfileInGuest    Path to vmx file     Create a temporary file in Guest OS
+    # createTempfileInGuest    Path to vmx file     Create a temporary file in Guest OS
     #
     # listDirectoryInGuest     Path to vmx file     List a directory in Guest OS
     #                          Directory path in guest
     #
-    # CopyFileFromHostToGuest  Path to vmx file     Copy a file from host OS to guest OS
+    # copyFileFromHostToGuest  Path to vmx file     Copy a file from host OS to guest OS
     #                          Path on host
     #                          Path in guest
     #
-    # CopyFileFromGuestToHost  Path to vmx file     Copy a file from guest OS to host OS
+    # copyFileFromGuestToHost  Path to vmx file     Copy a file from guest OS to host OS
     #                          Path in guest
     #                          Path on host
     #
@@ -419,9 +419,9 @@ class VMrun(object):
         '''Delete a directory in Guest OS'''
         return self.vmrun('deleteDirectoryInGuest', self.vmx_file, path, quiet=quiet)
 
-    def CreateTempfileInGuest(self, quiet=False):
+    def createTempfileInGuest(self, quiet=False):
         '''Create a temporary file in Guest OS'''
-        return self.vmrun('CreateTempfileInGuest', self.vmx_file, quiet=quiet)
+        return self.vmrun('createTempfileInGuest', self.vmx_file, quiet=quiet)
 
     def listDirectoryInGuest(self, path, quiet=False):
         '''List a directory in Guest OS'''
