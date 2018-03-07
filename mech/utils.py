@@ -125,7 +125,11 @@ def load_mechfile():
         mechfile = os.path.join(pwd, 'mechfile')
         if os.path.isfile(mechfile):
             with open(mechfile) as f:
-                return json.load(f)
+                try:
+                    return json.load(f)
+                except ValueError:
+                    puts(colored.red("Invalid mechfile.\n"))
+                    break
         pwd = os.path.basename(pwd)
     puts(colored.red("Couldn't find a mechfile in the current directory any deeper directories"))
     puts(colored.red("You can specify the name of the VM you'd like to start with mech up <name>"))
