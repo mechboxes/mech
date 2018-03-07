@@ -16,15 +16,17 @@ from command import Command
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_USER = 'vagrant'
+DEFAULT_PASSWORD = 'vagrant'
 
 HOME = os.path.expanduser("~/.mech")
 
 
 class MechCommand(Command):
-    def get(self, name):
+    def get(self, name, default=None):
         if not hasattr(self, 'mechfile'):
             self.mechfile = utils.load_mechfile()
-        return self.mechfile.get(name)
+        return self.mechfile.get(name, default)
 
     @property
     def vmx(self):
@@ -36,7 +38,11 @@ class MechCommand(Command):
 
     @property
     def user(self):
-        return self.get('user')
+        return self.get('user', DEFAULT_USER)
+
+    @property
+    def password(self):
+        return self.get('password', DEFAULT_PASSWORD)
 
 
 class MechBox(MechCommand):
