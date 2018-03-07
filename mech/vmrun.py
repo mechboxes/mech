@@ -86,7 +86,9 @@ class VMrun(object):
         self.password = password
         self.executable = executable or self.default_executable
 
-    def vmrun(self, cmd, *args):
+    def vmrun(self, cmd, *args, **kwargs):
+        quiet = kwargs.pop('quiet', False)
+
         cmds = [self.executable]
         cmds.append('-T')
         cmds.append(self.provider)
@@ -104,7 +106,7 @@ class VMrun(object):
         proc = subprocess.Popen(cmds, stdout=subprocess.PIPE)
         stdoutdata, stderrdata = proc.communicate()
 
-        if stderrdata:
+        if stderrdata and not quiet:
             logger.error(stderrdata.strip())
         logger.debug("(⏎ %s)" % proc.returncode)
 
@@ -113,7 +115,7 @@ class VMrun(object):
             logger.debug(repr(stdoutdata))
             return stdoutdata
 
-        if stdoutdata:
+        if stdoutdata and not quiet:
             logger.error(stdoutdata.strip())
 
     ############################################################################
@@ -136,29 +138,29 @@ class VMrun(object):
     # unpause                  Path to vmx file     Unpause a VM
     #
 
-    def start(self, gui=False):
+    def start(self, gui=False, quiet=False):
         '''Start a VM or Team'''
-        return self.vmrun('start', self.vmx_file, 'gui' if gui else 'nogui')
+        return self.vmrun('start', self.vmx_file, 'gui' if gui else 'nogui', quiet=quiet)
 
-    def stop(self, mode='soft'):
+    def stop(self, mode='soft', quiet=False):
         '''Stop a VM or Team'''
-        return self.vmrun('stop', self.vmx_file, mode)
+        return self.vmrun('stop', self.vmx_file, mode, quiet=quiet)
 
-    def reset(self, mode='soft'):
+    def reset(self, mode='soft', quiet=False):
         '''Reset a VM or Team'''
-        return self.vmrun('reset', self.vmx_file, mode)
+        return self.vmrun('reset', self.vmx_file, mode, quiet=quiet)
 
-    def suspend(self, mode='soft'):
+    def suspend(self, mode='soft', quiet=False):
         '''Suspend a VM or Team'''
-        return self.vmrun('suspend', self.vmx_file, mode)
+        return self.vmrun('suspend', self.vmx_file, mode, quiet=quiet)
 
-    def pause(self):
+    def pause(self, quiet=False):
         '''Pause a VM'''
-        return self.vmrun('pause', self.vmx_file)
+        return self.vmrun('pause', self.vmx_file, quiet=quiet)
 
-    def unpause(self):
+    def unpause(self, quiet=False):
         '''Unpause a VM'''
-        return self.vmrun('unpause', self.vmx_file)
+        return self.vmrun('unpause', self.vmx_file, quiet=quiet)
 
     ############################################################################
     # SNAPSHOT COMMANDS        PARAMETERS           DESCRIPTION
@@ -177,21 +179,21 @@ class VMrun(object):
     #                          Snapshot name
     #
 
-    def listSnapshots(self, show_tree=False):
+    def listSnapshots(self, show_tree=False, quiet=False):
         '''List all snapshots in a VM'''
-        return self.vmrun('listSnapshots', self.vmx_file, 'showTree' if show_tree else None)
+        return self.vmrun('listSnapshots', self.vmx_file, 'showTree' if show_tree else None, quiet=quiet)
 
-    def snapshot(self, snap_name):
+    def snapshot(self, snap_name, quiet=False):
         '''Create a snapshot of a VM'''
-        return self.vmrun('snapshot', self.vmx_file, snap_name)
+        return self.vmrun('snapshot', self.vmx_file, snap_name, quiet=quiet)
 
-    def deleteSnapshot(self, snap_name, and_delete_children=False):
+    def deleteSnapshot(self, snap_name, and_delete_children=False, quiet=False):
         '''Remove a snapshot from a VM'''
-        return self.vmrun('deleteSnapshot', self.vmx_file, snap_name, 'andDeleteChildren' if and_delete_children else None)
+        return self.vmrun('deleteSnapshot', self.vmx_file, snap_name, 'andDeleteChildren' if and_delete_children else None, quiet=quiet)
 
-    def revertToSnapshot(self, snap_name):
+    def revertToSnapshot(self, snap_name, quiet=False):
         '''Set VM state to a snapshot'''
-        return self.vmrun('revertToSnapshot', self.vmx_file, snap_name)
+        return self.vmrun('revertToSnapshot', self.vmx_file, snap_name, quiet=quiet)
 
     ############################################################################
     # NETWORKADAPTER COMMANDS  PARAMETERS           DESCRIPTION
@@ -213,21 +215,21 @@ class VMrun(object):
     # deleteNetworkAdapter     Path to vmx file     Remove a network adapter on a VM
     #                          Network adapter index
 
-    def listNetworkAdapters(self):
+    def listNetworkAdapters(self, quiet=False):
         '''List all network adapters in a VM'''
-        return self.vmrun('listNetworkAdapters', self.vmx_file)
+        return self.vmrun('listNetworkAdapters', self.vmx_file, quiet=quiet)
 
-    def addNetworkAdapter(self, adapter_type, host_network=None):
+    def addNetworkAdapter(self, adapter_type, host_network=None, quiet=False):
         '''Add a network adapter on a VM'''
-        return self.vmrun('addNetworkAdapter', self.vmx_file, adapter_type, host_network)
+        return self.vmrun('addNetworkAdapter', self.vmx_file, adapter_type, host_network, quiet=quiet)
 
-    def setNetworkAdapter(self, adapter_index, adapter_type, host_network=None):
+    def setNetworkAdapter(self, adapter_index, adapter_type, host_network=None, quiet=False):
         '''Update a network adapter on a VM'''
-        return self.vmrun('setNetworkAdapter', self.vmx_file, adapter_index, adapter_type, host_network)
+        return self.vmrun('setNetworkAdapter', self.vmx_file, adapter_index, adapter_type, host_network, quiet=quiet)
 
-    def deleteNetworkAdapter(self, adapter_index):
+    def deleteNetworkAdapter(self, adapter_index, quiet=False):
         '''Remove a network adapter on a VM'''
-        return self.vmrun('deleteNetworkAdapter', self.vmx_file, adapter_index)
+        return self.vmrun('deleteNetworkAdapter', self.vmx_file, adapter_index, quiet=quiet)
 
     ############################################################################
     # HOST NETWORK COMMANDS    PARAMETERS           DESCRIPTION
@@ -248,21 +250,21 @@ class VMrun(object):
     #                          Protocol
     #                          Host port
 
-    def listHostNetworks(self):
+    def listHostNetworks(self, quiet=False):
         '''List all networks in the host'''
-        return self.vmrun('listHostNetworks')
+        return self.vmrun('listHostNetworks', quiet=quiet)
 
-    def listPortForwardings(self, host_network):
+    def listPortForwardings(self, host_network, quiet=False):
         '''List all available port forwardings on a host network'''
-        return self.vmrun('listPortForwardings', host_network)
+        return self.vmrun('listPortForwardings', host_network, quiet=quiet)
 
-    def setPortForwarding(self, host_network, protocol, host_port, guest_ip, guest_port, description=None):
+    def setPortForwarding(self, host_network, protocol, host_port, guest_ip, guest_port, description=None, quiet=False):
         '''Add or update a port forwarding on a host network'''
-        return self.vmrun('setPortForwarding', host_network, protocol, host_port, guest_ip, guest_port, description)
+        return self.vmrun('setPortForwarding', host_network, protocol, host_port, guest_ip, guest_port, description, quiet=quiet)
 
-    def deletePortForwarding(self, host_network, protocol, host_port):
+    def deletePortForwarding(self, host_network, protocol, host_port, quiet=False):
         '''Delete a port forwarding on a host network'''
-        return self.vmrun('deletePortForwarding', host_network, protocol, host_port)
+        return self.vmrun('deletePortForwarding', host_network, protocol, host_port, quiet=quiet)
 
     ############################################################################
     # GUEST OS COMMANDS        PARAMETERS           DESCRIPTION
@@ -365,106 +367,107 @@ class VMrun(object):
         wait = kwargs.pop('wait', True)
         activate_window = kwargs.pop('activate_window', False)
         interactive = kwargs.pop('interactive', False)
-        return self.vmrun('runProgramInGuest', self.vmx_file, None if wait else '-noWait', '-activateWindow' if activate_window else None, '-interactive' if interactive else None, program_path, *args)
+        quiet = kwargs.pop('quiet', False)
+        return self.vmrun('runProgramInGuest', self.vmx_file, None if wait else '-noWait', '-activateWindow' if activate_window else None, '-interactive' if interactive else None, program_path, *args, quiet=quiet)
 
-    def fileExistsInGuest(self, file):
+    def fileExistsInGuest(self, file, quiet=False):
         '''Check if a file exists in Guest OS'''
         return 'not' not in self.execute('fileExistsInGuest', self.vmx_file, file)
 
-    def directoryExistsInGuest(self, path):
+    def directoryExistsInGuest(self, path, quiet=False):
         '''Check if a directory exists in Guest OS'''
         return 'not' not in self.execute('directoryExistsInGuest', self.vmx_file, path)
 
-    def setSharedFolderState(self, share_name, new_path, mode='readonly'):
+    def setSharedFolderState(self, share_name, new_path, mode='readonly', quiet=False):
         '''Modify a Host-Guest shared folder'''
-        return self.vmrun('setSharedFolderState', self.vmx_file, share_name, new_path, mode)
+        return self.vmrun('setSharedFolderState', self.vmx_file, share_name, new_path, mode, quiet=quiet)
 
-    def addSharedFolder(self, share_name, host_path):
+    def addSharedFolder(self, share_name, host_path, quiet=False):
         '''Add a Host-Guest shared folder'''
-        return self.vmrun('addSharedFolder', self.vmx_file, share_name, host_path)
+        return self.vmrun('addSharedFolder', self.vmx_file, share_name, host_path, quiet=quiet)
 
-    def removeSharedFolder(self, share_name):
+    def removeSharedFolder(self, share_name, quiet=False):
         '''Remove a Host-Guest shared folder'''
-        return self.vmrun('removeSharedFolder', self.vmx_file, share_name)
+        return self.vmrun('removeSharedFolder', self.vmx_file, share_name, quiet=quiet)
 
-    def enableSharedFolders(self, runtime=None):
-        return self.vmrun('enableSharedFolders', self.vmx_file, runtime)
+    def enableSharedFolders(self, runtime=None, quiet=False):
+        return self.vmrun('enableSharedFolders', self.vmx_file, runtime, quiet=quiet)
 
-    def disableSharedFolders(self, runtime=None):
+    def disableSharedFolders(self, runtime=None, quiet=False):
         '''Disable shared folders in Guest'''
-        return self.vmrun('disableSharedFolders', self.vmx_file, runtime)
+        return self.vmrun('disableSharedFolders', self.vmx_file, runtime, quiet=quiet)
 
-    def listProcessesInGuest(self):
+    def listProcessesInGuest(self, quiet=False):
         '''List running processes in Guest OS'''
-        return self.vmrun('listProcessesInGuest', self.vmx_file)
+        return self.vmrun('listProcessesInGuest', self.vmx_file, quiet=quiet)
 
-    def killProcessInGuest(self, pid):
+    def killProcessInGuest(self, pid, quiet=False):
         '''Kill a process in Guest OS'''
-        return self.vmrun('killProcessInGuest', self.vmx_file, pid)
+        return self.vmrun('killProcessInGuest', self.vmx_file, pid, quiet=quiet)
 
-    def runScriptInGuest(self, interpreter_path, script, wait=True, activate_window=False, interactive=False):
+    def runScriptInGuest(self, interpreter_path, script, wait=True, activate_window=False, interactive=False, quiet=False):
         '''Run a script in Guest OS'''
-        return self.vmrun('runScriptInGuest', self.vmx_file, interpreter_path, script, None if wait else '-noWait', '-activateWindow' if activate_window else None, '-interactive' if interactive else None)
+        return self.vmrun('runScriptInGuest', self.vmx_file, interpreter_path, script, None if wait else '-noWait', '-activateWindow' if activate_window else None, '-interactive' if interactive else None, quiet=quiet)
 
-    def deleteFileInGuest(self, file):
+    def deleteFileInGuest(self, file, quiet=False):
         '''Delete a file in Guest OS'''
-        return self.vmrun('deleteFileInGuest', self.vmx_file, file)
+        return self.vmrun('deleteFileInGuest', self.vmx_file, file, quiet=quiet)
 
-    def createDirectoryInGuest(self, path):
+    def createDirectoryInGuest(self, path, quiet=False):
         '''Create a directory in Guest OS'''
-        return self.vmrun('createDirectoryInGuest', self.vmx_file, path)
+        return self.vmrun('createDirectoryInGuest', self.vmx_file, path, quiet=quiet)
 
-    def deleteDirectoryInGuest(self, path):
+    def deleteDirectoryInGuest(self, path, quiet=False):
         '''Delete a directory in Guest OS'''
-        return self.vmrun('deleteDirectoryInGuest', self.vmx_file, path)
+        return self.vmrun('deleteDirectoryInGuest', self.vmx_file, path, quiet=quiet)
 
-    def CreateTempfileInGuest(self):
+    def CreateTempfileInGuest(self, quiet=False):
         '''Create a temporary file in Guest OS'''
-        return self.vmrun('CreateTempfileInGuest', self.vmx_file)
+        return self.vmrun('CreateTempfileInGuest', self.vmx_file, quiet=quiet)
 
-    def listDirectoryInGuest(self, path):
+    def listDirectoryInGuest(self, path, quiet=False):
         '''List a directory in Guest OS'''
-        return self.vmrun('listDirectoryInGuest', self.vmx_file, path)
+        return self.vmrun('listDirectoryInGuest', self.vmx_file, path, quiet=quiet)
 
-    def copyFileFromHostToGuest(self, host_path, guest_path):
+    def copyFileFromHostToGuest(self, host_path, guest_path, quiet=False):
         '''Copy a file from host OS to guest OS'''
-        return self.vmrun('copyFileFromHostToGuest', self.vmx_file, host_path, guest_path)
+        return self.vmrun('copyFileFromHostToGuest', self.vmx_file, host_path, guest_path, quiet=quiet)
 
-    def copyFileFromGuestToHost(self, guest_path, host_path):
+    def copyFileFromGuestToHost(self, guest_path, host_path, quiet=False):
         '''Copy a file from guest OS to host OS'''
-        return self.vmrun('copyFileFromGuestToHost', self.vmx_file, guest_path, host_path)
+        return self.vmrun('copyFileFromGuestToHost', self.vmx_file, guest_path, host_path, quiet=quiet)
 
-    def renameFileInGuest(self, original_name, new_name):
+    def renameFileInGuest(self, original_name, new_name, quiet=False):
         '''Rename a file in Guest OS'''
-        return self.vmrun('renameFileInGuest', self.vmx_file, original_name, new_name)
+        return self.vmrun('renameFileInGuest', self.vmx_file, original_name, new_name, quiet=quiet)
 
-    def typeKeystrokesInGuest(self, keystroke):
+    def typeKeystrokesInGuest(self, keystroke, quiet=False):
         '''Type Keystrokes in Guest OS'''
-        return self.vmrun('typeKeystrokesInGuest', self.vmx_file, keystroke)
+        return self.vmrun('typeKeystrokesInGuest', self.vmx_file, keystroke, quiet=quiet)
 
-    def connectNamedDevice(self, device_name):
+    def connectNamedDevice(self, device_name, quiet=False):
         '''Disconnect the named device in the Guest OS'''
-        return self.vmrun('connectNamedDevice', self.vmx_file, device_name)
+        return self.vmrun('connectNamedDevice', self.vmx_file, device_name, quiet=quiet)
 
-    def disconnectNamedDevice(self, device_name):
+    def disconnectNamedDevice(self, device_name, quiet=False):
         '''Disconnect the named device in the Guest OS'''
-        return self.vmrun('disconnectNamedDevice', self.vmx_file, device_name)
+        return self.vmrun('disconnectNamedDevice', self.vmx_file, device_name, quiet=quiet)
 
-    def captureScreen(self, path_on_host):
+    def captureScreen(self, path_on_host, quiet=False):
         '''Capture the screen of the VM to a local file'''
-        return self.vmrun('captureScreen', self.vmx_file, path_on_host)
+        return self.vmrun('captureScreen', self.vmx_file, path_on_host, quiet=quiet)
 
-    def writeVariable(self, var_name, var_value, mode=None):
+    def writeVariable(self, var_name, var_value, mode=None, quiet=False):
         '''Write a variable in the VM state'''
-        return self.vmrun('writeVariable', self.vmx_file, mode, var_name, var_value)
+        return self.vmrun('writeVariable', self.vmx_file, mode, var_name, var_value, quiet=quiet)
 
-    def readVariable(self, var_name, mode=None):
+    def readVariable(self, var_name, mode=None, quiet=False):
         '''Read a variable in the VM state'''
-        return self.vmrun('readVariable', self.vmx_file, mode, var_name)
+        return self.vmrun('readVariable', self.vmx_file, mode, var_name, quiet=quiet)
 
-    def getGuestIPAddress(self, wait=True):
+    def getGuestIPAddress(self, wait=True, quiet=False):
         '''Gets the IP address of the guest'''
-        return self.vmrun('getGuestIPAddress', self.vmx_file, '-wait' if wait else None)
+        return self.vmrun('getGuestIPAddress', self.vmx_file, '-wait' if wait else None, quiet=quiet)
 
     ############################################################################
     # GENERAL COMMANDS         PARAMETERS           DESCRIPTION
@@ -485,44 +488,44 @@ class VMrun(object):
     #                          [-snapshot=Snapshot Name]
     #                          [-cloneName=Name]
 
-    def list(self):
+    def list(self, quiet=False):
         '''List all running VMs'''
-        return self.vmrun('list', self.vmx_file)
+        return self.vmrun('list', self.vmx_file, quiet=quiet)
 
-    def upgradevm(self):
+    def upgradevm(self, quiet=False):
         '''Upgrade VM file format, virtual hw'''
-        return self.vmrun('upgradevm', self.vmx_file)
+        return self.vmrun('upgradevm', self.vmx_file, quiet=quiet)
 
-    def installTools(self):
+    def installTools(self, quiet=False):
         '''Install Tools in Guest OS'''
-        return self.vmrun('installTools', self.vmx_file)
+        return self.vmrun('installTools', self.vmx_file, quiet=quiet)
 
-    def checkToolsState(self):
+    def checkToolsState(self, quiet=False):
         '''Check the current Tools state'''
-        return self.vmrun('checkToolsState', self.vmx_file)
+        return self.vmrun('checkToolsState', self.vmx_file, quiet=quiet)
 
-    def register(self):
+    def register(self, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''Register a VM'''
-        return self.vmrun('register', self.vmx_file)
+        return self.vmrun('register', self.vmx_file, quiet=quiet)
 
-    def unregister(self):
+    def unregister(self, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''Unregister a VM'''
-        return self.vmrun('unregister', self.vmx_file)
+        return self.vmrun('unregister', self.vmx_file, quiet=quiet)
 
-    def listRegisteredVM(self):
+    def listRegisteredVM(self, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''List registered VMs'''
-        return self.vmrun('listRegisteredVM', self.vmx_file)
+        return self.vmrun('listRegisteredVM', self.vmx_file, quiet=quiet)
 
-    def deleteVM(self):
+    def deleteVM(self, quiet=False):
         '''Delete a VM'''
-        return self.vmrun('deleteVM', self.vmx_file)
+        return self.vmrun('deleteVM', self.vmx_file, quiet=quiet)
 
-    def clone(self, dest_vmx, mode, snap_name=None):
+    def clone(self, dest_vmx, mode, snap_name=None, quiet=False):
         '''Create a copy of the VM'''
-        return self.vmrun('clone', self.vmx_file, dest_vmx, mode, snap_name)
+        return self.vmrun('clone', self.vmx_file, dest_vmx, mode, snap_name, quiet=quiet)
 
     ############################################################################
     # RECORD/REPLAY COMMANDS   PARAMETERS           DESCRIPTION
@@ -537,25 +540,25 @@ class VMrun(object):
     #
     # endReplay                Path to vmx file     End replaying a VM
 
-    def beginRecording(self, snap_name):
+    def beginRecording(self, snap_name, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''Begin recording a VM'''
-        return self.vmrun('beginRecording', self.vmx_file, snap_name)
+        return self.vmrun('beginRecording', self.vmx_file, snap_name, quiet=quiet)
 
-    def endRecording(self):
+    def endRecording(self, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''End recording a VM'''
-        return self.vmrun('endRecording', self.vmx_file)
+        return self.vmrun('endRecording', self.vmx_file, quiet=quiet)
 
-    def beginReplay(self, snap_name):
+    def beginReplay(self, snap_name, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''Begin replaying a VM'''
-        return self.vmrun('beginReplay', self.vmx_file, snap_name)
+        return self.vmrun('beginReplay', self.vmx_file, snap_name, quiet=quiet)
 
-    def endReplay(self):
+    def endReplay(self, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''End replaying a VM'''
-        return self.vmrun('endReplay', self.vmx_file)
+        return self.vmrun('endReplay', self.vmx_file, quiet=quiet)
 
     ############################################################################
     # VPROBE COMMANDS          PARAMETERS           DESCRIPTION
@@ -574,38 +577,38 @@ class VMrun(object):
     #
     # vprobeListGlobals        Path to vmx file     List global variables
 
-    def vprobeVersion(self):
+    def vprobeVersion(self, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''List VP version'''
-        return self.vmrun('vprobeVersion', self.vmx_file)
+        return self.vmrun('vprobeVersion', self.vmx_file, quiet=quiet)
 
-    def vprobeLoad(self, script):
+    def vprobeLoad(self, script, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''Load VP script'''
-        return self.vmrun('vprobeLoad', self.vmx_file, script)
+        return self.vmrun('vprobeLoad', self.vmx_file, script, quiet=quiet)
 
-    def vprobeLoadFile(self, vp):
+    def vprobeLoadFile(self, vp, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''Load VP file'''
-        return self.vmrun('vprobeLoadFile', self.vmx_file, vp)
+        return self.vmrun('vprobeLoadFile', self.vmx_file, vp, quiet=quiet)
 
-    def vprobeReset(self):
+    def vprobeReset(self, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''Disable all vprobes'''
-        return self.vmrun('vprobeReset', self.vmx_file)
+        return self.vmrun('vprobeReset', self.vmx_file, quiet=quiet)
 
-    def vprobeListProbes(self):
+    def vprobeListProbes(self, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''List probes'''
-        return self.vmrun('vprobeListProbes', self.vmx_file)
+        return self.vmrun('vprobeListProbes', self.vmx_file, quiet=quiet)
 
-    def vprobeListGlobals(self):
+    def vprobeListGlobals(self, quiet=False):
         # unavailable in VMware Fusion 10 (OS X)?
         '''List global variables'''
-        return self.vmrun('vprobeListGlobals', self.vmx_file)
+        return self.vmrun('vprobeListGlobals', self.vmx_file, quiet=quiet)
 
     ############################################################################
 
-    def installedTools(self):
-        state = self.checkToolsState()
+    def installedTools(self, quiet=False):
+        state = self.checkToolsState(quiet=quiet)
         return state == 'installed' or state == 'running'
