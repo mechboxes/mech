@@ -254,7 +254,7 @@ def init_box(filename, url):
     }, '.')
 
 
-def provision(vm, script, arguments=[]):
+def provision(vm, script, path, program_arguments=[]):
     if not vm.installedTools():
         return
 
@@ -263,19 +263,27 @@ def provision(vm, script, arguments=[]):
         return
 
     try:
-        if os.path.isfile(script):
-            puts(colored.blue("Sending {}...".format(script)))
-            if vm.copyFileFromHostToGuest(script, program_path) is None:
+        if path and os.path.isfile(path):
+            puts(colored.blue("Configuring script {}...".format(path)))
+            if vm.copyFileFromHostToGuest(path, program_path) is None:
                 return
         else:
-            if any(script.startswith(s) for s in ('https://', 'http://', 'ftp://')):
-                puts(colored.blue("Downloading {}...".format(script)))
-                try:
-                    script = requests.get(script).read()
-                except requests.ConnectionError:
+            if path:
+                if any(path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
+                    puts(colored.blue("Downloading {}...".format(path)))
+                    try:
+                        script = requests.get(path).read()
+                    except requests.ConnectionError:
+                        return
+                else:
+                    puts(colored.red("Cannot open {}".format(path)))
                     return
 
-            puts(colored.blue("Sending script..."))
+            if not script:
+                puts(colored.red("No script to execute"))
+                return
+
+            puts(colored.blue("Configuring script..."))
             with tempfile.NamedTemporaryFile() as f:
                 f.write(script)
                 f.flush()
@@ -287,7 +295,7 @@ def provision(vm, script, arguments=[]):
             return
 
         puts(colored.blue("Executing program..."))
-        return vm.runProgramInGuest(program_path, arguments)
+        return vm.runProgramInGuest(program_path, program_arguments)
 
     finally:
         vm.deleteFileInGuest(program_path, quiet=True)
