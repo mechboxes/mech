@@ -67,30 +67,31 @@ def parse_vmx(path):
     return vmx
 
 
-def rewrite_vmx(path):
+def update_vmx(path):
     vmx = parse_vmx(path)
 
     # Check if there is an existing interface
     for vmx_key in vmx:
         if vmx_key.startswith('ethernet'):
-            break
-    else:
-        # Write one if there is not
-        vmx["ethernet0.addresstype"] = "generated"
-        vmx["ethernet0.bsdname"] = "en0"
-        vmx["ethernet0.connectiontype"] = "nat"
-        vmx["ethernet0.displayname"] = "Ethernet"
-        vmx["ethernet0.linkstatepropagation.enable"] = "FALSE"
-        vmx["ethernet0.pcislotnumber"] = "32"
-        vmx["ethernet0.present"] = "TRUE"
-        vmx["ethernet0.virtualdev"] = "e1000"
-        vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
+            return False
+
+    # Write one if there is not
+    vmx["ethernet0.addresstype"] = "generated"
+    vmx["ethernet0.bsdname"] = "en0"
+    vmx["ethernet0.connectiontype"] = "nat"
+    vmx["ethernet0.displayname"] = "Ethernet"
+    vmx["ethernet0.linkstatepropagation.enable"] = "FALSE"
+    vmx["ethernet0.pcislotnumber"] = "32"
+    vmx["ethernet0.present"] = "TRUE"
+    vmx["ethernet0.virtualdev"] = "e1000"
+    vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
 
     with open(path, 'w') as new_vmx:
         for key in vmx:
             value = vmx[key]
             row = "{} = {}".format(key, value)
             new_vmx.write(row + os.linesep)
+
     return True
 
 
@@ -210,10 +211,12 @@ def init_box(filename, url):
             tar.extractall('.mech')
 
     vmx = locate_vmx('.mech')
+    if update_vmx(vmx):
+        puts(colored.yellow("Added network interface to vmx"))
+
     save_mechfile({
         'box': filename,
         'vmx': vmx,
         'url': url,
         'user': prompt.query("What username would you like to save?", default='vagrant')
     }, '.')
-    # rewrite_vmx(vmx)
