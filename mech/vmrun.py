@@ -86,6 +86,7 @@ class VMrun(object):
 
     def vmrun(self, cmd, *args, **kwargs):
         quiet = kwargs.pop('quiet', False)
+        arguments = kwargs.pop('arguments', ())
 
         cmds = [self.executable]
         cmds.append('-T')
@@ -98,6 +99,7 @@ class VMrun(object):
             cmds.append(self.password)
         cmds.append(cmd)
         cmds.extend(filter(None, args))
+        cmds.extend(filter(None, arguments))
 
         logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
 
@@ -361,12 +363,8 @@ class VMrun(object):
     #                          [-wait]
     #
 
-    def runProgramInGuest(self, program_path, *args, **kwargs):
-        wait = kwargs.pop('wait', True)
-        activate_window = kwargs.pop('activate_window', False)
-        interactive = kwargs.pop('interactive', False)
-        quiet = kwargs.pop('quiet', False)
-        return self.vmrun('runProgramInGuest', self.vmx_file, None if wait else '-noWait', '-activateWindow' if activate_window else None, '-interactive' if interactive else None, program_path, *args, quiet=quiet)
+    def runProgramInGuest(self, program_path, arguments=[], wait=True, activate_window=False, interactive=False, quiet=False):
+        return self.vmrun('runProgramInGuest', self.vmx_file, None if wait else '-noWait', '-activateWindow' if activate_window else None, '-interactive' if interactive else None, program_path, arguments=arguments, quiet=quiet)
 
     def fileExistsInGuest(self, file, quiet=False):
         '''Check if a file exists in Guest OS'''
