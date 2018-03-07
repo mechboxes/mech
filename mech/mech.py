@@ -95,10 +95,10 @@ class Mech(object):
         started = vm.start(gui=gui)
         time.sleep(3)
         if vm.installedTools():
-            puts(colored.yellow("Sharing current folder..."))
+            puts(colored.blue("Sharing current folder..."))
             vm.enableSharedFolders()
             vm.addSharedFolder('mech', os.getcwd(), quiet=True)
-            puts(colored.yellow("Getting IP address..."))
+            puts(colored.blue("Getting IP address..."))
             ip = vm.getGuestIPAddress()
             if started:
                 puts(colored.green("VM started on {}".format(ip)))

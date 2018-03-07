@@ -96,7 +96,7 @@ def add_box_url(name, url):
 
 
 def add_box_tar(name, filename, url=None):
-    puts(colored.yellow("Checking box integrity..."))
+    puts(colored.blue("Checking box integrity..."))
 
     if os.name == 'posix':
         proc = subprocess.Popen(['tar', '-tqf' if sys.platform.startswith('darwin') else '-tf', filename, '*.vmx'])
@@ -150,7 +150,7 @@ def init_box(filename, url):
 
 
 def save_mechfile(mechfile, directory='.'):
-    puts(colored.yellow("Saving {}".format(os.path.join(directory, 'mechfile'))))
+    puts(colored.blue("Saving {}".format(os.path.join(directory, 'mechfile'))))
     with open(os.path.join(directory, 'mechfile'), 'w+') as f:
         json.dump(mechfile, f, sort_keys=True, indent=4, separators=(',', ': '))
     puts(colored.green("Finished."))
