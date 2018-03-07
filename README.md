@@ -39,12 +39,12 @@ Example:
 
     Initializing and using a machine from HashiCorp's Vagrant Cloud:
 
-        mech init bento/ubuntu-14.04
+        mech init freebsd/FreeBSD-11.1-RELEASE
         mech up
         mech ssh
 ```
 
-`mech init` can be used to pull a box file which will be installed and generate a mechfile in the current directory. You can also pull boxes from Vagrant Cloud with `mech init bento/ubuntu-14.04`. Barring that, `mech up <name>` can also be used to specify a vmx file to start.
+`mech init` can be used to pull a box file which will be installed and generate a mechfile in the current directory. You can also pull boxes from Vagrant Cloud with `mech init freebsd/FreeBSD-11.1-RELEASE`. Barring that, `mech up <name>` can also be used to specify a vmx file to start.
 
 # Install
 
@@ -52,7 +52,7 @@ Example:
 
 # Shared Folders
 
-If the box you init was created properly, you will be able to access the host's current working directory in `/mnt/hgfs/mech`. If you are having trouble try running: 
+If the box you init was created properly, you will be able to access the host's current working directory in `/mnt/hgfs/mech`. If you are having trouble try running:
 
 ```bash
 sudo apt-get install linux-headers-$(uname -r)
