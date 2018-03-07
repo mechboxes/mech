@@ -92,19 +92,24 @@ class Mech(object):
 
     def start(self, gui=False):
         vm = VMrun(self.vmx)
-        vm.start(gui=gui)
+        started = vm.start(gui=gui)
         time.sleep(3)
         if vm.installedTools():
-            puts(colored.yellow("Getting IP address..."))
-            ip = vm.getGuestIPAddress()
-            puts(colored.green("VM started on {}".format(ip)))
             puts(colored.yellow("Sharing current folder..."))
             vm.enableSharedFolders()
-            vm.addSharedFolder('mech', os.getcwd())
-            puts(colored.green("VM started on {}".format(ip)))
+            vm.addSharedFolder('mech', os.getcwd(), quiet=True)
+            puts(colored.yellow("Getting IP address..."))
+            ip = vm.getGuestIPAddress()
+            if started:
+                puts(colored.green("VM started on {}".format(ip)))
+            else:
+                puts(colored.yellow("VM already was started on {}".format(ip)))
         else:
             puts(colored.yellow("VMWare Tools is not installed or running..."))
-            puts(colored.green("VM started"))
+            if started:
+                puts(colored.green("VM started"))
+            else:
+                puts(colored.green("VM already was started"))
 
     def destroy(self, force=False):
         directory = os.path.dirname(self.vmx)
