@@ -507,12 +507,14 @@ class Mech(MechCommand):
         Usage: mech down [options]
 
         Options:
+                --force                      Force a hard stop
                 --name BOX                   Name of the box
             -h, --help                       Print this help
         """
+        force = arguments['--force']
 
         vm = VMrun(self.vmx)
-        if vm.installedTools():
+        if not force and vm.installedTools():
             stopped = vm.stop()
         else:
             stopped = vm.stop(mode='hard')
