@@ -363,8 +363,8 @@ class VMrun(object):
     #                          [-wait]
     #
 
-    def runProgramInGuest(self, program_path, arguments=[], wait=True, activate_window=False, interactive=False, quiet=False):
-        return self.vmrun('runProgramInGuest', self.vmx_file, None if wait else '-noWait', '-activateWindow' if activate_window else None, '-interactive' if interactive else None, program_path, arguments=arguments, quiet=quiet)
+    def runProgramInGuest(self, program_path, program_arguments=[], wait=True, activate_window=False, interactive=False, quiet=False):
+        return self.vmrun('runProgramInGuest', self.vmx_file, None if wait else '-noWait', '-activateWindow' if activate_window else None, '-interactive' if interactive else None, program_path, arguments=program_arguments, quiet=quiet)
 
     def fileExistsInGuest(self, file, quiet=False):
         '''Check if a file exists in Guest OS'''
