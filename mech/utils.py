@@ -224,3 +224,42 @@ def init_box(filename, url):
         'url': url,
         'user': prompt.query("What username would you like to save?", default='vagrant')
     }, '.')
+
+
+def provision(vm, script, arguments=[]):
+    if not vm.installedTools():
+        return
+
+    program_path = vm.createTempfileInGuest()
+    if program_path is None:
+        return
+
+    try:
+        if os.path.isfile(script):
+            puts(colored.blue("Sending {}...".format(script)))
+            if vm.copyFileFromHostToGuest(script, program_path) is None:
+                return
+        else:
+            if any(script.startswith(s) for s in ('https://', 'http://', 'ftp://')):
+                puts(colored.blue("Downloading {}...".format(script)))
+                try:
+                    script = requests.get(script).read()
+                except requests.ConnectionError:
+                    return
+
+            puts(colored.blue("Sending script..."))
+            with tempfile.NamedTemporaryFile() as f:
+                f.write(script)
+                f.flush()
+                if vm.copyFileFromHostToGuest(f.name, program_path) is None:
+                    return
+
+        puts(colored.blue("Configuring environment..."))
+        if vm.runScriptInGuest('/bin/sh', "chmod +x '{}'".format(program_path)) is None:
+            return
+
+        puts(colored.blue("Executing program..."))
+        return vm.runProgramInGuest(program_path, arguments)
+
+    finally:
+        vm.deleteFileInGuest(program_path, quiet=True)
