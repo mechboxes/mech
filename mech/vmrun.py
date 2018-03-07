@@ -99,7 +99,7 @@ class VMrun(object):
         cmds.append(cmd)
         cmds.extend(filter(None, args))
 
-        logger.debug(" ".join(cmds))
+        logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
 
         proc = subprocess.Popen(cmds, stdout=subprocess.PIPE)
         stdoutdata, stderrdata = proc.communicate()
