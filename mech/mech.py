@@ -750,7 +750,42 @@ class Mech(MechCommand):
                 --name BOX                   Name of the box
             -h, --help                       Print this help
         """
-        puts(colored.red("Not implemented!"))
+        vm = VMrun(self.vmx, self.user, self.password)
+
+        if not vm.installedTools():
+            puts(colored.red("Tools not installed"))
+            return
+
+        provisioned = 0
+        for i, provision in enumerate(self.get('provision', [])):
+
+            if provision.get('type') == 'file':
+                source = provision.get('source')
+                destination = provision.get('destination')
+                if utils.provision_file(vm, source, destination) is None:
+                    puts(colored.red("Not Provisioned"))
+                    return
+                provisioned += 1
+
+            elif provision.get('type') == 'shell':
+                inline = provision.get('inline')
+                path = provision.get('path')
+                args = provision.get('args')
+                if not isinstance(args, list):
+                    args = [args]
+                if utils.provision_shell(vm, inline, path, args) is None:
+                    puts(colored.red("Not Provisioned"))
+                    return
+                provisioned += 1
+
+            else:
+                puts(colored.red("Not Provisioned ({}".format(i)))
+                return
+        else:
+            puts(colored.green("Provisioned {} entries".format(provisioned)))
+            return
+
+        puts(colored.red("Not Provisioned ({}".format(i)))
 
     def reload(self, arguments):
         """

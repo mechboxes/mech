@@ -254,48 +254,49 @@ def init_box(filename, url):
     }, '.')
 
 
-def provision(vm, script, path, program_arguments=[]):
-    if not vm.installedTools():
-        return
+def provision_file(vm, source, destination):
+    return vm.copyFileFromHostToGuest(source, destination)
 
-    program_path = vm.createTempfileInGuest()
-    if program_path is None:
+
+def provision_shell(vm, inline, path, args=[]):
+    tmp_path = vm.createTempfileInGuest()
+    if tmp_path is None:
         return
 
     try:
         if path and os.path.isfile(path):
             puts(colored.blue("Configuring script {}...".format(path)))
-            if vm.copyFileFromHostToGuest(path, program_path) is None:
+            if vm.copyFileFromHostToGuest(path, tmp_path) is None:
                 return
         else:
             if path:
                 if any(path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
                     puts(colored.blue("Downloading {}...".format(path)))
                     try:
-                        script = requests.get(path).read()
+                        inline = requests.get(path).read()
                     except requests.ConnectionError:
                         return
                 else:
                     puts(colored.red("Cannot open {}".format(path)))
                     return
 
-            if not script:
+            if not inline:
                 puts(colored.red("No script to execute"))
                 return
 
             puts(colored.blue("Configuring script..."))
             with tempfile.NamedTemporaryFile() as f:
-                f.write(script)
+                f.write(inline)
                 f.flush()
-                if vm.copyFileFromHostToGuest(f.name, program_path) is None:
+                if vm.copyFileFromHostToGuest(f.name, tmp_path) is None:
                     return
 
         puts(colored.blue("Configuring environment..."))
-        if vm.runScriptInGuest('/bin/sh', "chmod +x '{}'".format(program_path)) is None:
+        if vm.runScriptInGuest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
             return
 
         puts(colored.blue("Executing program..."))
-        return vm.runProgramInGuest(program_path, program_arguments)
+        return vm.runProgramInGuest(tmp_path, args)
 
     finally:
-        vm.deleteFileInGuest(program_path, quiet=True)
+        vm.deleteFileInGuest(tmp_path, quiet=True)
