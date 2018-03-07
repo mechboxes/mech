@@ -141,7 +141,7 @@ def add_box(descriptor, name=None, version=None, force=False, requests_kwargs={}
             for provider in v['providers']:
                 if 'vmware' in provider['name']:
                     url = provider['url']
-                    print("Found url {} with provider {}".format(url, provider['name']))
+                    puts(colored.blue("Found url {} with provider {}".format(url, provider['name'])))
                     name = os.path.join(name, current_version)
                     return add_box_url(name, url, force=force, requests_kwargs=requests_kwargs)
     puts(colored.red("Couldn't find a VMWare compatible VM"))
