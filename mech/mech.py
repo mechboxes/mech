@@ -542,27 +542,26 @@ class Mech(MechCommand):
         gui = arguments['--gui']
 
         vm = VMrun(self.vmx)
+        puts(colored.blue("Bringing machine up..."))
         started = vm.start(gui=gui)
         if started is None:
             puts(colored.red("VM not started"))
         else:
             time.sleep(3)
-            if vm.installedTools():
-                puts(colored.blue("Getting IP address..."))
-                ip = vm.getGuestIPAddress()
-                puts(colored.blue("Sharing current folder..."))
-                vm.enableSharedFolders()
-                vm.addSharedFolder('mech', os.getcwd(), quiet=True)
+            puts(colored.blue("Getting IP address..."))
+            ip = vm.getGuestIPAddress()
+            puts(colored.blue("Sharing current folder..."))
+            vm.addSharedFolder('mech', os.getcwd(), quiet=True)
+            if ip is not None:
                 if started:
                     puts(colored.green("VM started on {}".format(ip)))
                 else:
                     puts(colored.yellow("VM already was started on {}".format(ip)))
             else:
-                puts(colored.yellow("VMWare Tools is not installed or running..."))
                 if started:
-                    puts(colored.green("VM started"))
+                    puts(colored.green("VM started on an unknown IP address"))
                 else:
-                    puts(colored.yellow("VM already was started"))
+                    puts(colored.yellow("VM already was started on an unknown IP address"))
     start = up
 
     def destroy(self, arguments):
@@ -647,10 +646,12 @@ class Mech(MechCommand):
         # Try to unpause
         if vm.unpause(quiet=True) is not None:
             time.sleep(1)
-            if vm.installedTools():
-                puts(colored.blue("Getting IP address..."))
-                ip = vm.getGuestIPAddress(wait=False, quiet=True)
+            puts(colored.blue("Getting IP address..."))
+            ip = vm.getGuestIPAddress()
+            if ip is not None:
                 puts(colored.green("VM resumed on {}".format(ip)))
+            else:
+                puts(colored.green("VM resumed on an unknown IP address"))
 
         # Otherwise try starting
         else:
@@ -659,22 +660,21 @@ class Mech(MechCommand):
                 puts(colored.red("VM not started"))
             else:
                 time.sleep(3)
-                if vm.installedTools():
-                    puts(colored.blue("Getting IP address..."))
-                    ip = vm.getGuestIPAddress()
-                    puts(colored.blue("Sharing current folder..."))
-                    vm.enableSharedFolders()
-                    vm.addSharedFolder('mech', os.getcwd(), quiet=True)
+                puts(colored.blue("Getting IP address..."))
+                ip = vm.getGuestIPAddress()
+                puts(colored.blue("Sharing current folder..."))
+                vm.enableSharedFolders()
+                vm.addSharedFolder('mech', os.getcwd(), quiet=True)
+                if ip is not None:
                     if started:
                         puts(colored.green("VM started on {}".format(ip)))
                     else:
                         puts(colored.yellow("VM already was started on {}".format(ip)))
                 else:
-                    puts(colored.yellow("VMWare Tools is not installed or running..."))
                     if started:
-                        puts(colored.green("VM started"))
+                        puts(colored.green("VM started on an unknown IP address"))
                     else:
-                        puts(colored.yellow("VM already was started"))
+                        puts(colored.yellow("VM already was started on an unknown IP address"))
 
     def suspend(self, arguments):
         """
@@ -770,7 +770,7 @@ class Mech(MechCommand):
 
         vm = VMrun(self.vmx)
         ip = vm.getGuestIPAddress()
-        if ip:
+        if ip is not None:
             src_is_host = src.startswith(":")
             dst_is_host = dst.startswith(":")
 
@@ -800,7 +800,7 @@ class Mech(MechCommand):
                 cmd += ' ' + ' '.join(extra)
             os.system(cmd)
         else:
-            puts(colored.red("IP not found"))
+            puts(colored.red("Unkown IP address"))
 
     def ip(self, arguments):
         """
@@ -815,10 +815,10 @@ class Mech(MechCommand):
 
         vm = VMrun(self.vmx)
         ip = vm.getGuestIPAddress()
-        if ip:
+        if ip is not None:
             puts(colored.green(ip))
         else:
-            puts(colored.red("IP not found"))
+            puts(colored.red("Unkown IP address"))
 
     def provision(self, arguments):
         """

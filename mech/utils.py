@@ -32,6 +32,7 @@ import json
 import tarfile
 import logging
 import tempfile
+import textwrap
 import subprocess
 import collections
 from shutil import copyfile
@@ -132,9 +133,11 @@ def load_mechfile():
                     break
         new_pwd = os.path.basename(pwd)
         pwd = None if new_pwd == pwd else new_pwd
-    puts(colored.red("Couldn't find a mechfile in the current directory any deeper directories"))
-    puts(colored.red("You can specify the name of the VM you'd like to start with mech up <name>"))
-    puts(colored.red("Or run mech init to setup a tarball of your VM or download the VM"))
+    puts(colored.red(textwrap.fill(
+        "Couldn't find a mechfile in the current directory any deeper directories"
+        "You can specify the name of the VM you'd like to start with mech up <name>"
+        "Or run mech init to setup a tarball of your VM or download the VM"
+    )))
     sys.exit(1)
 
 
@@ -210,8 +213,10 @@ def add_box_tar(name, filename, url=None, force=False):
                 valid_tar = True
                 break
             if i.startswith('/') or i.startswith('..'):
-                puts(colored.red("This box is comprised of filenames starting with '/' or '..'"))
-                puts(colored.red("Exiting for the safety of your files"))
+                puts(colored.red(textwrap.fill(
+                    "This box is comprised of filenames starting with '/' or '..'"
+                    "Exiting for the safety of your files"
+                )))
                 sys.exit(1)
 
     if valid_tar:
