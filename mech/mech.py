@@ -561,9 +561,23 @@ class Mech(MechCommand):
                     puts_err(colored.yellow("VM already was started on an unknown IP address"))
     start = up
 
-    def status(self, arguments):
+    def global_status(self, arguments):
         """
         Outputs mech environments status for this user.
+
+        Usage: mech global-status [options]
+
+        Options:
+                --prune                      Prune invalid entries
+            -h, --help                       Print this help
+        """
+        vm = VMrun()
+        print(vm.list())
+    ps = global_status
+
+    def status(self, arguments):
+        """
+        Outputs status of the vagrant machine.
 
         Usage: mech status [options]
 
@@ -571,9 +585,17 @@ class Mech(MechCommand):
                 --name BOX                   Name of the box
             -h, --help                       Print this help
         """
-        vm = VMrun()
-        puts_err(vm.list())
-    ps = status
+
+        vm = VMrun(self.vmx)
+        box_name = self.box_name
+        ip = vm.getGuestIPAddress()
+        state = vm.checkToolsState()
+
+        print("Current machine states:\n")
+        print("%20s %16s %15s" % (box_name, ip, state))
+        # default                   poweroff (virtualbox)
+
+        # print("\nThe VM is powered off. To restart the VM, simply run `vagrant up`")
 
     def destroy(self, arguments):
         """
