@@ -41,7 +41,7 @@ import requests
 
 from clint.textui import colored, puts_err
 from clint.textui import progress
-from clint.textui import prompt
+
 
 logger = logging.getLogger(__name__)
 
@@ -64,10 +64,10 @@ def confirm(prompt, default='y'):
             else:
                 return False
 
-        if re.match('y(?:es)?', input, re.IGNORE_CASE):
+        if re.match('y(?:es)?', input, re.IGNORECASE):
             return True
 
-        elif re.match('n(?:o)?', input, re.IGNORE_CASE):
+        elif re.match('n(?:o)?', input, re.IGNORECASE):
             return False
 
 
@@ -180,7 +180,7 @@ def add_box(descriptor, name=None, version=None, force=False, requests_kwargs={}
 
 def add_box_url(name, version, url, force=False, requests_kwargs={}):
     boxname = os.path.basename(url)
-    box = os.path.join(HOME, 'boxes', name, boxname)
+    box = os.path.join(*filter(None, (HOME, 'boxes', name, version, boxname)))
     exists = os.path.exists(box)
     if not exists or force:
         if exists:
@@ -225,7 +225,7 @@ def add_box_tar(name, version, filename, url=None, force=False):
 
     if valid_tar:
         boxname = os.path.basename(url if url else filename)
-        box = os.path.join(filter(None, (HOME, 'boxes', name, version, boxname)))
+        box = os.path.join(*filter(None, (HOME, 'boxes', name, version, boxname)))
         path = os.path.dirname(box)
         if not os.path.exists(path):
             os.makedirs(path)
@@ -272,8 +272,9 @@ def init_box(name, version, requests_kwargs={}):
         if not name_version:
             return
         name, version = name_version
-        box = locate(os.path.join(filter(None, (HOME, 'boxes', name, version))), '*.box')
+        box = locate(os.path.join(*filter(None, (HOME, 'boxes', name, version))), '*.box')
 
+        puts_err(colored.blue("Extracting box '{}'...".format(name)))
         os.makedirs('.mech')
         if os.name == 'posix':
             proc = subprocess.Popen(['tar', '-xf', box], cwd='.mech')

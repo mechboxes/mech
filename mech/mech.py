@@ -87,12 +87,16 @@ class MechCommand(Command):
         return utils.get_vmx()
 
     @property
-    def name(self):
-        return self.get('name')
+    def box_name(self):
+        box_name = self.get('box')
+        if not box_name:
+            puts_err(colored.red(textwrap.fill("Cannot find a box configured in the mechfile")))
+            sys.exit(1)
+        return box_name
 
     @property
-    def version(self):
-        return self.get('version')
+    def box_version(self):
+        return self.get('box_version')
 
     @property
     def user(self):
@@ -529,7 +533,7 @@ class Mech(MechCommand):
         gui = arguments['--gui']
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
-        vmx = utils.init_box(self.name, self.version, requests_kwargs=requests_kwargs)
+        vmx = utils.init_box(self.box_name, self.box_version, requests_kwargs=requests_kwargs)
         vm = VMrun(vmx)
         puts_err(colored.blue("Bringing machine up..."))
         started = vm.start(gui=gui)
@@ -586,7 +590,7 @@ class Mech(MechCommand):
         if force or utils.confirm("Are you sure you want to delete {name} at {directory}".format(name=name, directory=directory), default='n'):
             puts_err(colored.green("Deleting..."))
             vm = VMrun(vmx)
-            vm.stop(mode='hard')
+            vm.stop(mode='hard', quiet=True)
             time.sleep(3)
             shutil.rmtree(directory)
         else:
