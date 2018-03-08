@@ -35,7 +35,7 @@ import tempfile
 import textwrap
 import subprocess
 
-from clint.textui import colored, puts
+from clint.textui import colored, puts_err
 
 from vmrun import VMrun
 from command import Command
@@ -108,7 +108,7 @@ class MechCommand(Command):
 
         ip = vm.getGuestIPAddress(wait=False) if vm.installedTools() else None
         if not ip:
-            puts(colored.red(textwrap.fill(
+            puts_err(colored.red(textwrap.fill(
                 "This mech machine is reporting that it is not yet ready for SSH."
                 "Make sure your machine is created and running and try again."
                 "Additionally, check the output of `mech status` to verify"
@@ -195,7 +195,7 @@ class MechBox(MechCommand):
         """
         vms = glob.glob(os.path.join(HOME, 'boxes', '*'))
         for vm in vms:
-            puts(os.path.basename(vm))
+            puts_err(os.path.basename(vm))
     ls = list
 
     def outdated(self, arguments):
@@ -212,7 +212,7 @@ class MechBox(MechCommand):
                 --cert FILE                  A client SSL cert, if needed
             -h, --help                       Print this help
         """
-        puts(colored.red("Not implemented!"))
+        puts_err(colored.red("Not implemented!"))
 
     def prune(self, arguments):
         """
@@ -229,7 +229,7 @@ class MechBox(MechCommand):
             -f, --force                      Destroy without confirmation even when box is in use.
             -h, --help                       Print this help
         """
-        puts(colored.red("Not implemented!"))
+        puts_err(colored.red("Not implemented!"))
 
     def remove(self, arguments):
         """
@@ -243,7 +243,7 @@ class MechBox(MechCommand):
                 --all                        Remove all available versions of the box
             -h, --help                       Print this help
         """
-        puts(colored.red("Not implemented!"))
+        puts_err(colored.red("Not implemented!"))
 
     def repackage(self, arguments):
         """
@@ -258,7 +258,7 @@ class MechBox(MechCommand):
         Options:
             -h, --help                       Print this help
         """
-        puts(colored.red("Not implemented!"))
+        puts_err(colored.red("Not implemented!"))
 
     def update(self, arguments):
         """
@@ -279,7 +279,7 @@ class MechBox(MechCommand):
                 --name BOX                   Name of the box
             -h, --help                       Print this help
         """
-        puts(colored.red("Not implemented!"))
+        puts_err(colored.red("Not implemented!"))
 
 
 class MechSnapshot(MechCommand):
@@ -311,9 +311,9 @@ class MechSnapshot(MechCommand):
 
         vm = VMrun(self.vmx)
         if vm.deleteSnapshot(name) is None:
-            puts(colored.red("Cannot delete snapshot"))
+            puts_err(colored.red("Cannot delete snapshot"))
         else:
-            puts(colored.green("Snapshot {} deleted".format(name)))
+            puts_err(colored.green("Snapshot {} deleted".format(name)))
 
     def list(self, arguments):
         """
@@ -326,7 +326,7 @@ class MechSnapshot(MechCommand):
             -h, --help                       Print this help
         """
         vm = VMrun(self.vmx)
-        puts(vm.listSnapshots())
+        puts_err(vm.listSnapshots())
 
     def pop(self, arguments):
         """
@@ -340,7 +340,7 @@ class MechSnapshot(MechCommand):
                 --name BOX                   Name of the box
             -h, --help                       Print this help
         """
-        puts(colored.red("Not implemented!"))
+        puts_err(colored.red("Not implemented!"))
 
     def push(self, arguments):
         """
@@ -360,7 +360,7 @@ class MechSnapshot(MechCommand):
                 --name BOX                   Name of the box
             -h, --help                       Print this help
         """
-        puts(colored.red("Not implemented!"))
+        puts_err(colored.red("Not implemented!"))
 
     def restore(self, arguments):
         """
@@ -373,7 +373,7 @@ class MechSnapshot(MechCommand):
                 --name BOX                   Name of the box
             -h, --help                       Print this help
         """
-        puts(colored.red("Not implemented!"))
+        puts_err(colored.red("Not implemented!"))
 
     def save(self, arguments):
         """
@@ -398,9 +398,9 @@ class MechSnapshot(MechCommand):
 
         vm = VMrun(self.vmx)
         if vm.snapshot(name) is None:
-            puts(colored.red("Cannot take snapshot"))
+            puts_err(colored.red("Cannot take snapshot"))
         else:
-            puts(colored.green("Snapshot {} taken".format(name)))
+            puts_err(colored.green("Snapshot {} taken".format(name)))
 
 
 class Mech(MechCommand):
@@ -489,23 +489,23 @@ class Mech(MechCommand):
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
         if os.path.exists('mechfile') and not force:
-            puts(colored.red(textwrap.fill(
+            puts_err(colored.red(textwrap.fill(
                 "`mechfile` already exists in this directory."
                 "Remove it before running `mech init`."
             )))
             return
 
-        puts(colored.green("Initializing mech"))
+        puts_err(colored.green("Initializing mech"))
         name_version = utils.add_box(url, name=name, version=version, requests_kwargs=requests_kwargs)
         if name_version:
             name, version = name_version
             utils.init_mechfile(name, version)
-            puts(colored.green(textwrap.fill(
+            puts_err(colored.green(textwrap.fill(
                 "A `mechfile` has been initialized and placed in this directory."
                 "You are now ready to `mech up` your first virtual environment!"
             )))
         else:
-            puts(colored.red("Couldn't initialize mech"))
+            puts_err(colored.red("Couldn't initialize mech"))
 
     def up(self, arguments):
         """
@@ -531,26 +531,26 @@ class Mech(MechCommand):
 
         vmx = utils.init_box(self.name, self.version, requests_kwargs=requests_kwargs)
         vm = VMrun(vmx)
-        puts(colored.blue("Bringing machine up..."))
+        puts_err(colored.blue("Bringing machine up..."))
         started = vm.start(gui=gui)
         if started is None:
-            puts(colored.red("VM not started"))
+            puts_err(colored.red("VM not started"))
         else:
             time.sleep(3)
-            puts(colored.blue("Getting IP address..."))
+            puts_err(colored.blue("Getting IP address..."))
             ip = vm.getGuestIPAddress()
-            puts(colored.blue("Sharing current folder..."))
+            puts_err(colored.blue("Sharing current folder..."))
             vm.addSharedFolder('mech', os.getcwd(), quiet=True)
             if ip:
                 if started:
-                    puts(colored.green("VM started on {}".format(ip)))
+                    puts_err(colored.green("VM started on {}".format(ip)))
                 else:
-                    puts(colored.yellow("VM already was started on {}".format(ip)))
+                    puts_err(colored.yellow("VM already was started on {}".format(ip)))
             else:
                 if started:
-                    puts(colored.green("VM started on an unknown IP address"))
+                    puts_err(colored.green("VM started on an unknown IP address"))
                 else:
-                    puts(colored.yellow("VM already was started on an unknown IP address"))
+                    puts_err(colored.yellow("VM already was started on an unknown IP address"))
     start = up
 
     def status(self, arguments):
@@ -564,7 +564,7 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         vm = VMrun()
-        puts(vm.list())
+        puts_err(vm.list())
     ps = status
 
     def destroy(self, arguments):
@@ -584,13 +584,13 @@ class Mech(MechCommand):
         directory = os.path.dirname(vmx)
         name = os.path.basename(directory)
         if force or utils.confirm("Are you sure you want to delete {name} at {directory}".format(name=name, directory=directory), default='n'):
-            puts(colored.green("Deleting..."))
+            puts_err(colored.green("Deleting..."))
             vm = VMrun(vmx)
             vm.stop(mode='hard')
             time.sleep(3)
             shutil.rmtree(directory)
         else:
-            puts(colored.red("Deletion aborted"))
+            puts_err(colored.red("Deletion aborted"))
 
     def down(self, arguments):
         """
@@ -611,9 +611,9 @@ class Mech(MechCommand):
         else:
             stopped = vm.stop(mode='hard')
         if stopped is None:
-            puts(colored.red("Not stopped", vm))
+            puts_err(colored.red("Not stopped", vm))
         else:
-            puts(colored.green("Stopped", vm))
+            puts_err(colored.green("Stopped", vm))
     stop = down
     halt = down
 
@@ -630,9 +630,9 @@ class Mech(MechCommand):
 
         vm = VMrun(self.vmx)
         if vm.pause() is None:
-            puts(colored.red("Not paused", vm))
+            puts_err(colored.red("Not paused", vm))
         else:
-            puts(colored.yellow("Paused", vm))
+            puts_err(colored.yellow("Paused", vm))
 
     def resume(self, arguments):
         """
@@ -650,35 +650,35 @@ class Mech(MechCommand):
         # Try to unpause
         if vm.unpause(quiet=True) is not None:
             time.sleep(1)
-            puts(colored.blue("Getting IP address..."))
+            puts_err(colored.blue("Getting IP address..."))
             ip = vm.getGuestIPAddress()
             if ip:
-                puts(colored.green("VM resumed on {}".format(ip)))
+                puts_err(colored.green("VM resumed on {}".format(ip)))
             else:
-                puts(colored.green("VM resumed on an unknown IP address"))
+                puts_err(colored.green("VM resumed on an unknown IP address"))
 
         # Otherwise try starting
         else:
             started = vm.start()
             if started is None:
-                puts(colored.red("VM not started"))
+                puts_err(colored.red("VM not started"))
             else:
                 time.sleep(3)
-                puts(colored.blue("Getting IP address..."))
+                puts_err(colored.blue("Getting IP address..."))
                 ip = vm.getGuestIPAddress()
-                puts(colored.blue("Sharing current folder..."))
+                puts_err(colored.blue("Sharing current folder..."))
                 vm.enableSharedFolders()
                 vm.addSharedFolder('mech', os.getcwd(), quiet=True)
                 if ip:
                     if started:
-                        puts(colored.green("VM started on {}".format(ip)))
+                        puts_err(colored.green("VM started on {}".format(ip)))
                     else:
-                        puts(colored.yellow("VM already was started on {}".format(ip)))
+                        puts_err(colored.yellow("VM already was started on {}".format(ip)))
                 else:
                     if started:
-                        puts(colored.green("VM started on an unknown IP address"))
+                        puts_err(colored.green("VM started on an unknown IP address"))
                     else:
-                        puts(colored.yellow("VM already was started on an unknown IP address"))
+                        puts_err(colored.yellow("VM already was started on an unknown IP address"))
 
     def suspend(self, arguments):
         """
@@ -693,9 +693,9 @@ class Mech(MechCommand):
 
         vm = VMrun(self.vmx)
         if vm.suspend() is None:
-            puts(colored.red("Not suspended", vm))
+            puts_err(colored.red("Not suspended", vm))
         else:
-            puts(colored.green("Suspended", vm))
+            puts_err(colored.green("Suspended", vm))
 
     def ssh(self, arguments):
         """
@@ -716,7 +716,7 @@ class Mech(MechCommand):
 
         config_ssh = self.config_ssh
         if not config_ssh:
-            puts(colored.red(""))
+            puts_err(colored.red(""))
             sys.exit(1)
 
         with tempfile.NamedTemporaryFile() as fp:
@@ -778,12 +778,12 @@ class Mech(MechCommand):
             dst_is_host = dst.startswith(":")
 
             if src_is_host and dst_is_host:
-                puts(colored.red("Both src and host are host destinations"))
+                puts_err(colored.red("Both src and host are host destinations"))
                 sys.exit(1)
 
             if dst_is_host:
                 dst = dst[1:]
-                puts("Sending {src} to {authentication}{ip}:{dst}".format(
+                puts_err("Sending {src} to {authentication}{ip}:{dst}".format(
                     authentication=colored.green(authentication),
                     ip=colored.green(ip),
                     src=src,
@@ -792,7 +792,7 @@ class Mech(MechCommand):
                 cmd = 'scp {} {}{}:{}'.format(src, authentication, ip, dst)
             else:
                 src = src[1:]
-                puts("Getting {authentication}{ip}:{src} and saving in {dst}".format(
+                puts_err("Getting {authentication}{ip}:{src} and saving in {dst}".format(
                     authentication=colored.green(authentication),
                     ip=colored.green(ip),
                     src=src,
@@ -803,7 +803,7 @@ class Mech(MechCommand):
                 cmd += ' ' + ' '.join(extra)
             os.system(cmd)
         else:
-            puts(colored.red("Unkown IP address"))
+            puts_err(colored.red("Unkown IP address"))
 
     def ip(self, arguments):
         """
@@ -819,9 +819,9 @@ class Mech(MechCommand):
         vm = VMrun(self.vmx)
         ip = vm.getGuestIPAddress()
         if ip:
-            puts(colored.green(ip))
+            puts_err(colored.green(ip))
         else:
-            puts(colored.red("Unkown IP address"))
+            puts_err(colored.red("Unkown IP address"))
 
     def provision(self, arguments):
         """
@@ -836,7 +836,7 @@ class Mech(MechCommand):
         vm = VMrun(self.vmx, self.user, self.password)
 
         if not vm.installedTools():
-            puts(colored.red("Tools not installed"))
+            puts_err(colored.red("Tools not installed"))
             return
 
         provisioned = 0
@@ -846,7 +846,7 @@ class Mech(MechCommand):
                 source = provision.get('source')
                 destination = provision.get('destination')
                 if utils.provision_file(vm, source, destination) is None:
-                    puts(colored.red("Not Provisioned"))
+                    puts_err(colored.red("Not Provisioned"))
                     return
                 provisioned += 1
 
@@ -857,18 +857,18 @@ class Mech(MechCommand):
                 if not isinstance(args, list):
                     args = [args]
                 if utils.provision_shell(vm, inline, path, args) is None:
-                    puts(colored.red("Not Provisioned"))
+                    puts_err(colored.red("Not Provisioned"))
                     return
                 provisioned += 1
 
             else:
-                puts(colored.red("Not Provisioned ({}".format(i)))
+                puts_err(colored.red("Not Provisioned ({}".format(i)))
                 return
         else:
-            puts(colored.green("Provisioned {} entries".format(provisioned)))
+            puts_err(colored.green("Provisioned {} entries".format(provisioned)))
             return
 
-        puts(colored.red("Not Provisioned ({}".format(i)))
+        puts_err(colored.red("Not Provisioned ({}".format(i)))
 
     def reload(self, arguments):
         """
@@ -881,7 +881,7 @@ class Mech(MechCommand):
                 --name BOX                   Name of the box
             -h, --help                       Print this help
         """
-        puts(colored.red("Not implemented!"))
+        puts_err(colored.red("Not implemented!"))
 
     def port(self, arguments):
         """
@@ -895,7 +895,7 @@ class Mech(MechCommand):
                 --name BOX                   Name of the box
             -h, --help                       Print this help
         """
-        puts(colored.red("Not implemented!"))
+        puts_err(colored.red("Not implemented!"))
 
     def push(self, arguments):
         """
@@ -906,4 +906,4 @@ class Mech(MechCommand):
         Options:
             -h, --help                       Print this help
         """
-        puts(colored.red("Not implemented!"))
+        puts_err(colored.red("Not implemented!"))

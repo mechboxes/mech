@@ -39,7 +39,7 @@ from shutil import copyfile
 
 import requests
 
-from clint.textui import colored, puts
+from clint.textui import colored, puts_err
 from clint.textui import progress
 from clint.textui import prompt
 
@@ -72,10 +72,10 @@ def confirm(prompt, default='y'):
 
 
 def save_mechfile(mechfile, directory='.'):
-    puts(colored.blue("Saving {}".format(os.path.join(directory, 'mechfile'))))
+    puts_err(colored.blue("Saving {}".format(os.path.join(directory, 'mechfile'))))
     with open(os.path.join(directory, 'mechfile'), 'w+') as f:
         json.dump(mechfile, f, sort_keys=True, indent=4, separators=(',', ': '))
-    puts(colored.green("Finished."))
+    puts_err(colored.green("Finished."))
 
 
 def locate(path, glob):
@@ -131,11 +131,11 @@ def load_mechfile():
                 try:
                     return json.load(f)
                 except ValueError:
-                    puts(colored.red("Invalid mechfile.\n"))
+                    puts_err(colored.red("Invalid mechfile.\n"))
                     break
         new_pwd = os.path.basename(pwd)
         pwd = None if new_pwd == pwd else new_pwd
-    puts(colored.red(textwrap.fill(
+    puts_err(colored.red(textwrap.fill(
         "Couldn't find a mechfile in the current directory any deeper directories"
         "You can specify the name of the VM you'd like to start with mech up <name>"
         "Or run mech init to setup a tarball of your VM or download the VM"
@@ -163,7 +163,7 @@ def add_box(descriptor, name=None, version=None, force=False, requests_kwargs={}
             url = 'https://app.vagrantup.com/{}/boxes/{}'.format(account, box)
             catalog = requests.get(url, **requests_kwargs).json()
         except requests.ConnectionError:
-            puts(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
+            puts_err(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
             return
 
     versions = catalog.get('versions', [])
@@ -173,9 +173,9 @@ def add_box(descriptor, name=None, version=None, force=False, requests_kwargs={}
             for provider in v['providers']:
                 if 'vmware' in provider['name']:
                     url = provider['url']
-                    puts(colored.blue("Found url {} with provider {}".format(url, provider['name'])))
+                    puts_err(colored.blue("Found url {} with provider {}".format(url, provider['name'])))
                     return add_box_url(name, current_version, url, force=force, requests_kwargs=requests_kwargs)
-    puts(colored.red("Couldn't find a VMWare compatible VM"))
+    puts_err(colored.red("Couldn't find a VMWare compatible VM"))
 
 
 def add_box_url(name, version, url, force=False, requests_kwargs={}):
@@ -184,9 +184,9 @@ def add_box_url(name, version, url, force=False, requests_kwargs={}):
     exists = os.path.exists(box)
     if not exists or force:
         if exists:
-            puts(colored.blue("Attempting to download box '{}'...".format(name)))
+            puts_err(colored.blue("Attempting to download box '{}'...".format(name)))
         else:
-            puts(colored.blue("Box '{}' could not be found. Attempting to download...".format(name)))
+            puts_err(colored.blue("Box '{}' could not be found. Attempting to download...".format(name)))
         try:
             r = requests.get(url, stream=True, **requests_kwargs)
             length = int(r.headers['content-length'])
@@ -197,13 +197,13 @@ def add_box_url(name, version, url, force=False, requests_kwargs={}):
                 f.flush()
                 add_box_tar(name, version, f.name, url=url, force=force)
         except requests.ConnectionError:
-            puts(colored.red("Couldn't connect to %s" % url))
+            puts_err(colored.red("Couldn't connect to %s" % url))
             return
     return name, version
 
 
 def add_box_tar(name, version, filename, url=None, force=False):
-    puts(colored.blue("Checking box '{}' integrity...".format(name)))
+    puts_err(colored.blue("Checking box '{}' integrity...".format(name)))
 
     if os.name == 'posix':
         proc = subprocess.Popen(['tar', '-tqf' if sys.platform.startswith('darwin') else '-tf', filename, '*.vmx'])
@@ -217,7 +217,7 @@ def add_box_tar(name, version, filename, url=None, force=False):
                 valid_tar = True
                 break
             if i.startswith('/') or i.startswith('..'):
-                puts(colored.red(textwrap.fill(
+                puts_err(colored.red(textwrap.fill(
                     "This box is comprised of filenames starting with '/' or '..'"
                     "Exiting for the safety of your files"
                 )))
@@ -257,11 +257,11 @@ def get_requests_kwargs(arguments):
 def get_vmx():
     vmx = locate('.mech', '*.vmx')
     if not vmx:
-        puts(colored.red("Cannot locate a VMX file"))
+        puts_err(colored.red("Cannot locate a VMX file"))
         sys.exit(1)
 
     if update_vmx(vmx):
-        puts(colored.yellow("Added network interface to vmx file"))
+        puts_err(colored.yellow("Added network interface to vmx file"))
 
     return vmx
 
@@ -278,7 +278,7 @@ def init_box(name, version, requests_kwargs={}):
         if os.name == 'posix':
             proc = subprocess.Popen(['tar', '-xf', box], cwd='.mech')
             if proc.wait():
-                puts(colored.red("Cannot extract box"))
+                puts_err(colored.red("Cannot extract box"))
                 sys.exit(1)
         else:
             tar = tarfile.open(box, 'r')
@@ -298,37 +298,37 @@ def provision_shell(vm, inline, path, args=[]):
 
     try:
         if path and os.path.isfile(path):
-            puts(colored.blue("Configuring script {}...".format(path)))
+            puts_err(colored.blue("Configuring script {}...".format(path)))
             if vm.copyFileFromHostToGuest(path, tmp_path) is None:
                 return
         else:
             if path:
                 if any(path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
-                    puts(colored.blue("Downloading {}...".format(path)))
+                    puts_err(colored.blue("Downloading {}...".format(path)))
                     try:
                         inline = requests.get(path).read()
                     except requests.ConnectionError:
                         return
                 else:
-                    puts(colored.red("Cannot open {}".format(path)))
+                    puts_err(colored.red("Cannot open {}".format(path)))
                     return
 
             if not inline:
-                puts(colored.red("No script to execute"))
+                puts_err(colored.red("No script to execute"))
                 return
 
-            puts(colored.blue("Configuring script..."))
+            puts_err(colored.blue("Configuring script..."))
             with tempfile.NamedTemporaryFile() as f:
                 f.write(inline)
                 f.flush()
                 if vm.copyFileFromHostToGuest(f.name, tmp_path) is None:
                     return
 
-        puts(colored.blue("Configuring environment..."))
+        puts_err(colored.blue("Configuring environment..."))
         if vm.runScriptInGuest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
             return
 
-        puts(colored.blue("Executing program..."))
+        puts_err(colored.blue("Executing program..."))
         return vm.runProgramInGuest(tmp_path, args)
 
     finally:
