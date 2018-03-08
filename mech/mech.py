@@ -30,6 +30,7 @@ import glob
 import time
 import utils
 import shutil
+import fnmatch
 import logging
 import tempfile
 import textwrap
@@ -197,9 +198,12 @@ class MechBox(MechCommand):
             -i, --box-info                   Displays additional information about the boxes
             -h, --help                       Print this help
         """
-        vms = glob.glob(os.path.join(HOME, 'boxes', '*'))
-        for vm in vms:
-            puts_err(os.path.basename(vm))
+
+        path = os.path.abspath(os.path.join(HOME, 'boxes'))
+        for root, dirnames, filenames in os.walk(path):
+            for filename in fnmatch.filter(filenames, '*.box'):
+                dir = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
+                print(dir)
     ls = list
 
     def outdated(self, arguments):
