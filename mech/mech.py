@@ -738,7 +738,7 @@ class Mech(MechCommand):
                 cmds.extend(('--', command))
 
             logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
-            return subprocess.call(cmds, shell=True)
+            return subprocess.call(cmds)
 
     def ssh_config(self, arguments):
         """
