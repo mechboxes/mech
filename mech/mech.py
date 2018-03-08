@@ -97,7 +97,7 @@ class MechCommand(Command):
 
     @property
     def box_version(self):
-        return self.get('box_version')
+        return self.get('version')
 
     @property
     def user(self):
@@ -114,9 +114,9 @@ class MechCommand(Command):
         ip = vm.getGuestIPAddress(wait=False) if vm.installedTools() else None
         if not ip:
             puts_err(colored.red(textwrap.fill(
-                "This mech machine is reporting that it is not yet ready for SSH."
-                "Make sure your machine is created and running and try again."
-                "Additionally, check the output of `mech status` to verify"
+                "This mech machine is reporting that it is not yet ready for SSH. "
+                "Make sure your machine is created and running and try again. "
+                "Additionally, check the output of `mech status` to verify "
                 "that the machine is in the state that you expect."
             )))
             sys.exit(1)
@@ -186,7 +186,7 @@ class MechBox(MechCommand):
         version = arguments['--box-version']
         force = arguments['--force']
         requests_kwargs = utils.get_requests_kwargs(arguments)
-        return utils.add_box(url, name=name, version=version, force=force, requests_kwargs=requests_kwargs)
+        utils.add_box(url, name=name, version=version, force=force, requests_kwargs=requests_kwargs)
 
     def list(self, arguments):
         """
@@ -498,18 +498,15 @@ class Mech(MechCommand):
 
         if os.path.exists('mechfile') and not force:
             puts_err(colored.red(textwrap.fill(
-                "`mechfile` already exists in this directory."
-                "Remove it before running `mech init`."
+                "`mechfile` already exists in this directory. Remove it "
+                "before running `mech init`."
             )))
             return
 
         puts_err(colored.green("Initializing mech"))
-        name_version = utils.add_box(url, name=name, version=version, requests_kwargs=requests_kwargs)
-        if name_version:
-            name, version = name_version
-            utils.init_mechfile(name, version)
+        if utils.init_mechfile(url, name=name, version=version, requests_kwargs=requests_kwargs):
             puts_err(colored.green(textwrap.fill(
-                "A `mechfile` has been initialized and placed in this directory."
+                "A `mechfile` has been initialized and placed in this directory. "
                 "You are now ready to `mech up` your first virtual environment!"
             )))
         else:

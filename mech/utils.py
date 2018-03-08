@@ -72,10 +72,9 @@ def confirm(prompt, default='y'):
 
 
 def save_mechfile(mechfile, directory='.'):
-    puts_err(colored.blue("Saving {}".format(os.path.join(directory, 'mechfile'))))
     with open(os.path.join(directory, 'mechfile'), 'w+') as f:
         json.dump(mechfile, f, sort_keys=True, indent=2, separators=(',', ': '))
-    puts_err(colored.green("Finished."))
+    return True
 
 
 def locate(path, glob):
@@ -136,37 +135,50 @@ def load_mechfile():
         new_pwd = os.path.basename(pwd)
         pwd = None if new_pwd == pwd else new_pwd
     puts_err(colored.red(textwrap.fill(
-        "Couldn't find a mechfile in the current directory any deeper directories."
-        "A mech environment is required to run this command. Run `mech init`"
-        "to create a new mech environment. Or specify the name of the VM you'd"
-        "like to start with `mech up <name>`. A final option is to change to a"
+        "Couldn't find a mechfile in the current directory any deeper directories. "
+        "A mech environment is required to run this command. Run `mech init` "
+        "to create a new mech environment. Or specify the name of the VM you'd "
+        "like to start with `mech up <name>`. A final option is to change to a "
         "directory with a mechfile and to try again."
     )))
     sys.exit(1)
 
 
-def add_box(descriptor, name=None, version=None, force=False, requests_kwargs={}):
-    if name is None:
-        name = os.path.splitext(os.path.basename(descriptor))[0]
-
+def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
+    mechfile = {}
     if any(descriptor.startswith(s) for s in ('https://', 'http://', 'ftp://')):
-        return add_box_url(name, version, descriptor, force=force, requests_kwargs=requests_kwargs)
+        mechfile['url'] = descriptor
+        if not name:
+            name = os.path.splitext(os.path.basename(descriptor))[0]
+        mechfile['box'] = name
+        if version:
+            mechfile['version'] = version
+        return mechfile
     elif os.path.isfile(descriptor):
         try:
             with open(descriptor) as f:
                 catalog = json.load(f)
         except Exception:
-            return add_box_tar(name, version, descriptor, force=force)
+            mechfile['file'] = descriptor
+            if not name:
+                name = os.path.splitext(os.path.basename(descriptor))[0]
+            mechfile['box'] = name
+            if version:
+                mechfile['version'] = version
+        return mechfile
     else:
         try:
             account, box, v = (descriptor.split('/', 2) + ['', ''])[:3]
+            if not account or not box:
+                puts_err(colored.red("Provided box name is not valid"))
             if v:
                 version = v
+            puts_err(colored.blue("Loading metadata for box '{}'{}".format(descriptor, " ({})".format(version) if version else "")))
             url = 'https://app.vagrantup.com/{}/boxes/{}'.format(account, box)
             catalog = requests.get(url, **requests_kwargs).json()
         except requests.ConnectionError:
             puts_err(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
-            return
+            sys.exit(1)
 
     versions = catalog.get('versions', [])
     for v in versions:
@@ -174,13 +186,51 @@ def add_box(descriptor, name=None, version=None, force=False, requests_kwargs={}
         if not version or current_version == version:
             for provider in v['providers']:
                 if 'vmware' in provider['name']:
-                    url = provider['url']
-                    puts_err(colored.blue("Found url {} with provider {}".format(url, provider['name'])))
-                    return add_box_url(name, current_version, url, force=force, requests_kwargs=requests_kwargs)
-    puts_err(colored.red("Couldn't find a VMWare compatible VM"))
+                    mechfile['box'] = catalog['name']
+                    mechfile['version'] = current_version
+                    mechfile['url'] = provider['url']
+                    return mechfile
+    puts_err(colored.red("Couldn't find a VMWare compatible VM for '{}'{}".format(name, " ({})".format(version) if version else "")))
+    sys.exit(1)
+
+
+def init_box(name, version, requests_kwargs={}):
+    if not os.path.exists('.mech'):
+        name_version = add_box(name, name=name, version=version, requests_kwargs=requests_kwargs)
+        if not name_version:
+            return
+        name, version = name_version
+        box = locate(os.path.join(*filter(None, (HOME, 'boxes', name, version))), '*.box')
+
+        puts_err(colored.blue("Extracting box '{}'...".format(name)))
+        os.makedirs('.mech')
+        if os.name == 'posix':
+            proc = subprocess.Popen(['tar', '-xf', box], cwd='.mech')
+            if proc.wait():
+                puts_err(colored.red("Cannot extract box"))
+                sys.exit(1)
+        else:
+            tar = tarfile.open(box, 'r')
+            tar.extractall('.mech')
+
+    return get_vmx()
+
+
+def add_box(descriptor, name=None, version=None, force=False, requests_kwargs={}):
+    mechfile = build_mechfile(descriptor, name=name, version=version, requests_kwargs=requests_kwargs)
+    url = mechfile.get('url')
+    file = mechfile.get('file')
+    name = mechfile.get('box')
+    version = mechfile.get('version')
+    if file:
+        return add_box_file(name, version, file, force=force)
+    if url:
+        return add_box_url(name, version, url, force=force, requests_kwargs=requests_kwargs)
+    puts_err(colored.red("Couldn't find a VMWare compatible VM for '{}'{}".format(name, " ({})".format(version) if version else "")))
 
 
 def add_box_url(name, version, url, force=False, requests_kwargs={}):
+    puts_err(colored.blue("URL: {}".format(url)))
     boxname = os.path.basename(url)
     box = os.path.join(*filter(None, (HOME, 'boxes', name, version, boxname)))
     exists = os.path.exists(box)
@@ -197,14 +247,13 @@ def add_box_url(name, version, url, force=False, requests_kwargs={}):
                     if chunk:
                         f.write(chunk)
                 f.flush()
-                add_box_tar(name, version, f.name, url=url, force=force)
+                return add_box_file(name, version, f.name, url=url, force=force)
         except requests.ConnectionError:
             puts_err(colored.red("Couldn't connect to %s" % url))
-            return
     return name, version
 
 
-def add_box_tar(name, version, filename, url=None, force=False):
+def add_box_file(name, version, filename, url=None, force=False):
     puts_err(colored.blue("Checking box '{}' integrity...".format(name)))
 
     if os.name == 'posix':
@@ -220,8 +269,8 @@ def add_box_tar(name, version, filename, url=None, force=False):
                 break
             if i.startswith('/') or i.startswith('..'):
                 puts_err(colored.red(textwrap.fill(
-                    "This box is comprised of filenames starting with '/' or '..'"
-                    "Exiting for the safety of your files"
+                    "This box is comprised of filenames starting with '/' or '..' "
+                    "Exiting for the safety of your files."
                 )))
                 sys.exit(1)
 
@@ -236,11 +285,9 @@ def add_box_tar(name, version, filename, url=None, force=False):
         return name, version
 
 
-def init_mechfile(name, version):
-    save_mechfile({
-        'box': name,
-        'box_version': version,
-    }, '.')
+def init_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
+    mechfile = build_mechfile(descriptor, name=name, version=version, requests_kwargs=requests_kwargs)
+    return save_mechfile(mechfile, '.')
 
 
 def get_requests_kwargs(arguments):
@@ -266,28 +313,6 @@ def get_vmx():
         puts_err(colored.yellow("Added network interface to vmx file"))
 
     return vmx
-
-
-def init_box(name, version, requests_kwargs={}):
-    if not os.path.exists('.mech'):
-        name_version = add_box(name, name=name, version=version, requests_kwargs=requests_kwargs)
-        if not name_version:
-            return
-        name, version = name_version
-        box = locate(os.path.join(*filter(None, (HOME, 'boxes', name, version))), '*.box')
-
-        puts_err(colored.blue("Extracting box '{}'...".format(name)))
-        os.makedirs('.mech')
-        if os.name == 'posix':
-            proc = subprocess.Popen(['tar', '-xf', box], cwd='.mech')
-            if proc.wait():
-                puts_err(colored.red("Cannot extract box"))
-                sys.exit(1)
-        else:
-            tar = tarfile.open(box, 'r')
-            tar.extractall('.mech')
-
-    return get_vmx()
 
 
 def provision_file(vm, source, destination):
