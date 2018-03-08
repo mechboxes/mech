@@ -463,7 +463,10 @@ class VMrun(object):
 
     def getGuestIPAddress(self, wait=True, quiet=False):
         '''Gets the IP address of the guest'''
-        return self.vmrun('getGuestIPAddress', self.vmx_file, '-wait' if wait else None, quiet=quiet)
+        ip = self.vmrun('getGuestIPAddress', self.vmx_file, '-wait' if wait else None, quiet=quiet)
+        if ip == 'unknown':
+            ip = ''
+        return ip
 
     ############################################################################
     # GENERAL COMMANDS         PARAMETERS           DESCRIPTION

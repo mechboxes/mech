@@ -84,11 +84,15 @@ class MechCommand(Command):
 
     @property
     def vmx(self):
-        vmx = self.get('vmx')
-        if vmx:
-            return vmx
-        puts(colored.red("Couldn't find a VMX in the mechfile"))
-        sys.exit(1)
+        return utils.get_vmx()
+
+    @property
+    def name(self):
+        return self.get('name')
+
+    @property
+    def version(self):
+        return self.get('version')
 
     @property
     def user(self):
@@ -102,8 +106,8 @@ class MechCommand(Command):
     def config_ssh(self):
         vm = VMrun(self.vmx)
 
-        ip = vm.getGuestIPAddress()
-        if ip is None:
+        ip = vm.getGuestIPAddress(wait=False) if vm.installedTools() else None
+        if not ip:
             puts(colored.red(textwrap.fill(
                 "This mech machine is reporting that it is not yet ready for SSH."
                 "Make sure your machine is created and running and try again."
@@ -176,15 +180,7 @@ class MechBox(MechCommand):
         name = arguments['--name']
         version = arguments['--box-version']
         force = arguments['--force']
-        requests_kwargs = {}
-        if arguments['--insecure']:
-            requests_kwargs['verify'] = False
-        elif arguments['--capath']:
-            requests_kwargs['verify'] = arguments['--capath']
-        elif arguments['--cacert']:
-            requests_kwargs['verify'] = arguments['--cacert']
-        elif arguments['--cert']:
-            requests_kwargs['cert'] = arguments['--cert']
+        requests_kwargs = utils.get_requests_kwargs(arguments)
         return utils.add_box(url, name=name, version=version, force=force, requests_kwargs=requests_kwargs)
 
     def list(self, arguments):
@@ -490,28 +486,72 @@ class Mech(MechCommand):
         name = arguments['--name']
         version = arguments['--box-version']
         force = arguments['--force']
-        requests_kwargs = {}
-        if arguments['--insecure']:
-            requests_kwargs['verify'] = False
-        elif arguments['--capath']:
-            requests_kwargs['verify'] = arguments['--capath']
-        elif arguments['--cacert']:
-            requests_kwargs['verify'] = arguments['--cacert']
-        elif arguments['--cert']:
-            requests_kwargs['cert'] = arguments['--cert']
+        requests_kwargs = utils.get_requests_kwargs(arguments)
 
         if os.path.exists('mechfile') and not force:
-            puts(colored.red("`mechfile` already exists in this directory."))
-            puts(colored.red("Remove it before running `mech init`."))
+            puts(colored.red(textwrap.fill(
+                "`mechfile` already exists in this directory."
+                "Remove it before running `mech init`."
+            )))
             return
 
         puts(colored.green("Initializing mech"))
-        box = utils.add_box(url, name=name, version=version, requests_kwargs=requests_kwargs)
-        if box:
-            utils.init_box(box, url)
-            puts(colored.green("Box initialized"))
+        name_version = utils.add_box(url, name=name, version=version, requests_kwargs=requests_kwargs)
+        if name_version:
+            name, version = name_version
+            utils.init_mechfile(name, version)
+            puts(colored.green(textwrap.fill(
+                "A `mechfile` has been initialized and placed in this directory."
+                "You are now ready to `mech up` your first virtual environment!"
+            )))
         else:
             puts(colored.red("Couldn't initialize mech"))
+
+    def up(self, arguments):
+        """
+        Starts and provisions the mech environment.
+
+        Usage: mech up [options]
+
+        Options:
+                --gui                        Start GUI
+                --provision                  Enable provisioning
+                --insecure                   Do not validate SSL certificates
+                --cacert FILE                CA certificate for SSL download
+                --capath DIR                 CA certificate directory for SSL download
+                --cert FILE                  A client SSL cert, if needed
+                --box-version VERSION        Constrain version of the added box
+                --checksum CHECKSUM          Checksum for the box
+                --checksum-type TYPE         Checksum type (md5, sha1, sha256)
+                --name BOX                   Name of the box
+            -h, --help                       Print this help
+        """
+        gui = arguments['--gui']
+        requests_kwargs = utils.get_requests_kwargs(arguments)
+
+        vmx = utils.init_box(self.name, self.version, requests_kwargs=requests_kwargs)
+        vm = VMrun(vmx)
+        puts(colored.blue("Bringing machine up..."))
+        started = vm.start(gui=gui)
+        if started is None:
+            puts(colored.red("VM not started"))
+        else:
+            time.sleep(3)
+            puts(colored.blue("Getting IP address..."))
+            ip = vm.getGuestIPAddress()
+            puts(colored.blue("Sharing current folder..."))
+            vm.addSharedFolder('mech', os.getcwd(), quiet=True)
+            if ip:
+                if started:
+                    puts(colored.green("VM started on {}".format(ip)))
+                else:
+                    puts(colored.yellow("VM already was started on {}".format(ip)))
+            else:
+                if started:
+                    puts(colored.green("VM started on an unknown IP address"))
+                else:
+                    puts(colored.yellow("VM already was started on an unknown IP address"))
+    start = up
 
     def status(self, arguments):
         """
@@ -527,43 +567,6 @@ class Mech(MechCommand):
         puts(vm.list())
     ps = status
 
-    def up(self, arguments):
-        """
-        Starts and provisions the mech environment.
-
-        Usage: mech up [options]
-
-        Options:
-                --gui                        Start GUI
-                --provision                  Enable provisioning
-                --name BOX                   Name of the box
-            -h, --help                       Print this help
-        """
-        gui = arguments['--gui']
-
-        vm = VMrun(self.vmx)
-        puts(colored.blue("Bringing machine up..."))
-        started = vm.start(gui=gui)
-        if started is None:
-            puts(colored.red("VM not started"))
-        else:
-            time.sleep(3)
-            puts(colored.blue("Getting IP address..."))
-            ip = vm.getGuestIPAddress()
-            puts(colored.blue("Sharing current folder..."))
-            vm.addSharedFolder('mech', os.getcwd(), quiet=True)
-            if ip is not None:
-                if started:
-                    puts(colored.green("VM started on {}".format(ip)))
-                else:
-                    puts(colored.yellow("VM already was started on {}".format(ip)))
-            else:
-                if started:
-                    puts(colored.green("VM started on an unknown IP address"))
-                else:
-                    puts(colored.yellow("VM already was started on an unknown IP address"))
-    start = up
-
     def destroy(self, arguments):
         """
         Stops and deletes all traces of the mech machine.
@@ -577,11 +580,12 @@ class Mech(MechCommand):
         """
         force = arguments['--force']
 
-        directory = os.path.dirname(self.vmx)
+        vmx = self.vmx
+        directory = os.path.dirname(vmx)
         name = os.path.basename(directory)
         if force or utils.confirm("Are you sure you want to delete {name} at {directory}".format(name=name, directory=directory), default='n'):
             puts(colored.green("Deleting..."))
-            vm = VMrun(self.vmx)
+            vm = VMrun(vmx)
             vm.stop(mode='hard')
             time.sleep(3)
             shutil.rmtree(directory)
@@ -648,7 +652,7 @@ class Mech(MechCommand):
             time.sleep(1)
             puts(colored.blue("Getting IP address..."))
             ip = vm.getGuestIPAddress()
-            if ip is not None:
+            if ip:
                 puts(colored.green("VM resumed on {}".format(ip)))
             else:
                 puts(colored.green("VM resumed on an unknown IP address"))
@@ -665,7 +669,7 @@ class Mech(MechCommand):
                 puts(colored.blue("Sharing current folder..."))
                 vm.enableSharedFolders()
                 vm.addSharedFolder('mech', os.getcwd(), quiet=True)
-                if ip is not None:
+                if ip:
                     if started:
                         puts(colored.green("VM started on {}".format(ip)))
                     else:
@@ -730,8 +734,7 @@ class Mech(MechCommand):
                 cmds.extend(('--', command))
 
             logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
-            proc = subprocess.Popen(cmds)
-            return proc.wait()
+            return subprocess.call(cmds, shell=True)
 
     def ssh_config(self, arguments):
         """
@@ -770,7 +773,7 @@ class Mech(MechCommand):
 
         vm = VMrun(self.vmx)
         ip = vm.getGuestIPAddress()
-        if ip is not None:
+        if ip:
             src_is_host = src.startswith(":")
             dst_is_host = dst.startswith(":")
 
@@ -815,7 +818,7 @@ class Mech(MechCommand):
 
         vm = VMrun(self.vmx)
         ip = vm.getGuestIPAddress()
-        if ip is not None:
+        if ip:
             puts(colored.green(ip))
         else:
             puts(colored.red("Unkown IP address"))
