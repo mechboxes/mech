@@ -364,7 +364,8 @@ def provision_shell(vm, inline, path, args=[]):
 
 
 def config_ssh_string(config_ssh):
-    ssh_config = "Host default" + os.linesep
+    ssh_config = "Host {}".format(config_ssh['Host']) + os.linesep
     for k, v in config_ssh.items():
-        ssh_config += "  {} {}".format(k, v) + os.linesep
+        if k != 'Host':
+            ssh_config += "  {} {}".format(k, v) + os.linesep
     return ssh_config

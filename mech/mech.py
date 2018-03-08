@@ -42,6 +42,7 @@ from command import Command
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_HOST = 'mech'
 DEFAULT_USER = 'vagrant'
 DEFAULT_PASSWORD = 'vagrant'
 INSECURE_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
@@ -126,6 +127,7 @@ class MechCommand(Command):
             with open(insecure_private_key, 'w') as f:
                 f.write(INSECURE_PRIVATE_KEY)
         config = {
+            "Host": DEFAULT_HOST,
             "User": self.user,
             "Port": "22",
             "UserKnownHostsFile": "/dev/null",
@@ -756,7 +758,7 @@ class Mech(MechCommand):
             if extra:
                 cmds.extend(extra)
             if not plain:
-                cmds.append('default')
+                cmds.append(config_ssh['Host'])
             if command:
                 cmds.extend(('--', command))
 
