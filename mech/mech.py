@@ -25,6 +25,7 @@
 from __future__ import print_function
 
 import os
+import re
 import sys
 import time
 import utils
@@ -137,7 +138,15 @@ class MechCommand(Command):
             "IdentitiesOnly": "yes",
             "LogLevel": "FATAL",
         }
-        config.update(self.get('config', {}).get('ssh', {}))
+        for k, v in self.get('config', {}).get('ssh', {}).items():
+            k = re.sub(r'[ _]+', r' ', k)
+            k = re.sub(r'(?<=[^_])([A-Z])', r' \1', k).lower()
+            k = re.sub(r'^( *)(.*?)( *)$', r'\2', k)
+            callback = lambda pat: pat.group(1).upper()
+            k = re.sub(r' (\w)', callback, k)
+            if k[0].islower():
+                k = k[0].upper() + k[1:]
+            config[k] = v
         config.update({
             "HostName": ip,
         })
