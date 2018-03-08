@@ -301,3 +301,10 @@ def provision_shell(vm, inline, path, args=[]):
 
     finally:
         vm.deleteFileInGuest(tmp_path, quiet=True)
+
+
+def config_ssh_string(config_ssh):
+    ssh_config = "Host default" + os.linesep
+    for k, v in config_ssh.items():
+        ssh_config += "  {} {}".format(k, v) + os.linesep
+    return ssh_config

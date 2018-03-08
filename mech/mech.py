@@ -31,6 +31,9 @@ import time
 import utils
 import shutil
 import logging
+import tempfile
+import textwrap
+import subprocess
 
 from clint.textui import colored, puts
 
@@ -41,6 +44,34 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_USER = 'vagrant'
 DEFAULT_PASSWORD = 'vagrant'
+INSECURE_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
+MIIEogIBAAKCAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzI
+w+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoP
+kcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2
+hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NO
+Td0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcW
+yLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQIBIwKCAQEA4iqWPJXtzZA68mKd
+ELs4jJsdyky+ewdZeNds5tjcnHU5zUYE25K+ffJED9qUWICcLZDc81TGWjHyAqD1
+Bw7XpgUwFgeUJwUlzQurAv+/ySnxiwuaGJfhFM1CaQHzfXphgVml+fZUvnJUTvzf
+TK2Lg6EdbUE9TarUlBf/xPfuEhMSlIE5keb/Zz3/LUlRg8yDqz5w+QWVJ4utnKnK
+iqwZN0mwpwU7YSyJhlT4YV1F3n4YjLswM5wJs2oqm0jssQu/BT0tyEXNDYBLEF4A
+sClaWuSJ2kjq7KhrrYXzagqhnSei9ODYFShJu8UWVec3Ihb5ZXlzO6vdNQ1J9Xsf
+4m+2ywKBgQD6qFxx/Rv9CNN96l/4rb14HKirC2o/orApiHmHDsURs5rUKDx0f9iP
+cXN7S1uePXuJRK/5hsubaOCx3Owd2u9gD6Oq0CsMkE4CUSiJcYrMANtx54cGH7Rk
+EjFZxK8xAv1ldELEyxrFqkbE4BKd8QOt414qjvTGyAK+OLD3M2QdCQKBgQDtx8pN
+CAxR7yhHbIWT1AH66+XWN8bXq7l3RO/ukeaci98JfkbkxURZhtxV/HHuvUhnPLdX
+3TwygPBYZFNo4pzVEhzWoTtnEtrFueKxyc3+LjZpuo+mBlQ6ORtfgkr9gBVphXZG
+YEzkCD3lVdl8L4cw9BVpKrJCs1c5taGjDgdInQKBgHm/fVvv96bJxc9x1tffXAcj
+3OVdUN0UgXNCSaf/3A/phbeBQe9xS+3mpc4r6qvx+iy69mNBeNZ0xOitIjpjBo2+
+dBEjSBwLk5q5tJqHmy/jKMJL4n9ROlx93XS+njxgibTvU6Fp9w+NOFD/HvxB3Tcz
+6+jJF85D5BNAG3DBMKBjAoGBAOAxZvgsKN+JuENXsST7F89Tck2iTcQIT8g5rwWC
+P9Vt74yboe2kDT531w8+egz7nAmRBKNM751U/95P9t88EDacDI/Z2OwnuFQHCPDF
+llYOUI+SpLJ6/vURRbHSnnn8a/XG+nzedGH5JGqEJNQsz+xT2axM0/W/CRknmGaJ
+kda/AoGANWrLCz708y7VYgAtW2Uf1DPOIYMdvo6fxIB5i9ZfISgcJ/bbCUkFrhoH
++vq/5CIWxCPp0f85R4qxxQ5ihxJ0YDQT9Jpx4TMss4PSavPaBH3RXow5Ohe+bYoQ
+NE5OgEXk2wVfZczCZpigBKbKZHNYcelXtTt/nP3rsCuGcM4h53s=
+-----END RSA PRIVATE KEY-----
+"""
 
 HOME = os.path.expanduser("~/.mech")
 
@@ -66,6 +97,40 @@ class MechCommand(Command):
     @property
     def password(self):
         return self.get('password', DEFAULT_PASSWORD)
+
+    @property
+    def config_ssh(self):
+        vm = VMrun(self.vmx)
+
+        ip = vm.getGuestIPAddress()
+        if ip is None:
+            puts(colored.red(textwrap.fill(
+                "This mech machine is reporting that it is not yet ready for SSH."
+                "Make sure your machine is created and running and try again."
+                "Additionally, check the output of `mech status` to verify"
+                "that the machine is in the state that you expect."
+            )))
+            sys.exit(1)
+
+        insecure_private_key = os.path.abspath(os.path.join(HOME, "insecure_private_key"))
+        if not os.path.exists(insecure_private_key):
+            with open(insecure_private_key, 'w') as f:
+                f.write(INSECURE_PRIVATE_KEY)
+        config = {
+            "User": self.user,
+            "Port": "22",
+            "UserKnownHostsFile": "/dev/null",
+            "StrictHostKeyChecking": "no",
+            "PasswordAuthentication": "no",
+            "IdentityFile": insecure_private_key,
+            "IdentitiesOnly": "yes",
+            "LogLevel": "FATAL",
+        }
+        config.update(self.get('config', {}).get('ssh', {}))
+        config.update({
+            "HostName": ip,
+        })
+        return config
 
 
 class MechBox(MechCommand):
@@ -359,6 +424,7 @@ class Mech(MechCommand):
         suspend           suspends the machine
         pause             pauses the mech machine
         ssh               connects to machine via SSH
+        ssh-cconfig       outputs OpenSSH valid configuration to connect to the machine
         scp               copies files to and from the machine via SCP
         ip                outputs ip of the mech machine
         box               manages boxes: installation, removal, etc.
@@ -634,35 +700,49 @@ class Mech(MechCommand):
         Usage: mech ssh [options] [-- <extra ssh args>...]
 
         Options:
-                --user USERNAME
             -c, --command COMMAND            Execute an SSH command directly
             -p, --plain                      Plain mode, leaves authentication up to user
                 --name BOX                   Name of the box
             -h, --help                       Print this help
         """
 
-        if arguments['--plain']:
-            authentication = ''
-        else:
-            user = arguments['--user']
-            if user is None:
-                user = self.user
-            authentication = '{}@'.format(user)
+        plain = arguments['--plain']
         extra = arguments['<extra ssh args>']
         command = arguments['--command']
 
-        vm = VMrun(self.vmx)
-        ip = vm.getGuestIPAddress()
-        if ip:
-            puts("Connecting to {}".format(colored.green(ip)))
-            cmd = 'ssh {}{}'.format(authentication, ip)
+        config_ssh = self.config_ssh
+        if not config_ssh:
+            puts(colored.red(""))
+            sys.exit(1)
+
+        with tempfile.NamedTemporaryFile() as fp:
+            fp.write(utils.config_ssh_string(config_ssh))
+            fp.flush()
+
+            cmds = ['ssh']
+            if not plain:
+                cmds.extend(('-F', fp.name))
             if extra:
-                cmd += ' ' + ' '.join(extra)
+                cmds.extend(extra)
+            if not plain:
+                cmds.append('default')
             if command:
-                cmd += ' -- {}'.format(command)
-            os.system(cmd)
-        else:
-            puts(colored.red("IP not found"))
+                cmds.extend(('--', command))
+
+            logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
+            proc = subprocess.Popen(cmds)
+            return proc.wait()
+
+    def ssh_config(self, arguments):
+        """
+        Output OpenSSH valid configuration to connect to the machine.
+
+        Usage: mech ssh-config [options]
+
+        Options:
+            -h, --help                       Print this help
+        """
+        print(utils.config_ssh_string(self.config_ssh))
 
     def scp(self, arguments):
         """
