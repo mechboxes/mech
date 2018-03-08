@@ -334,7 +334,7 @@ class MechSnapshot(MechCommand):
             -h, --help                       Print this help
         """
         vm = VMrun(self.vmx)
-        puts_err(vm.listSnapshots())
+        print(vm.listSnapshots())
 
     def pop(self, arguments):
         """
@@ -791,21 +791,21 @@ class Mech(MechCommand):
 
             if dst_is_host:
                 dst = dst[1:]
-                puts_err("Sending {src} to {authentication}{ip}:{dst}".format(
+                puts_err(colored.blue("Sending {src} to {authentication}{ip}:{dst}".format(
                     authentication=colored.green(authentication),
                     ip=colored.green(ip),
                     src=src,
                     dst=dst,
-                ))
+                )))
                 cmd = 'scp {} {}{}:{}'.format(src, authentication, ip, dst)
             else:
                 src = src[1:]
-                puts_err("Getting {authentication}{ip}:{src} and saving in {dst}".format(
+                puts_err(colored.blue("Getting {authentication}{ip}:{src} and saving in {dst}".format(
                     authentication=colored.green(authentication),
                     ip=colored.green(ip),
                     src=src,
                     dst=dst,
-                ))
+                )))
                 cmd = 'scp {}{}:{} {}'.format(authentication, ip, src, dst)
             if extra:
                 cmd += ' ' + ' '.join(extra)
