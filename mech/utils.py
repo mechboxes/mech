@@ -130,7 +130,8 @@ def load_mechfile():
                 except ValueError:
                     puts(colored.red("Invalid mechfile.\n"))
                     break
-        pwd = os.path.basename(pwd)
+        new_pwd = os.path.basename(pwd)
+        pwd = None if new_pwd == pwd else new_pwd
     puts(colored.red("Couldn't find a mechfile in the current directory any deeper directories"))
     puts(colored.red("You can specify the name of the VM you'd like to start with mech up <name>"))
     puts(colored.red("Or run mech init to setup a tarball of your VM or download the VM"))
