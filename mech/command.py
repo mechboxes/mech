@@ -31,7 +31,7 @@ NBSP = '\xc2\xa0'
 
 
 def spaced(name):
-    name = re.sub(r'[-. _]+', r' ', name)
+    name = re.sub(r'[ _]+', r' ', name)
     name = re.sub(r'(?<=[^_])([A-Z])', r' \1', name).lower()
     return re.sub(r'^( *)(.*?)( *)$', r'\2', name)
 
@@ -58,9 +58,10 @@ class Command(object):
     def __call__(self):
         try:
             cmd = self.arguments[self.subcommand_name]
-            klass = getattr(self, cmd)
+            cmd = cmd
+            klass = getattr(self, cmd.replace('-', '_'))
             if hasattr(klass, 'im_func'):
-                cmd = klass.im_func.__name__
+                cmd = klass.im_func.__name__.replace('_', '-')
             name = '{} {}'.format(self.__class__.__name__, cmd)
             if klass.__doc__:
                 arguments = self.docopt(klass.__doc__, argv=self.arguments.get(self.argv_name, []), name=name)
