@@ -26,7 +26,6 @@ from __future__ import print_function
 
 import os
 import sys
-import glob
 import time
 import utils
 import shutil
@@ -85,6 +84,7 @@ class MechCommand(Command):
 
     @property
     def vmx(self):
+        self.get("")  # Check if there's a mechfile
         return utils.get_vmx()
 
     @property

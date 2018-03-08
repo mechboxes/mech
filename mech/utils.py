@@ -136,9 +136,11 @@ def load_mechfile():
         new_pwd = os.path.basename(pwd)
         pwd = None if new_pwd == pwd else new_pwd
     puts_err(colored.red(textwrap.fill(
-        "Couldn't find a mechfile in the current directory any deeper directories"
-        "You can specify the name of the VM you'd like to start with mech up <name>"
-        "Or run mech init to setup a tarball of your VM or download the VM"
+        "Couldn't find a mechfile in the current directory any deeper directories."
+        "A mech environment is required to run this command. Run `mech init`"
+        "to create a new mech environment. Or specify the name of the VM you'd"
+        "like to start with `mech up <name>`. A final option is to change to a"
+        "directory with a mechfile and to try again."
     )))
     sys.exit(1)
 
