@@ -74,7 +74,7 @@ def confirm(prompt, default='y'):
 def save_mechfile(mechfile, directory='.'):
     puts_err(colored.blue("Saving {}".format(os.path.join(directory, 'mechfile'))))
     with open(os.path.join(directory, 'mechfile'), 'w+') as f:
-        json.dump(mechfile, f, sort_keys=True, indent=4, separators=(',', ': '))
+        json.dump(mechfile, f, sort_keys=True, indent=2, separators=(',', ': '))
     puts_err(colored.green("Finished."))
 
 
