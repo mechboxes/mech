@@ -56,19 +56,22 @@ class Command(object):
         self.arguments = arguments
 
     def __call__(self):
-        try:
+        if self.subcommand_name in self.arguments:
             cmd = self.arguments[self.subcommand_name]
-            cmd = cmd
-            klass = getattr(self, cmd.replace('-', '_'))
-            if hasattr(klass, 'im_func'):
-                cmd = klass.im_func.__name__.replace('_', '-')
-            name = '{} {}'.format(self.__class__.__name__, cmd)
-            if klass.__doc__:
-                arguments = self.docopt(klass.__doc__, argv=self.arguments.get(self.argv_name, []), name=name)
+            cmd_attr = cmd.replace('-', '_')
+            if hasattr(self, cmd_attr):
+                klass = getattr(self, cmd_attr)
+                if hasattr(klass, 'im_func'):
+                    cmd = klass.im_func.__name__.replace('_', '-')
+                name = '{} {}'.format(self.__class__.__name__, cmd)
+                if klass.__doc__:
+                    arguments = self.docopt(klass.__doc__, argv=self.arguments.get(self.argv_name, []), name=name)
+                else:
+                    arguments = []
+                obj = klass(arguments)
             else:
-                arguments = []
-            obj = klass(arguments)
-        except (KeyError, AttributeError):
+                obj = self.run()
+        else:
             obj = self.run()
         if callable(obj):
             obj = obj()
