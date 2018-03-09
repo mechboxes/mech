@@ -145,7 +145,7 @@ def instances():
                 instances = {}
             if updated:
                 with open(index_path, 'w') as fp:
-                    json.dump(instances, fp, indent=2, separators=(',', ': '))
+                    json.dump(instances, fp, sort_keys=True, indent=2, separators=(',', ': '))
             return instances
     except Timeout:
         puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
@@ -181,7 +181,7 @@ def settle_instance(instance_name, obj=None, force=False):
                     instance_data = {}
             if updated:
                 with open(index_path, 'w') as fp:
-                    json.dump(instances, fp, indent=2, separators=(',', ': '))
+                    json.dump(instances, fp, sort_keys=True, indent=2, separators=(',', ': '))
             return instance_data
     except Timeout:
         puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
