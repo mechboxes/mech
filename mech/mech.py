@@ -809,6 +809,8 @@ class Mech(MechCommand):
         Options:
             -h, --help                       Print this help
         """
+        self.activate()
+
         print(utils.config_ssh_string(self.config_ssh))
 
     def ssh(self, arguments):
