@@ -51,6 +51,27 @@ HOME = os.path.expanduser('~/.mech')
 DATA_DIR = os.path.join(HOME, 'data')
 
 
+def uncomment(text):
+    def e(m):
+        return '\x00%02x' % ord(m.group(1))
+    e.re = re.compile(r'\\(.)', re.DOTALL | re.MULTILINE)
+
+    def r(m):
+        s = m.group(0)
+        if s.startswith('/'):
+            return ''
+        if s.startswith(','):
+            return s[1:]
+        return s
+    r.re = re.compile(r'//.*?$|/\*.*?\*/|\'.*?\'|".*?"|,\s*?(?:}|])', re.DOTALL | re.MULTILINE)
+
+    def u(m):
+        return '\\%s' % chr(int(m.group(1), 16))
+    u.re = re.compile(r'\x00(..)', re.DOTALL | re.MULTILINE)
+
+    return u.re.sub(u, r.re.sub(r, e.re.sub(e, text)))
+
+
 def confirm(prompt, default='y'):
     default = default.lower()
     if default not in ['y', 'n']:
@@ -133,7 +154,7 @@ def instances():
             updated = False
             if os.path.exists(index_path):
                 with open(index_path) as fp:
-                    instances = json.load(fp)
+                    instances = json.loads(uncomment(fp.read()))
                 # prune unexistent mechfiles
                 for k in list(instances):
                     instance_data = instances[k]
@@ -162,7 +183,7 @@ def settle_instance(instance_name, obj=None, force=False):
             updated = False
             if os.path.exists(index_path):
                 with open(index_path) as fp:
-                    instances = json.load(fp)
+                    instances = json.loads(uncomment(fp.read()))
                 # prune unexistent mechfiles
                 for k in list(instances):
                     instance_data = instances[k]
@@ -194,7 +215,7 @@ def load_mechfile(pwd):
         if os.path.isfile(mechfile):
             with open(mechfile) as fp:
                 try:
-                    return json.load(fp)
+                    return json.loads(uncomment(fp.read()))
                 except ValueError:
                     puts_err(colored.red("Invalid Mechfile." + os.linesep))
                     break
@@ -223,7 +244,7 @@ def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
     elif os.path.isfile(descriptor):
         try:
             with open(descriptor) as fp:
-                catalog = json.load(fp)
+                catalog = json.loads(uncomment(fp.read()))
         except Exception:
             mechfile['file'] = descriptor
             if not name:
