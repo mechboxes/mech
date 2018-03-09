@@ -123,8 +123,7 @@ def update_vmx(path):
     return True
 
 
-def load_mechfile():
-    pwd = os.getcwd()
+def load_mechfile(pwd):
     while pwd:
         mechfile = os.path.join(pwd, 'mechfile')
         if os.path.isfile(mechfile):

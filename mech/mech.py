@@ -79,10 +79,20 @@ HOME = os.path.expanduser("~/.mech")
 
 
 class MechCommand(Command):
+    active_path = os.path.abspath(os.getcwd())
+
+    def activate(self, path):
+        self.active_path = os.path.abspath(os.path.expanduser(path))
+        os.chdir(self.active_path)
+
     def get(self, name, default=None):
-        if not hasattr(self, 'mechfile'):
-            self.mechfile = utils.load_mechfile()
-        return self.mechfile.get(name, default)
+        if not hasattr(self, 'mechfiles'):
+            self.mechfiles = {}
+        if self.active_path in self.mechfiles:
+            mechfile = self.mechfiles[self.active_path]
+        else:
+            mechfile = self.mechfiles[self.active_path] = utils.load_mechfile(self.active_path)
+        return mechfile.get(name, default)
 
     @property
     def vmx(self):
