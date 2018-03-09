@@ -172,7 +172,7 @@ def settle_instance(instance_name, obj=None, force=False):
                         updated = True
             else:
                 instances = {}
-            instance_data = instances.get(instance_name, obj)
+            instance_data = instances.get(instance_name)
             if not instance_data or force:
                 if obj:
                     instance_data = instances[instance_name] = obj
