@@ -110,6 +110,10 @@ class MechCommand(Command):
         return self.get('password', DEFAULT_PASSWORD)
 
     @property
+    def config(self):
+        return self.get('config', {}).get('ssh', {})
+
+    @property
     def config_ssh(self):
         vm = VMrun(self.vmx)
 
@@ -138,7 +142,7 @@ class MechCommand(Command):
             "IdentitiesOnly": "yes",
             "LogLevel": "FATAL",
         }
-        for k, v in self.get('config', {}).get('ssh', {}).items():
+        for k, v in self.config.items():
             k = re.sub(r'[ _]+', r' ', k)
             k = re.sub(r'(?<=[^_])([A-Z])', r' \1', k).lower()
             k = re.sub(r'^( *)(.*?)( *)$', r'\2', k)
