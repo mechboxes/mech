@@ -639,7 +639,7 @@ class Mech(MechCommand):
         ip = vmrun.getGuestIPAddress(wait=False, quiet=True)
         state = vmrun.checkToolsState(quiet=True)
 
-        print("Current machine states:\n")
+        print("Current machine states:" + os.linesep)
         if ip is None:
             ip = "poweroff"
         elif not ip:
@@ -647,11 +647,11 @@ class Mech(MechCommand):
         print("%s\t%s\t(VMware Tools %s)" % (box_name, ip, state))
 
         if ip == "poweroff":
-            print("\nThe VM is powered off. To restart the VM, simply run `mech up`")
+            print(os.linesep + "The VM is powered off. To restart the VM, simply run `mech up`")
         elif ip == "unknown":
-            print("\nThe VM is on. but it has no IP to connect to, VMware Tools must be installed")
+            print(os.linesep + "The VM is on. but it has no IP to connect to, VMware Tools must be installed")
         elif state in ("installed", "running"):
-            print("\nThe VM is ready. Connect to it using `mech ssh`")
+            print(os.linesep + "The VM is ready. Connect to it using `mech ssh`")
 
     def destroy(self, arguments):
         """

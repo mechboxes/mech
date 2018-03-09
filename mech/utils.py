@@ -196,7 +196,7 @@ def load_mechfile(pwd):
                 try:
                     return json.load(f)
                 except ValueError:
-                    puts_err(colored.red("Invalid Mechfile.\n"))
+                    puts_err(colored.red("Invalid Mechfile." + os.linesep))
                     break
         new_pwd = os.path.basename(pwd)
         pwd = None if new_pwd == pwd else new_pwd
