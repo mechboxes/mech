@@ -194,13 +194,13 @@ def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
     sys.exit(1)
 
 
-def init_box(name, version, requests_kwargs={}):
+def init_box(name, version, force=False, save=True, requests_kwargs={}):
     if not os.path.exists('.mech'):
-        name_version = add_box(name, name=name, version=version, requests_kwargs=requests_kwargs)
-        if not name_version:
+        name_version_box = add_box(name, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
+        if not name_version_box:
             return
-        name, version = name_version
-        box = locate(os.path.join(*filter(None, (HOME, 'boxes', name, version))), '*.box')
+        name, version, box = name_version_box
+        # box = locate(os.path.join(*filter(None, (HOME, 'boxes', name, version))), '*.box')
 
         puts_err(colored.blue("Extracting box '{}'...".format(name)))
         os.makedirs('.mech')
@@ -213,23 +213,26 @@ def init_box(name, version, requests_kwargs={}):
             tar = tarfile.open(box, 'r')
             tar.extractall('.mech')
 
+        if not save and box.startswith(tempfile.gettempdir()):
+            os.unlink(box)
+
     return get_vmx()
 
 
-def add_box(descriptor, name=None, version=None, force=False, requests_kwargs={}):
+def add_box(descriptor, name=None, version=None, force=False, save=True, requests_kwargs={}):
     mechfile = build_mechfile(descriptor, name=name, version=version, requests_kwargs=requests_kwargs)
     url = mechfile.get('url')
     file = mechfile.get('file')
     name = mechfile.get('box')
     version = mechfile.get('version')
     if file:
-        return add_box_file(name, version, file, force=force)
+        return add_box_file(name, version, file, force=force, save=save)
     if url:
-        return add_box_url(name, version, url, force=force, requests_kwargs=requests_kwargs)
+        return add_box_url(name, version, url, force=force, save=save, requests_kwargs=requests_kwargs)
     puts_err(colored.red("Couldn't find a VMWare compatible VM for '{}'{}".format(name, " ({})".format(version) if version else "")))
 
 
-def add_box_url(name, version, url, force=False, requests_kwargs={}):
+def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
     puts_err(colored.blue("URL: {}".format(url)))
     boxname = os.path.basename(url)
     box = os.path.join(*filter(None, (HOME, 'boxes', name, version, boxname)))
@@ -242,18 +245,18 @@ def add_box_url(name, version, url, force=False, requests_kwargs={}):
         try:
             r = requests.get(url, stream=True, **requests_kwargs)
             length = int(r.headers['content-length'])
-            with tempfile.NamedTemporaryFile() as f:
+            with tempfile.NamedTemporaryFile(delete=save) as f:
                 for chunk in progress.bar(r.iter_content(chunk_size=1024), label=boxname, expected_size=(length // 1024) + 1):
                     if chunk:
                         f.write(chunk)
                 f.flush()
-                return add_box_file(name, version, f.name, url=url, force=force)
+                return add_box_file(name, version, f.name, url=url, force=force, save=save)
         except requests.ConnectionError:
             puts_err(colored.red("Couldn't connect to %s" % url))
-    return name, version
+    return name, version, box
 
 
-def add_box_file(name, version, filename, url=None, force=False):
+def add_box_file(name, version, filename, url=None, force=False, save=True):
     puts_err(colored.blue("Checking box '{}' integrity...".format(name)))
 
     if os.name == 'posix':
@@ -275,14 +278,17 @@ def add_box_file(name, version, filename, url=None, force=False):
                 sys.exit(1)
 
     if valid_tar:
-        boxname = os.path.basename(url if url else filename)
-        box = os.path.join(*filter(None, (HOME, 'boxes', name, version, boxname)))
-        path = os.path.dirname(box)
-        if not os.path.exists(path):
-            os.makedirs(path)
-        if not os.path.exists(box) or force:
-            copyfile(filename, box)
-        return name, version
+        if save:
+            boxname = os.path.basename(url if url else filename)
+            box = os.path.join(*filter(None, (HOME, 'boxes', name, version, boxname)))
+            path = os.path.dirname(box)
+            if not os.path.exists(path):
+                os.makedirs(path)
+            if not os.path.exists(box) or force:
+                copyfile(filename, box)
+        else:
+            box = filename
+        return name, version, box
 
 
 def init_mechfile(descriptor, name=None, version=None, requests_kwargs={}):

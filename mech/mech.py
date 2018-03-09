@@ -539,13 +539,15 @@ class Mech(MechCommand):
                 --box-version VERSION        Constrain version of the added box
                 --checksum CHECKSUM          Checksum for the box
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
+                --no-save                    Do not save the downloaded box
                 --name BOX                   Name of the box
             -h, --help                       Print this help
         """
         gui = arguments['--gui']
+        save = not arguments['--no-save']
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
-        vmx = utils.init_box(self.box_name, self.box_version, requests_kwargs=requests_kwargs)
+        vmx = utils.init_box(self.box_name, self.box_version, requests_kwargs=requests_kwargs, save=save)
         vm = VMrun(vmx)
         puts_err(colored.blue("Bringing machine up..."))
         started = vm.start(gui=gui)
