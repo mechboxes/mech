@@ -470,7 +470,7 @@ class Mech(MechCommand):
         suspend           suspends the machine
         pause             pauses the mech machine
         ssh               connects to machine via SSH
-        ssh-cconfig       outputs OpenSSH valid configuration to connect to the machine
+        ssh-config        outputs OpenSSH valid configuration to connect to the machine
         scp               copies files to and from the machine via SCP
         ip                outputs ip of the mech machine
         box               manages boxes: installation, removal, etc.
