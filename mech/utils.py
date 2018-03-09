@@ -74,8 +74,8 @@ def confirm(prompt, default='y'):
 
 
 def save_mechfile(mechfile, path):
-    with open(os.path.join(path, 'Mechfile'), 'w+') as f:
-        json.dump(mechfile, f, sort_keys=True, indent=2, separators=(',', ': '))
+    with open(os.path.join(path, 'Mechfile'), 'w+') as fp:
+        json.dump(mechfile, fp, sort_keys=True, indent=2, separators=(',', ': '))
     return True
 
 
@@ -88,8 +88,8 @@ def locate(path, glob):
 
 def parse_vmx(path):
     vmx = collections.OrderedDict()
-    with open(path) as f:
-        for line in f:
+    with open(path) as fp:
+        for line in fp:
             line = line.strip().split('=', 1)
             vmx[line[0].rstrip()] = line[1].lstrip()
     return vmx
@@ -192,9 +192,9 @@ def load_mechfile(pwd):
     while pwd:
         mechfile = os.path.join(pwd, 'Mechfile')
         if os.path.isfile(mechfile):
-            with open(mechfile) as f:
+            with open(mechfile) as fp:
                 try:
-                    return json.load(f)
+                    return json.load(fp)
                 except ValueError:
                     puts_err(colored.red("Invalid Mechfile." + os.linesep))
                     break
@@ -222,8 +222,8 @@ def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
         return mechfile
     elif os.path.isfile(descriptor):
         try:
-            with open(descriptor) as f:
-                catalog = json.load(f)
+            with open(descriptor) as fp:
+                catalog = json.load(fp)
         except Exception:
             mechfile['file'] = descriptor
             if not name:
@@ -311,12 +311,12 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
         try:
             r = requests.get(url, stream=True, **requests_kwargs)
             length = int(r.headers['content-length'])
-            with tempfile.NamedTemporaryFile(delete=save) as f:
+            with tempfile.NamedTemporaryFile(delete=save) as fp:
                 for chunk in progress.bar(r.iter_content(chunk_size=1024), label=boxname, expected_size=(length // 1024) + 1):
                     if chunk:
-                        f.write(chunk)
-                f.flush()
-                return add_box_file(name, version, f.name, url=url, force=force, save=save)
+                        fp.write(chunk)
+                fp.flush()
+                return add_box_file(name, version, fp.name, url=url, force=force, save=save)
         except requests.ConnectionError:
             puts_err(colored.red("Couldn't connect to %s" % url))
     return name, version, box
@@ -433,10 +433,10 @@ def provision_shell(vm, inline, path, args=[]):
                 return
 
             puts_err(colored.blue("Configuring script..."))
-            with tempfile.NamedTemporaryFile() as f:
-                f.write(inline)
-                f.flush()
-                if vm.copyFileFromHostToGuest(f.name, tmp_path) is None:
+            with tempfile.NamedTemporaryFile() as fp:
+                fp.write(inline)
+                fp.flush()
+                if vm.copyFileFromHostToGuest(fp.name, tmp_path) is None:
                     return
 
         puts_err(colored.blue("Configuring environment..."))
