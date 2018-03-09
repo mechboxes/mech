@@ -585,7 +585,7 @@ class Mech(MechCommand):
 
     def status(self, arguments):
         """
-        Outputs status of the vagrant machine.
+        Outputs status of the mech machine.
 
         Usage: mech status [options]
 
@@ -596,14 +596,22 @@ class Mech(MechCommand):
 
         vm = VMrun(self.vmx)
         box_name = self.box_name
-        ip = vm.getGuestIPAddress()
-        state = vm.checkToolsState()
+        ip = vm.getGuestIPAddress(wait=False, quiet=True)
+        state = vm.checkToolsState(quiet=True)
 
         print("Current machine states:\n")
-        print("%20s %16s %15s" % (box_name, ip, state))
-        # default                   poweroff (virtualbox)
+        if ip is None:
+            ip = 'poweroff'
+        elif not ip:
+            ip = 'unknown'
+        print("%s\t%s\t(VMware Tools %s)" % (box_name, ip, state))
 
-        # print("\nThe VM is powered off. To restart the VM, simply run `vagrant up`")
+        if ip == 'poweroff':
+            print("\nThe VM is powered off. To restart the VM, simply run `mech up`")
+        elif ip == 'unknown':
+            print("\nThe VM is on. but it has no IP to connect to, VMware Tools must be installed")
+        elif state in ('installed', 'running'):
+            print("\nThe VM is ready. Connect to it using `mech ssh`")
 
     def destroy(self, arguments):
         """
