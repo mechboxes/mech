@@ -79,20 +79,31 @@ HOME = os.path.expanduser("~/.mech")
 
 
 class MechCommand(Command):
-    active_path = os.path.abspath(os.getcwd())
+    active_mechfile = None
 
-    def activate(self, path):
-        self.active_path = os.path.abspath(os.path.expanduser(path))
-        os.chdir(self.active_path)
-
-    def get(self, name, default=None):
+    def activate(self, instance_name=None):
         if not hasattr(self, 'mechfiles'):
             self.mechfiles = {}
-        if self.active_path in self.mechfiles:
-            mechfile = self.mechfiles[self.active_path]
+        if instance_name:
+            instance = utils.settle_instance(instance_name)
+            path = instance.get('path')
+            if not path:
+                puts_err(colored.red(textwrap.fill("Cannot find a valid path for '{}' instance".format(instance_name))))
+                sys.exit(1)
+            path = os.path.abspath(os.path.expanduser(path))
+            os.chdir(path)
         else:
-            mechfile = self.mechfiles[self.active_path] = utils.load_mechfile(self.active_path)
-        return mechfile.get(name, default)
+            instance_name = os.path.basename(path)
+            path = os.path.abspath(os.getcwd())
+        if path in self.mechfiles:
+            self.active_mechfile = self.mechfiles[path]
+        else:
+            self.active_mechfile = self.mechfiles[path] = utils.load_mechfile(path)
+        return instance_name
+
+    def get(self, name, default=None):
+        assert self.active_mechfile is not None, "Must activate(instance_name) first."
+        return self.active_mechfile.get(name, default)
 
     @property
     def vmx(self):
@@ -125,9 +136,9 @@ class MechCommand(Command):
 
     @property
     def config_ssh(self):
-        vm = VMrun(self.vmx)
+        vmrun = VMrun(self.vmx)
 
-        ip = vm.getGuestIPAddress(wait=False) if vm.installedTools() else None
+        ip = vmrun.getGuestIPAddress(wait=False) if vmrun.installedTools() else None
         if not ip:
             puts_err(colored.red(textwrap.fill(
                 "This mech machine is reporting that it is not yet ready for SSH. "
@@ -227,8 +238,10 @@ class MechBox(MechCommand):
         path = os.path.abspath(os.path.join(HOME, 'boxes'))
         for root, dirnames, filenames in os.walk(path):
             for filename in fnmatch.filter(filenames, '*.box'):
-                dir = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
-                print(dir)
+                directory = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
+                account, box, version = (directory.split('/', 2) + ['', ''])[:3]
+                line = ["%35s" % "{}/{}".format(account, box), version]
+                print("\t".join(line))
     ls = list
 
     def outdated(self, arguments):
@@ -337,11 +350,13 @@ class MechSnapshot(MechCommand):
         Options:
             -h, --help                       Print this help
         """
-        instance_name = arguments['<instance>']
         name = arguments['<name>']
 
-        vm = VMrun(self.vmx)
-        if vm.deleteSnapshot(name) is None:
+        instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
+
+        vmrun = VMrun(self.vmx)
+        if vmrun.deleteSnapshot(name) is None:
             puts_err(colored.red("Cannot delete name"))
         else:
             puts_err(colored.green("Snapshot {} deleted".format(name)))
@@ -356,9 +371,10 @@ class MechSnapshot(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
 
-        vm = VMrun(self.vmx)
-        print(vm.listSnapshots())
+        vmrun = VMrun(self.vmx)
+        print(vmrun.listSnapshots())
 
     def pop(self, arguments):
         """
@@ -422,11 +438,13 @@ class MechSnapshot(MechCommand):
             -f  --force                      Replace snapshot without confirmation
             -h, --help                       Print this help
         """
-        instance_name = arguments['<instance>']
         name = arguments['<name>']
 
-        vm = VMrun(self.vmx)
-        if vm.snapshot(name) is None:
+        instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
+
+        vmrun = VMrun(self.vmx)
+        if vmrun.snapshot(name) is None:
             puts_err(colored.red("Cannot take snapshot"))
         else:
             puts_err(colored.green("Snapshot {} taken".format(name)))
@@ -442,6 +460,7 @@ class Mech(MechCommand):
         --debug                          Show debug messages.
 
     Common commands:
+        (list|ls)         lists all available boxes
         init              initializes a new mech environment by creating a mechfile
         destroy           stops and deletes all traces of the mech machine
         (up|start)        starts and provisions the mech environment
@@ -527,7 +546,7 @@ class Mech(MechCommand):
             return
 
         puts_err(colored.green("Initializing mech"))
-        if utils.init_mechfile(url, name=name, version=version, instance_name=instance_name, requests_kwargs=requests_kwargs):
+        if utils.init_mechfile(instance_name, url, name=name, version=version, requests_kwargs=requests_kwargs):
             puts_err(colored.green(textwrap.fill(
                 "A `mechfile` has been initialized and placed in this directory. "
                 "You are now ready to `mech up` your first virtual environment!"
@@ -553,23 +572,25 @@ class Mech(MechCommand):
                 --no-cache                   Do not save the downloaded box
             -h, --help                       Print this help
         """
-        instance_name = arguments['<instance>']
         gui = arguments['--gui']
         save = not arguments['--no-cache']
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
+        instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
+
         vmx = utils.init_box(self.box_name, self.box_version, requests_kwargs=requests_kwargs, save=save, instance_name=instance_name)
-        vm = VMrun(vmx)
+        vmrun = VMrun(vmx)
         puts_err(colored.blue("Bringing machine up..."))
-        started = vm.start(gui=gui)
+        started = vmrun.start(gui=gui)
         if started is None:
             puts_err(colored.red("VM not started"))
         else:
             time.sleep(3)
             puts_err(colored.blue("Getting IP address..."))
-            ip = vm.getGuestIPAddress()
+            ip = vmrun.getGuestIPAddress()
             puts_err(colored.blue("Sharing current folder..."))
-            vm.addSharedFolder('mech', os.getcwd(), quiet=True)
+            vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
             if ip:
                 if started:
                     puts_err(colored.green("VM started on {}".format(ip)))
@@ -592,8 +613,8 @@ class Mech(MechCommand):
                 --prune                      Prune invalid entries
             -h, --help                       Print this help
         """
-        vm = VMrun()
-        print(vm.list())
+        vmrun = VMrun()
+        print(vmrun.list())
     ps = global_status
 
     def status(self, arguments):
@@ -606,11 +627,13 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
 
-        vm = VMrun(self.vmx)
+        vmrun = VMrun(self.vmx)
+
         box_name = self.box_name
-        ip = vm.getGuestIPAddress(wait=False, quiet=True)
-        state = vm.checkToolsState(quiet=True)
+        ip = vmrun.getGuestIPAddress(wait=False, quiet=True)
+        state = vmrun.checkToolsState(quiet=True)
 
         print("Current machine states:\n")
         if ip is None:
@@ -636,20 +659,27 @@ class Mech(MechCommand):
             -f, --force                      Destroy without confirmation.
             -h, --help                       Print this help
         """
-        instance_name = arguments['<instance>']
         force = arguments['--force']
 
-        vmx = self.vmx
-        directory = os.path.dirname(vmx)
-        name = os.path.basename(directory)
-        if force or utils.confirm("Are you sure you want to delete {name} at {directory}".format(name=name, directory=directory), default='n'):
-            puts_err(colored.green("Deleting..."))
-            vm = VMrun(vmx)
-            vm.stop(mode='hard', quiet=True)
-            time.sleep(3)
-            shutil.rmtree(directory)
+        instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
+
+        instance = utils.settle_instance(instance_name)
+        path = instance['path']
+        mech_path = os.path.join(path, '.mech')
+
+        if os.path.exists(mech_path):
+            if force or utils.confirm("Are you sure you want to delete {instance_name} at {path}".format(instance_name=instance_name, path=path), default='n'):
+                puts_err(colored.green("Deleting..."))
+                vmrun = VMrun(self.vmx)
+                vmrun.stop(mode='hard', quiet=True)
+                time.sleep(3)
+                shutil.rmtree(mech_path)
+                utils.settle_instance(instance_name, remove=True)
+            else:
+                puts_err(colored.red("Deletion aborted"))
         else:
-            puts_err(colored.red("Deletion aborted"))
+            puts_err(colored.red("The box hasn't been initialized."))
 
     def down(self, arguments):
         """
@@ -661,18 +691,20 @@ class Mech(MechCommand):
                 --force                      Force a hard stop
             -h, --help                       Print this help
         """
-        instance_name = arguments['<instance>']
         force = arguments['--force']
 
-        vm = VMrun(self.vmx)
-        if not force and vm.installedTools():
-            stopped = vm.stop()
+        instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
+
+        vmrun = VMrun(self.vmx)
+        if not force and vmrun.installedTools():
+            stopped = vmrun.stop()
         else:
-            stopped = vm.stop(mode='hard')
+            stopped = vmrun.stop(mode='hard')
         if stopped is None:
-            puts_err(colored.red("Not stopped", vm))
+            puts_err(colored.red("Not stopped", vmrun))
         else:
-            puts_err(colored.green("Stopped", vm))
+            puts_err(colored.green("Stopped", vmrun))
     stop = down
     halt = down
 
@@ -686,12 +718,13 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
 
-        vm = VMrun(self.vmx)
-        if vm.pause() is None:
-            puts_err(colored.red("Not paused", vm))
+        vmrun = VMrun(self.vmx)
+        if vmrun.pause() is None:
+            puts_err(colored.red("Not paused", vmrun))
         else:
-            puts_err(colored.yellow("Paused", vm))
+            puts_err(colored.yellow("Paused", vmrun))
 
     def resume(self, arguments):
         """
@@ -704,14 +737,15 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
 
-        vm = VMrun(self.vmx)
+        vmrun = VMrun(self.vmx)
 
         # Try to unpause
-        if vm.unpause(quiet=True) is not None:
+        if vmrun.unpause(quiet=True) is not None:
             time.sleep(1)
             puts_err(colored.blue("Getting IP address..."))
-            ip = vm.getGuestIPAddress()
+            ip = vmrun.getGuestIPAddress()
             if ip:
                 puts_err(colored.green("VM resumed on {}".format(ip)))
             else:
@@ -719,16 +753,16 @@ class Mech(MechCommand):
 
         # Otherwise try starting
         else:
-            started = vm.start()
+            started = vmrun.start()
             if started is None:
                 puts_err(colored.red("VM not started"))
             else:
                 time.sleep(3)
                 puts_err(colored.blue("Getting IP address..."))
-                ip = vm.getGuestIPAddress()
+                ip = vmrun.getGuestIPAddress()
                 puts_err(colored.blue("Sharing current folder..."))
-                vm.enableSharedFolders()
-                vm.addSharedFolder('mech', os.getcwd(), quiet=True)
+                vmrun.enableSharedFolders()
+                vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
                 if ip:
                     if started:
                         puts_err(colored.green("VM started on {}".format(ip)))
@@ -750,12 +784,13 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
 
-        vm = VMrun(self.vmx)
-        if vm.suspend() is None:
-            puts_err(colored.red("Not suspended", vm))
+        vmrun = VMrun(self.vmx)
+        if vmrun.suspend() is None:
+            puts_err(colored.red("Not suspended", vmrun))
         else:
-            puts_err(colored.green("Suspended", vm))
+            puts_err(colored.green("Suspended", vmrun))
 
     def ssh_config(self, arguments):
         """
@@ -779,10 +814,12 @@ class Mech(MechCommand):
             -p, --plain                      Plain mode, leaves authentication up to user
             -h, --help                       Print this help
         """
-        instance_name = arguments['<instance>']
         plain = arguments['--plain']
         extra = arguments['<extra ssh args>']
         command = arguments['--command']
+
+        instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
 
         config_ssh = self.config_ssh
         with tempfile.NamedTemporaryFile() as fp:
@@ -830,6 +867,8 @@ class Mech(MechCommand):
         else:
             src = src_instance
 
+        instance_name = self.activate(instance_name)
+
         config_ssh = self.config_ssh
         with tempfile.NamedTemporaryFile() as fp:
             fp.write(utils.config_ssh_string(config_ssh))
@@ -858,9 +897,10 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
 
-        vm = VMrun(self.vmx)
-        ip = vm.getGuestIPAddress()
+        vmrun = VMrun(self.vmx)
+        ip = vmrun.getGuestIPAddress()
         if ip:
             puts_err(colored.green(ip))
         else:
@@ -876,10 +916,11 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
 
-        vm = VMrun(self.vmx, self.user, self.password)
+        vmrun = VMrun(self.vmx, self.user, self.password)
 
-        if not vm.installedTools():
+        if not vmrun.installedTools():
             puts_err(colored.red("Tools not installed"))
             return
 
@@ -889,7 +930,7 @@ class Mech(MechCommand):
             if provision.get('type') == 'file':
                 source = provision.get('source')
                 destination = provision.get('destination')
-                if utils.provision_file(vm, source, destination) is None:
+                if utils.provision_file(vmrun, source, destination) is None:
                     puts_err(colored.red("Not Provisioned"))
                     return
                 provisioned += 1
@@ -900,7 +941,7 @@ class Mech(MechCommand):
                 args = provision.get('args')
                 if not isinstance(args, list):
                     args = [args]
-                if utils.provision_shell(vm, inline, path, args) is None:
+                if utils.provision_shell(vmrun, inline, path, args) is None:
                     puts_err(colored.red("Not Provisioned"))
                     return
                 provisioned += 1
@@ -949,3 +990,21 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         puts_err(colored.red("Not implemented!"))
+
+    def list(self, arguments):
+        """
+        Lists all available boxes.
+
+        Usage: mech list [options]
+
+        Options:
+            -h, --help                       Print this help
+        """
+        for instance_name, instance in utils.instances().items():
+            path = instance.get('path')
+            if path and os.path.exists(path):
+                self.activate(instance_name)
+                mech_path = os.path.join(path, '.mech')
+                line = ["%20s" % instance_name, "%35s" % self.box_name, self.box_version, path, "(initialized)" if os.path.exists(mech_path) else ""]
+                print("\t".join(line))
+    ls = list

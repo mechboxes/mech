@@ -8,7 +8,7 @@ setup(
             'mech = mech.__main__:main'
         ]
     },
-    install_requires=['requests', 'clint', 'docopt'],
+    install_requires=['requests', 'clint', 'docopt', 'filelock'],
     version='0.6',
     description='Tool for command line virtual machines',
     author='Kevin Chung',

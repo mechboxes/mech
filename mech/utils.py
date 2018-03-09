@@ -38,6 +38,7 @@ import collections
 from shutil import copyfile
 
 import requests
+from filelock import Timeout, FileLock
 
 from clint.textui import colored, puts_err
 from clint.textui import progress
@@ -47,6 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 HOME = os.path.expanduser('~/.mech')
+DATA_DIR = os.path.join(HOME, 'data')
 
 
 def confirm(prompt, default='y'):
@@ -71,10 +73,8 @@ def confirm(prompt, default='y'):
             return False
 
 
-def save_mechfile(mechfile, directory='.'):
-    if not mechfile.get('name'):
-        mechfile['name'] = os.path.basename(os.path.abspath(directory))
-    with open(os.path.join(directory, 'mechfile'), 'w+') as f:
+def save_mechfile(mechfile, path):
+    with open(os.path.join(path, 'mechfile'), 'w+') as f:
         json.dump(mechfile, f, sort_keys=True, indent=2, separators=(',', ': '))
     return True
 
@@ -121,6 +121,56 @@ def update_vmx(path):
             new_vmx.write(row + os.linesep)
 
     return True
+
+
+def instances():
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+    index_path = os.path.join(DATA_DIR, 'index')
+    index_lock = os.path.join(DATA_DIR, 'index.lock')
+    try:
+        with FileLock(index_lock, timeout=3):
+            if os.path.exists(index_path):
+                with open(index_path) as fp:
+                    instances = json.load(fp)
+            else:
+                instances = {}
+            return instances
+    except Timeout:
+        puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
+        sys.exit(1)
+
+
+def settle_instance(instance_name, add=None, remove=False, force=False):
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+    index_path = os.path.join(DATA_DIR, 'index')
+    index_lock = os.path.join(DATA_DIR, 'index.lock')
+    try:
+        with FileLock(index_lock, timeout=3):
+            if os.path.exists(index_path):
+                with open(index_path) as fp:
+                    instances = json.load(fp)
+            else:
+                instances = {}
+            instance_data = instances.get(instance_name)
+            path = instance_data and instance_data.get('path')
+            if path and not os.path.exists(path):
+                # Recover from unexistent paths
+                force = True
+            if instance_data is None or force:
+                if add is None:
+                    add = {}
+                instance_data = instances[instance_name] = add
+            elif instance_data is not None:
+                return instance_data
+            if add or remove:
+                with open(index_path, 'w') as fp:
+                    json.dump(instances, fp, indent=2)
+            return instance_data
+    except Timeout:
+        puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
+        sys.exit(1)
 
 
 def load_mechfile(pwd):
@@ -292,10 +342,19 @@ def add_box_file(name, version, filename, url=None, force=False, save=True):
         return name, version, box
 
 
-def init_mechfile(descriptor, name=None, version=None, instance_name=None, requests_kwargs={}):
+def init_mechfile(instance_name, descriptor, name=None, version=None, requests_kwargs={}):
+    path = os.path.abspath('.')
+    instance = settle_instance(instance_name, {
+        'path': path,
+    })
+    if instance.get('path') != path:
+        puts_err(colored.red(textwrap.fill((
+            "There is already a mech box with the name '{}' at {}"
+        ).format(instance_name, path))))
+        sys.exit(1)
     mechfile = build_mechfile(descriptor, name=name, version=version, requests_kwargs=requests_kwargs)
     mechfile['name'] = instance_name
-    return save_mechfile(mechfile, '.')
+    return save_mechfile(mechfile, path)
 
 
 def get_requests_kwargs(arguments):
