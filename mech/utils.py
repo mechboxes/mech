@@ -72,6 +72,8 @@ def confirm(prompt, default='y'):
 
 
 def save_mechfile(mechfile, directory='.'):
+    if not mechfile.get('name'):
+        mechfile['name'] = os.path.basename(os.path.abspath(directory))
     with open(os.path.join(directory, 'mechfile'), 'w+') as f:
         json.dump(mechfile, f, sort_keys=True, indent=2, separators=(',', ': '))
     return True
@@ -291,8 +293,9 @@ def add_box_file(name, version, filename, url=None, force=False, save=True):
         return name, version, box
 
 
-def init_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
+def init_mechfile(descriptor, name=None, version=None, instance_name=None, requests_kwargs={}):
     mechfile = build_mechfile(descriptor, name=name, version=version, requests_kwargs=requests_kwargs)
+    mechfile['name'] = instance_name
     return save_mechfile(mechfile, '.')
 
 
