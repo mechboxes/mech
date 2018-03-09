@@ -804,12 +804,13 @@ class Mech(MechCommand):
         """
         Output OpenSSH valid configuration to connect to the machine.
 
-        Usage: mech ssh-config [options]
+        Usage: mech ssh-config [options] [<instance>]
 
         Options:
             -h, --help                       Print this help
         """
-        self.activate()
+        instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
 
         print(utils.config_ssh_string(self.config_ssh))
 
