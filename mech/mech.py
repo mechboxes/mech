@@ -579,7 +579,7 @@ class Mech(MechCommand):
         instance_name = arguments['<instance>']
         instance_name = self.activate(instance_name)
 
-        vmx = utils.init_box(self.box_name, self.box_version, requests_kwargs=requests_kwargs, save=save, instance_name=instance_name)
+        vmx = utils.init_box(self.box_name, self.box_version, requests_kwargs=requests_kwargs, save=save)
         vmrun = VMrun(vmx)
         puts_err(colored.blue("Bringing machine up..."))
         started = vmrun.start(gui=gui)
