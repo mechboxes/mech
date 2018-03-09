@@ -637,16 +637,16 @@ class Mech(MechCommand):
 
         print("Current machine states:\n")
         if ip is None:
-            ip = 'poweroff'
+            ip = "poweroff"
         elif not ip:
-            ip = 'unknown'
+            ip = "unknown"
         print("%s\t%s\t(VMware Tools %s)" % (box_name, ip, state))
 
-        if ip == 'poweroff':
+        if ip == "poweroff":
             print("\nThe VM is powered off. To restart the VM, simply run `mech up`")
-        elif ip == 'unknown':
+        elif ip == "unknown":
             print("\nThe VM is on. but it has no IP to connect to, VMware Tools must be installed")
-        elif state in ('installed', 'running'):
+        elif state in ("installed", "running"):
             print("\nThe VM is ready. Connect to it using `mech ssh`")
 
     def destroy(self, arguments):
@@ -1007,6 +1007,17 @@ class Mech(MechCommand):
             if path and os.path.exists(path):
                 self.activate(instance_name)
                 mech_path = os.path.join(path, '.mech')
-                line = ["%20s" % instance_name, "%35s" % self.box_name, self.box_version, path, "(initialized)" if os.path.exists(mech_path) else ""]
+                if os.path.exists(mech_path):
+                    vmrun = VMrun(self.vmx)
+                    ip = vmrun.getGuestIPAddress(wait=False, quiet=True)
+                    if ip is None:
+                        status = "(poweroff)"
+                    elif not ip:
+                        status = "(running)"
+                    else:
+                        status = "({})".format(ip)
+                else:
+                    status = ""
+                line = ["%20s" % instance_name, "%35s" % self.box_name, self.box_version, path, status]
                 print("\t".join(line))
     ls = list
