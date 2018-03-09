@@ -186,14 +186,14 @@ class MechBox(MechCommand):
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
                 --cert FILE                  A client SSL cert, if needed
+                --box-name BOX               Name of the box
                 --box-version VERSION        Constrain version of the added box
                 --checksum CHECKSUM          Checksum for the box
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
         url = arguments['<name | url | path>']
-        name = arguments['--name']
+        name = arguments['--box-name']
         version = arguments['--box-version']
         force = arguments['--force']
         requests_kwargs = utils.get_requests_kwargs(arguments)
@@ -237,14 +237,13 @@ class MechBox(MechCommand):
         """
         Remove old versions of installed boxes.
 
-        Usage: mech box prune [options]
+        Usage: mech box prune [options] [<name>]
 
         Notes:
             If the box is currently in use mech will ask for confirmation.
 
         Options:
             -n, --dry-run                    Only print the boxes that would be removed.
-                --name NAME                  The specific box name to check for outdated versions.
             -f, --force                      Destroy without confirmation even when box is in use.
             -h, --help                       Print this help
         """
@@ -283,7 +282,7 @@ class MechBox(MechCommand):
         """
         Update the box that is in use in the current mech environment.
 
-        Usage: mech box update [options]
+        Usage: mech box update [options] [<name>]
 
         Notes:
             Only if there any updates available. This does not destroy/recreate
@@ -295,7 +294,6 @@ class MechBox(MechCommand):
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
                 --cert FILE                  A client SSL cert, if needed
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
         puts_err(colored.red("Not implemented!"))
@@ -320,17 +318,17 @@ class MechSnapshot(MechCommand):
         """
         Delete a snapshot taken previously with snapshot save.
 
-        Usage: mech snapshot delete [options] <name>
+        Usage: mech snapshot delete [options] <name> [<instance>]
 
         Options:
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
+        instance_name = arguments['<instance>']
         name = arguments['<name>']
 
         vm = VMrun(self.vmx)
         if vm.deleteSnapshot(name) is None:
-            puts_err(colored.red("Cannot delete snapshot"))
+            puts_err(colored.red("Cannot delete name"))
         else:
             puts_err(colored.green("Snapshot {} deleted".format(name)))
 
@@ -338,12 +336,13 @@ class MechSnapshot(MechCommand):
         """
         List all snapshots taken for a machine.
 
-        Usage: mech snapshot list [options]
+        Usage: mech snapshot list [options] [<instance>]
 
         Options:
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
+        instance_name = arguments['<instance>']
+
         vm = VMrun(self.vmx)
         print(vm.listSnapshots())
 
@@ -351,12 +350,11 @@ class MechSnapshot(MechCommand):
         """
         Restore state that was pushed with `mech snapshot push`.
 
-        Usage: mech snapshot pop [options]
+        Usage: mech snapshot pop [options] [<instance>]
 
         Options:
                 --provision                  Enable provisioning
                 --no-delete                  Don't delete the snapshot after the restore
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
         puts_err(colored.red("Not implemented!"))
@@ -365,7 +363,7 @@ class MechSnapshot(MechCommand):
         """
         Push a snapshot of the current state of the machine.
 
-        Usage: mech snapshot push [options]
+        Usage: mech snapshot push [options] [<instance>]
 
         Notes:
             Take a snapshot of the current state of the machine and 'push'
@@ -376,7 +374,6 @@ class MechSnapshot(MechCommand):
             a push, pop will still bring you back to this pushed state.
 
         Options:
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
         puts_err(colored.red("Not implemented!"))
@@ -385,11 +382,10 @@ class MechSnapshot(MechCommand):
         """
         Restore a snapshot taken previously with snapshot save.
 
-        Usage: mech snapshot restore [options] <name>
+        Usage: mech snapshot restore [options] <name> [<instance>]
 
         Options:
                 --provision                  Enable provisioning
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
         puts_err(colored.red("Not implemented!"))
@@ -398,7 +394,7 @@ class MechSnapshot(MechCommand):
         """
         Take a snapshot of the current state of the machine.
 
-        Usage: mech snapshot save [options] <name>
+        Usage: mech snapshot save [options] <name> [<instance>]
 
         Notes:
             Take a snapshot of the current state of the machine. The snapshot
@@ -410,9 +406,9 @@ class MechSnapshot(MechCommand):
 
         Options:
             -f  --force                      Replace snapshot without confirmation
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
+        instance_name = arguments['<instance>']
         name = arguments['<name>']
 
         vm = VMrun(self.vmx)
@@ -495,15 +491,17 @@ class Mech(MechCommand):
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
                 --cert FILE                  A client SSL cert, if needed
+                --box-name BOX               Constrain version of the added box
                 --box-version VERSION        Constrain version of the added box
                 --checksum CHECKSUM          Checksum for the box
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
-                --name BOX                   Name of the box
+                --name INSTANCE              Name of the instance
             -h, --help                       Print this help
         """
         url = arguments['<name | url | path>']
-        name = arguments['--name']
+        name = arguments['--box-name']
         version = arguments['--box-version']
+        instance_name = arguments['--name']
         force = arguments['--force']
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
@@ -515,7 +513,7 @@ class Mech(MechCommand):
             return
 
         puts_err(colored.green("Initializing mech"))
-        if utils.init_mechfile(url, name=name, version=version, requests_kwargs=requests_kwargs):
+        if utils.init_mechfile(url, name=name, version=version, instance_name=instance_name, requests_kwargs=requests_kwargs):
             puts_err(colored.green(textwrap.fill(
                 "A `mechfile` has been initialized and placed in this directory. "
                 "You are now ready to `mech up` your first virtual environment!"
@@ -527,7 +525,7 @@ class Mech(MechCommand):
         """
         Starts and provisions the mech environment.
 
-        Usage: mech up [options]
+        Usage: mech up [options] [<instance>]
 
         Options:
                 --gui                        Start GUI
@@ -536,18 +534,17 @@ class Mech(MechCommand):
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
                 --cert FILE                  A client SSL cert, if needed
-                --box-version VERSION        Constrain version of the added box
                 --checksum CHECKSUM          Checksum for the box
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
-                --no-save                    Do not save the downloaded box
-                --name BOX                   Name of the box
+                --no-cache                   Do not save the downloaded box
             -h, --help                       Print this help
         """
+        instance_name = arguments['<instance>']
         gui = arguments['--gui']
-        save = not arguments['--no-save']
+        save = not arguments['--no-cache']
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
-        vmx = utils.init_box(self.box_name, self.box_version, requests_kwargs=requests_kwargs, save=save)
+        vmx = utils.init_box(self.box_name, self.box_version, requests_kwargs=requests_kwargs, save=save, instance_name=instance_name)
         vm = VMrun(vmx)
         puts_err(colored.blue("Bringing machine up..."))
         started = vm.start(gui=gui)
@@ -589,12 +586,12 @@ class Mech(MechCommand):
         """
         Outputs status of the mech machine.
 
-        Usage: mech status [options]
+        Usage: mech status [options] [<instance>]
 
         Options:
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
+        instance_name = arguments['<instance>']
 
         vm = VMrun(self.vmx)
         box_name = self.box_name
@@ -619,13 +616,13 @@ class Mech(MechCommand):
         """
         Stops and deletes all traces of the mech machine.
 
-        Usage: mech destroy [options]
+        Usage: mech destroy [options] [<instance>]
 
         Options:
             -f, --force                      Destroy without confirmation.
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
+        instance_name = arguments['<instance>']
         force = arguments['--force']
 
         vmx = self.vmx
@@ -644,13 +641,13 @@ class Mech(MechCommand):
         """
         Stops the mech machine.
 
-        Usage: mech down [options]
+        Usage: mech down [options] [<instance>]
 
         Options:
                 --force                      Force a hard stop
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
+        instance_name = arguments['<instance>']
         force = arguments['--force']
 
         vm = VMrun(self.vmx)
@@ -669,12 +666,12 @@ class Mech(MechCommand):
         """
         Pauses the mech machine.
 
-        Usage: mech pause [options]
+        Usage: mech pause [options] [<instance>]
 
         Options:
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
+        instance_name = arguments['<instance>']
 
         vm = VMrun(self.vmx)
         if vm.pause() is None:
@@ -686,13 +683,14 @@ class Mech(MechCommand):
         """
         Resume a paused/suspended mech machine.
 
-        Usage: mech resume [options]
+        Usage: mech resume [options] [<instance>]
 
         Options:
                 --provision                  Enable provisioning
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
+        instance_name = arguments['<instance>']
+
         vm = VMrun(self.vmx)
 
         # Try to unpause
@@ -732,12 +730,12 @@ class Mech(MechCommand):
         """
         Suspends the machine.
 
-        Usage: mech suspend [options]
+        Usage: mech suspend [options] [<instance>]
 
         Options:
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
+        instance_name = arguments['<instance>']
 
         vm = VMrun(self.vmx)
         if vm.suspend() is None:
@@ -760,15 +758,14 @@ class Mech(MechCommand):
         """
         Connects to machine via SSH.
 
-        Usage: mech ssh [options] [-- <extra ssh args>...]
+        Usage: mech ssh [options] [<instance>] [-- <extra ssh args>...]
 
         Options:
             -c, --command COMMAND            Execute an SSH command directly
             -p, --plain                      Plain mode, leaves authentication up to user
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
-
+        instance_name = arguments['<instance>']
         plain = arguments['--plain']
         extra = arguments['<extra ssh args>']
         command = arguments['--command']
@@ -798,12 +795,26 @@ class Mech(MechCommand):
         Usage: mech scp [options] <src> <dst> [-- <extra scp args>...]
 
         Options:
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
         extra = arguments['<extra scp args>']
         src = arguments['<src>']
         dst = arguments['<dst>']
+
+        dst_instance, dst_is_host, dst = dst.partition(':')
+        src_instance, src_is_host, src = src.partition(':')
+
+        if dst_is_host and src_is_host:
+            puts_err(colored.red("Both src and host are host destinations"))
+            sys.exit(1)
+        if dst_is_host:
+            instance_name = dst_instance
+        else:
+            dst = dst_instance
+        if src_is_host:
+            instance_name = src_instance
+        else:
+            src = src_instance
 
         config_ssh = self.config_ssh
         with tempfile.NamedTemporaryFile() as fp:
@@ -815,16 +826,9 @@ class Mech(MechCommand):
             if extra:
                 cmds.extend(extra)
 
-            dst_is_host = dst.startswith(':')
-            src_is_host = src.startswith(':')
-
-            if dst_is_host and src_is_host:
-                puts_err(colored.red("Both src and host are host destinations"))
-                sys.exit(1)
-
             host = config_ssh['Host']
-            dst = '{}:{}'.format(host, dst[1:]) if dst_is_host else dst
-            src = '{}:{}'.format(host, src[1:]) if src_is_host else src
+            dst = '{}:{}'.format(host, dst) if dst_is_host else dst
+            src = '{}:{}'.format(host, src) if src_is_host else src
             cmds.extend((src, dst))
 
             logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
@@ -834,12 +838,12 @@ class Mech(MechCommand):
         """
         Outputs ip of the mech machine.
 
-        Usage: mech ip [options]
+        Usage: mech ip [options] [<instance>]
 
         Options:
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
+        instance_name = arguments['<instance>']
 
         vm = VMrun(self.vmx)
         ip = vm.getGuestIPAddress()
@@ -852,12 +856,13 @@ class Mech(MechCommand):
         """
         Provisions the mech machine.
 
-        Usage: mech provision [options]
+        Usage: mech provision [options] [<instance>]
 
         Options:
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
+        instance_name = arguments['<instance>']
+
         vm = VMrun(self.vmx, self.user, self.password)
 
         if not vm.installedTools():
@@ -899,11 +904,10 @@ class Mech(MechCommand):
         """
         Restarts mech machine, loads new mechfile configuration.
 
-        Usage: mech reload [options]
+        Usage: mech reload [options] [<instance>]
 
         Options:
                 --provision                  Enable provisioning
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
         puts_err(colored.red("Not implemented!"))
@@ -912,12 +916,11 @@ class Mech(MechCommand):
         """
         Displays information about guest port mappings.
 
-        Usage: mech port [options]
+        Usage: mech port [options] [<instance>]
 
         Options:
                 --guest PORT                 Output the host port that maps to the given guest port
                 --machine-readable           Display machine-readable output
-                --name BOX                   Name of the box
             -h, --help                       Print this help
         """
         puts_err(colored.red("Not implemented!"))
