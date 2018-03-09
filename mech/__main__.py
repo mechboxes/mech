@@ -21,22 +21,24 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
-
 __version__ = 'mech 0.6'
 
 
 def main():
-    import os
-    import sys
+    try:
+        import os
+        import sys
 
-    from mech import Mech
+        from mech import Mech
 
-    HOME = os.path.expanduser('~/.mech')
-    if not os.path.exists(HOME):
-        os.makedirs(HOME)
+        HOME = os.path.expanduser('~/.mech')
+        if not os.path.exists(HOME):
+            os.makedirs(HOME)
 
-    arguments = Mech.docopt(Mech.__doc__, argv=sys.argv[1:], version=__version__)
-    return Mech(arguments)()
+        arguments = Mech.docopt(Mech.__doc__, argv=sys.argv[1:], version=__version__)
+        return Mech(arguments)()
+    except KeyboardInterrupt:
+        sys.stderr.write('\n')
 
 
 if __name__ == "__main__":
