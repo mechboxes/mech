@@ -13,8 +13,8 @@ setup(
     description='Tool for command line virtual machines',
     author='Kevin Chung',
     author_email='kchung@nyu.edu',
-    url='https://github.com/Kronuz/mech',
-    download_url='https://github.com/Kronuz/mech/tarball/master',
+    url='https://github.com/mechboxes/mech',
+    download_url='https://github.com/mechboxes/mech/tarball/master',
     keywords=['vagrant', 'vmware', 'vmrun', 'tool', 'virtualization'],
     classifiers=[],
 )

@@ -54,7 +54,7 @@ Example:
 
 # Install
 
-`pip install git+https://github.com/Kronuz/mech.git`
+`pip install git+https://github.com/mechboxes/mech.git`
 
 # Shared Folders
 
