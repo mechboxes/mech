@@ -610,4 +610,4 @@ class VMrun(object):
 
     def installedTools(self, quiet=False):
         state = self.checkToolsState(quiet=quiet)
-        return state == 'installed' or state == 'running'
+        return state in ('installed', 'running')
