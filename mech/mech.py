@@ -107,14 +107,14 @@ class MechCommand(Command):
 
     @property
     def vmx(self):
-        self.get("")  # Check if there's a mechfile
+        self.get("")  # Check if there's a Mechfile
         return utils.get_vmx()
 
     @property
     def box_name(self):
         box_name = self.get('box')
         if not box_name:
-            puts_err(colored.red(textwrap.fill("Cannot find a box configured in the mechfile")))
+            puts_err(colored.red(textwrap.fill("Cannot find a box configured in the Mechfile")))
             sys.exit(1)
         return box_name
 
@@ -463,7 +463,7 @@ class Mech(MechCommand):
 
     Common commands:
         (list|ls)         lists all available boxes
-        init              initializes a new mech environment by creating a mechfile
+        init              initializes a new mech environment by creating a Mechfile
         destroy           stops and deletes all traces of the mech machine
         (up|start)        starts and provisions the mech environment
         (down|stop|halt)  stops the mech machine
@@ -476,7 +476,7 @@ class Mech(MechCommand):
         box               manages boxes: installation, removal, etc.
         (status|ps)       outputs status mech environments for this user
         provision         provisions the mech machine
-        reload            restarts mech machine, loads new mechfile configuration
+        reload            restarts mech machine, loads new Mechfile configuration
         resume            resume a paused/suspended mech machine
         snapshot          manages snapshots: saving, restoring, etc.
         port              displays information about guest port mappings
@@ -511,7 +511,7 @@ class Mech(MechCommand):
 
     def init(self, arguments):
         """
-        Initializes a new mech environment by creating a mechfile.
+        Initializes a new mech environment by creating a Mechfile.
 
         Usage: mech init [options] [<name|url|path>]
 
@@ -521,7 +521,7 @@ class Mech(MechCommand):
             the catalog metadata.
 
         Options:
-            -f, --force                      Overwrite existing mechfile
+            -f, --force                      Overwrite existing Mechfile
                 --insecure                   Do not validate SSL certificates
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
@@ -540,9 +540,9 @@ class Mech(MechCommand):
         force = arguments['--force']
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
-        if os.path.exists('mechfile') and not force:
+        if os.path.exists('Mechfile') and not force:
             puts_err(colored.red(textwrap.fill(
-                "`mechfile` already exists in this directory. Remove it "
+                "`Mechfile` already exists in this directory. Remove it "
                 "before running `mech init`."
             )))
             return
@@ -550,7 +550,7 @@ class Mech(MechCommand):
         puts_err(colored.green("Initializing mech"))
         if utils.init_mechfile(instance_name, url, name=name, version=version, requests_kwargs=requests_kwargs):
             puts_err(colored.green(textwrap.fill(
-                "A `mechfile` has been initialized and placed in this directory. "
+                "A `Mechfile` has been initialized and placed in this directory. "
                 "You are now ready to `mech up` your first virtual environment!"
             )))
         else:
@@ -965,7 +965,7 @@ class Mech(MechCommand):
 
     def reload(self, arguments):
         """
-        Restarts mech machine, loads new mechfile configuration.
+        Restarts mech machine, loads new Mechfile configuration.
 
         Usage: mech reload [options] [<instance>]
 

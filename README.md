@@ -15,7 +15,8 @@ Options:
     --debug                          Show debug messages.
 
 Common commands:
-    init              initializes a new mech environment by creating a mechfile
+    (list|ls)         lists all available boxes
+    init              initializes a new mech environment by creating a Mechfile
     destroy           stops and deletes all traces of the mech machine
     (up|start)        starts and provisions the mech environment
     (down|stop|halt)  stops the mech machine
@@ -27,7 +28,7 @@ Common commands:
     box               manages boxes: installation, removal, etc.
     (status|ps)       outputs status mech environments for this user
     provision         provisions the mech machine
-    reload            restarts mech machine, loads new mechfile configuration
+    reload            restarts mech machine, loads new Mechfile configuration
     resume            resume a paused/suspended mech machine
     snapshot          manages snapshots: saving, restoring, etc.
     port              displays information about guest port mappings
@@ -50,7 +51,7 @@ Example:
 
 ```
 
-`mech init` can be used to pull a box file which will be installed and generate a mechfile in the current directory. You can also pull boxes from Vagrant Cloud with `mech init freebsd/FreeBSD-11.1-RELEASE`. Barring that, `mech up <name>` can also be used to specify a vmx file to start.
+`mech init` can be used to pull a box file which will be installed and generate a Mechfile in the current directory. You can also pull boxes from Vagrant Cloud with `mech init freebsd/FreeBSD-11.1-RELEASE`. Barring that, `mech up <name>` can also be used to specify a vmx file to start.
 
 # Install
 

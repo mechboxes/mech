@@ -74,7 +74,7 @@ def confirm(prompt, default='y'):
 
 
 def save_mechfile(mechfile, path):
-    with open(os.path.join(path, 'mechfile'), 'w+') as f:
+    with open(os.path.join(path, 'Mechfile'), 'w+') as f:
         json.dump(mechfile, f, sort_keys=True, indent=2, separators=(',', ': '))
     return True
 
@@ -138,7 +138,7 @@ def instances():
                 for k in list(instances):
                     instance_data = instances[k]
                     path = instance_data and instance_data.get('path')
-                    if not path or not os.path.exists(os.path.join(path, 'mechfile')):
+                    if not path or not os.path.exists(os.path.join(path, 'Mechfile')):
                         del instances[k]
                         updated = True
             else:
@@ -167,7 +167,7 @@ def settle_instance(instance_name, obj=None, force=False):
                 for k in list(instances):
                     instance_data = instances[k]
                     path = instance_data and instance_data.get('path')
-                    if not path or not os.path.exists(os.path.join(path, 'mechfile')):
+                    if not path or not os.path.exists(os.path.join(path, 'Mechfile')):
                         del instances[k]
                         updated = True
             else:
@@ -190,22 +190,22 @@ def settle_instance(instance_name, obj=None, force=False):
 
 def load_mechfile(pwd):
     while pwd:
-        mechfile = os.path.join(pwd, 'mechfile')
+        mechfile = os.path.join(pwd, 'Mechfile')
         if os.path.isfile(mechfile):
             with open(mechfile) as f:
                 try:
                     return json.load(f)
                 except ValueError:
-                    puts_err(colored.red("Invalid mechfile.\n"))
+                    puts_err(colored.red("Invalid Mechfile.\n"))
                     break
         new_pwd = os.path.basename(pwd)
         pwd = None if new_pwd == pwd else new_pwd
     puts_err(colored.red(textwrap.fill(
-        "Couldn't find a mechfile in the current directory any deeper directories. "
+        "Couldn't find a Mechfile in the current directory any deeper directories. "
         "A mech environment is required to run this command. Run `mech init` "
         "to create a new mech environment. Or specify the name of the VM you'd "
         "like to start with `mech up <name>`. A final option is to change to a "
-        "directory with a mechfile and to try again."
+        "directory with a Mechfile and to try again."
     )))
     sys.exit(1)
 
