@@ -93,8 +93,8 @@ class MechCommand(Command):
             path = os.path.abspath(os.path.expanduser(path))
             os.chdir(path)
         else:
-            instance_name = os.path.basename(path)
             path = os.path.abspath(os.getcwd())
+            instance_name = os.path.basename(path)
         if path in self.mechfiles:
             self.active_mechfile = self.mechfiles[path]
         else:
