@@ -240,8 +240,10 @@ class MechBox(MechCommand):
             for filename in fnmatch.filter(filenames, '*.box'):
                 directory = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
                 account, box, version = (directory.split('/', 2) + ['', ''])[:3]
-                line = ["%35s" % "{}/{}".format(account, box), version]
-                print("\t".join(line))
+                print("{}\t{}".format(
+                    "%35s" % "{}/{}".format(account, box),
+                    version,
+                ))
     ls = list
 
     def outdated(self, arguments):
@@ -1011,13 +1013,18 @@ class Mech(MechCommand):
                     vmrun = VMrun(self.vmx)
                     ip = vmrun.getGuestIPAddress(wait=False, quiet=True)
                     if ip is None:
-                        status = "(poweroff)"
+                        ip = "poweroff"
                     elif not ip:
-                        status = "(running)"
+                        ip = colored.green("running")
                     else:
-                        status = "({})".format(ip)
+                        ip = colored.green(ip)
                 else:
-                    status = ""
-                line = ["%20s" % instance_name, "%35s" % self.box_name, self.box_version, path, status]
-                print("\t".join(line))
+                    ip = ""
+                print("{}\t{}\t{}\t{}\t{}".format(
+                    colored.green("%20s" % instance_name),
+                    "%15s" % ip,
+                    "%35s" % self.box_name,
+                    self.box_version,
+                    path,
+                ))
     ls = list
