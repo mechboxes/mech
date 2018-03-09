@@ -788,56 +788,37 @@ class Mech(MechCommand):
         Usage: mech scp [options] <src> <dst> [-- <extra scp args>...]
 
         Options:
-                --user USERNAME
-            -p, --plain                      Plain mode, leaves authentication up to user
                 --name BOX                   Name of the box
             -h, --help                       Print this help
         """
-
-        if arguments['--plain']:
-            authentication = ''
-        else:
-            user = arguments['--user']
-            if user is None:
-                user = self.user
-            authentication = '{}@'.format(user)
         extra = arguments['<extra scp args>']
         src = arguments['<src>']
         dst = arguments['<dst>']
 
-        vm = VMrun(self.vmx)
-        ip = vm.getGuestIPAddress()
-        if ip:
-            src_is_host = src.startswith(":")
-            dst_is_host = dst.startswith(":")
+        config_ssh = self.config_ssh
+        with tempfile.NamedTemporaryFile() as fp:
+            fp.write(utils.config_ssh_string(config_ssh))
+            fp.flush()
 
-            if src_is_host and dst_is_host:
+            cmds = ['scp']
+            cmds.extend(('-F', fp.name))
+            if extra:
+                cmds.extend(extra)
+
+            dst_is_host = dst.startswith(':')
+            src_is_host = src.startswith(':')
+
+            if dst_is_host and src_is_host:
                 puts_err(colored.red("Both src and host are host destinations"))
                 sys.exit(1)
 
-            if dst_is_host:
-                dst = dst[1:]
-                puts_err(colored.blue("Sending {src} to {authentication}{ip}:{dst}".format(
-                    authentication=colored.green(authentication),
-                    ip=colored.green(ip),
-                    src=src,
-                    dst=dst,
-                )))
-                cmd = 'scp {} {}{}:{}'.format(src, authentication, ip, dst)
-            else:
-                src = src[1:]
-                puts_err(colored.blue("Getting {authentication}{ip}:{src} and saving in {dst}".format(
-                    authentication=colored.green(authentication),
-                    ip=colored.green(ip),
-                    src=src,
-                    dst=dst,
-                )))
-                cmd = 'scp {}{}:{} {}'.format(authentication, ip, src, dst)
-            if extra:
-                cmd += ' ' + ' '.join(extra)
-            os.system(cmd)
-        else:
-            puts_err(colored.red("Unkown IP address"))
+            host = config_ssh['Host']
+            dst = '{}:{}'.format(host, dst[1:]) if dst_is_host else dst
+            src = '{}:{}'.format(host, src[1:]) if src_is_host else src
+            cmds.extend((src, dst))
+
+            logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
+            return subprocess.call(cmds)
 
     def ip(self, arguments):
         """
