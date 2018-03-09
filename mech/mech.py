@@ -735,6 +735,17 @@ class Mech(MechCommand):
         else:
             puts_err(colored.green("Suspended", vm))
 
+    def ssh_config(self, arguments):
+        """
+        Output OpenSSH valid configuration to connect to the machine.
+
+        Usage: mech ssh-config [options]
+
+        Options:
+            -h, --help                       Print this help
+        """
+        print(utils.config_ssh_string(self.config_ssh))
+
     def ssh(self, arguments):
         """
         Connects to machine via SSH.
@@ -753,10 +764,6 @@ class Mech(MechCommand):
         command = arguments['--command']
 
         config_ssh = self.config_ssh
-        if not config_ssh:
-            puts_err(colored.red(""))
-            sys.exit(1)
-
         with tempfile.NamedTemporaryFile() as fp:
             fp.write(utils.config_ssh_string(config_ssh))
             fp.flush()
@@ -773,17 +780,6 @@ class Mech(MechCommand):
 
             logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
             return subprocess.call(cmds)
-
-    def ssh_config(self, arguments):
-        """
-        Output OpenSSH valid configuration to connect to the machine.
-
-        Usage: mech ssh-config [options]
-
-        Options:
-            -h, --help                       Print this help
-        """
-        print(utils.config_ssh_string(self.config_ssh))
 
     def scp(self, arguments):
         """
