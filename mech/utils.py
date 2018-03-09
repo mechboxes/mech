@@ -130,43 +130,58 @@ def instances():
     index_lock = os.path.join(DATA_DIR, 'index.lock')
     try:
         with FileLock(index_lock, timeout=3):
+            updated = False
             if os.path.exists(index_path):
                 with open(index_path) as fp:
                     instances = json.load(fp)
+                # prune unexistent mechfiles
+                for k in list(instances):
+                    instance_data = instances[k]
+                    path = instance_data and instance_data.get('path')
+                    if not path or not os.path.exists(os.path.join(path, 'mechfile')):
+                        del instances[k]
+                        updated = True
             else:
                 instances = {}
+            if updated:
+                with open(index_path, 'w') as fp:
+                    json.dump(instances, fp, indent=2, separators=(',', ': '))
             return instances
     except Timeout:
         puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
         sys.exit(1)
 
 
-def settle_instance(instance_name, add=None, remove=False, force=False):
+def settle_instance(instance_name, obj=None, force=False):
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
     index_path = os.path.join(DATA_DIR, 'index')
     index_lock = os.path.join(DATA_DIR, 'index.lock')
     try:
         with FileLock(index_lock, timeout=3):
+            updated = False
             if os.path.exists(index_path):
                 with open(index_path) as fp:
                     instances = json.load(fp)
+                # prune unexistent mechfiles
+                for k in list(instances):
+                    instance_data = instances[k]
+                    path = instance_data and instance_data.get('path')
+                    if not path or not os.path.exists(os.path.join(path, 'mechfile')):
+                        del instances[k]
+                        updated = True
             else:
                 instances = {}
-            instance_data = instances.get(instance_name)
-            path = instance_data and instance_data.get('path')
-            if path and not os.path.exists(path):
-                # Recover from unexistent paths
-                force = True
-            if instance_data is None or force:
-                if add is None:
-                    add = {}
-                instance_data = instances[instance_name] = add
-            elif instance_data is not None:
-                return instance_data
-            if add or remove:
+            instance_data = instances.get(instance_name, obj)
+            if not instance_data or force:
+                if obj:
+                    instance_data = instances[instance_name] = obj
+                    updated = True
+                else:
+                    instance_data = {}
+            if updated:
                 with open(index_path, 'w') as fp:
-                    json.dump(instances, fp, indent=2)
+                    json.dump(instances, fp, indent=2, separators=(',', ': '))
             return instance_data
     except Timeout:
         puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))

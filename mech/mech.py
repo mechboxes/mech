@@ -662,10 +662,13 @@ class Mech(MechCommand):
         force = arguments['--force']
 
         instance_name = arguments['<instance>']
-        instance_name = self.activate(instance_name)
+        self.activate(instance_name)
 
-        instance = utils.settle_instance(instance_name)
-        path = instance['path']
+        if instance_name:
+            instance = utils.settle_instance(instance_name)
+            path = instance['path']
+        else:
+            path = os.getcwd()
         mech_path = os.path.join(path, '.mech')
 
         if os.path.exists(mech_path):
@@ -675,7 +678,6 @@ class Mech(MechCommand):
                 vmrun.stop(mode='hard', quiet=True)
                 time.sleep(3)
                 shutil.rmtree(mech_path)
-                utils.settle_instance(instance_name, remove=True)
             else:
                 puts_err(colored.red("Deletion aborted"))
         else:
