@@ -93,7 +93,7 @@ class MechCommand(Command):
             path = os.path.abspath(os.path.expanduser(path))
             os.chdir(path)
         else:
-            path = os.path.abspath(os.getcwd())
+            path = os.getcwd()
             instance_name = os.path.basename(path)
         if path in self.mechfiles:
             self.active_mechfile = self.mechfiles[path]
@@ -581,6 +581,8 @@ class Mech(MechCommand):
         instance_name = arguments['<instance>']
         instance_name = self.activate(instance_name)
 
+        utils.index_active_instance(instance_name)
+
         vmx = utils.init_box(self.box_name, self.box_version, requests_kwargs=requests_kwargs, save=save)
         vmrun = VMrun(vmx)
         puts_err(colored.blue("Bringing machine up..."))
@@ -742,6 +744,8 @@ class Mech(MechCommand):
         """
         instance_name = arguments['<instance>']
         instance_name = self.activate(instance_name)
+
+        utils.index_active_instance(instance_name)
 
         vmrun = VMrun(self.vmx)
 

@@ -357,16 +357,21 @@ def add_box_file(name, version, filename, url=None, force=False, save=True):
         return name, version, box
 
 
-def init_mechfile(instance_name, descriptor, name=None, version=None, requests_kwargs={}):
-    path = os.path.abspath('.')
+def index_active_instance(instance_name):
+    path = os.getcwd()
     instance = settle_instance(instance_name, {
         'path': path,
     })
     if instance.get('path') != path:
         puts_err(colored.red(textwrap.fill((
             "There is already a mech box with the name '{}' at {}"
-        ).format(instance_name, path))))
+        ).format(instance_name, instance.get('path')))))
         sys.exit(1)
+    return path
+
+
+def init_mechfile(instance_name, descriptor, name=None, version=None, requests_kwargs={}):
+    path = index_active_instance(instance_name)
     mechfile = build_mechfile(descriptor, name=name, version=version, requests_kwargs=requests_kwargs)
     mechfile['name'] = instance_name
     return save_mechfile(mechfile, path)
