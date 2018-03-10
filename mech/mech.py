@@ -685,7 +685,8 @@ class Mech(MechCommand):
                 vmrun = VMrun(self.vmx)
                 vmrun.stop(mode='hard', quiet=True)
                 time.sleep(3)
-                shutil.rmtree(mech_path)
+                vmrun.deleteVM()
+                # shutil.rmtree(mech_path)
             else:
                 puts_err(colored.red("Deletion aborted"))
         else:
