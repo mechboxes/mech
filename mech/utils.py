@@ -223,8 +223,8 @@ def load_mechfile(pwd):
         pwd = None if new_pwd == pwd else new_pwd
     puts_err(colored.red(textwrap.fill(
         "Couldn't find a Mechfile in the current directory any deeper directories. "
-        "A mech environment is required to run this command. Run `mech init` "
-        "to create a new mech environment. Or specify the name of the VM you'd "
+        "A Mech environment is required to run this command. Run `mech init` "
+        "to create a new Mech environment. Or specify the name of the VM you'd "
         "like to start with `mech up <name>`. A final option is to change to a "
         "directory with a Mechfile and to try again."
     )))
@@ -385,7 +385,7 @@ def index_active_instance(instance_name):
     })
     if instance.get('path') != path:
         puts_err(colored.red(textwrap.fill((
-            "There is already a mech box with the name '{}' at {}"
+            "There is already a Mech box with the name '{}' at {}"
         ).format(instance_name, instance.get('path')))))
         sys.exit(1)
     return path

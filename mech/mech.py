@@ -141,7 +141,7 @@ class MechCommand(Command):
         ip = vmrun.getGuestIPAddress(wait=False) if vmrun.installedTools() else None
         if not ip:
             puts_err(colored.red(textwrap.fill(
-                "This mech machine is reporting that it is not yet ready for SSH. "
+                "This Mech machine is reporting that it is not yet ready for SSH. "
                 "Make sure your machine is created and running and try again. "
                 "Additionally, check the output of `mech status` to verify "
                 "that the machine is in the state that you expect."
@@ -467,21 +467,23 @@ class Mech(MechCommand):
 
     Common commands:
         (list|ls)         lists all available boxes
-        init              initializes a new mech environment by creating a Mechfile
-        destroy           stops and deletes all traces of the mech machine
-        (up|start)        starts and provisions the mech environment
-        (down|stop|halt)  stops the mech machine
+        init              initializes a new Mech environment by creating a Mechfile
+        destroy           stops and deletes all traces of the Mech machine
+        (up|start)        starts and provisions the Mech environment
+        (down|stop|halt)  stops the Mech machine
         suspend           suspends the machine
-        pause             pauses the mech machine
+        pause             pauses the Mech machine
         ssh               connects to machine via SSH
         ssh-config        outputs OpenSSH valid configuration to connect to the machine
         scp               copies files to and from the machine via SCP
-        ip                outputs ip of the mech machine
+        ip                outputs ip of the Mech machine
         box               manages boxes: installation, removal, etc.
-        (status|ps)       outputs status mech environments for this user
-        provision         provisions the mech machine
-        reload            restarts mech machine, loads new Mechfile configuration
-        resume            resume a paused/suspended mech machine
+        global-status     outputs status Mech environments for this user
+        status            outputs status of the Mech machine
+        ps                list running processes in Guest OS
+        provision         provisions the Mech machine
+        reload            restarts Mech machine, loads new Mechfile configuration
+        resume            resume a paused/suspended Mech machine
         snapshot          manages snapshots: saving, restoring, etc.
         port              displays information about guest port mappings
         push              deploys code in this environment to a configured destination
@@ -627,7 +629,7 @@ class Mech(MechCommand):
 
     def status(self, arguments):
         """
-        Outputs status of the mech machine.
+        Outputs status of the Mech machine.
 
         Usage: mech status [options] [<instance>]
 
@@ -659,7 +661,7 @@ class Mech(MechCommand):
 
     def destroy(self, arguments):
         """
-        Stops and deletes all traces of the mech machine.
+        Stops and deletes all traces of the Mech machine.
 
         Usage: mech destroy [options] [<instance>]
 
@@ -694,7 +696,7 @@ class Mech(MechCommand):
 
     def down(self, arguments):
         """
-        Stops the mech machine.
+        Stops the Mech machine.
 
         Usage: mech down [options] [<instance>]
 
@@ -721,7 +723,7 @@ class Mech(MechCommand):
 
     def pause(self, arguments):
         """
-        Pauses the mech machine.
+        Pauses the Mech machine.
 
         Usage: mech pause [options] [<instance>]
 
@@ -739,7 +741,7 @@ class Mech(MechCommand):
 
     def resume(self, arguments):
         """
-        Resume a paused/suspended mech machine.
+        Resume a paused/suspended Mech machine.
 
         Usage: mech resume [options] [<instance>]
 
@@ -905,7 +907,7 @@ class Mech(MechCommand):
 
     def ip(self, arguments):
         """
-        Outputs ip of the mech machine.
+        Outputs ip of the Mech machine.
 
         Usage: mech ip [options] [<instance>]
 
@@ -924,7 +926,7 @@ class Mech(MechCommand):
 
     def provision(self, arguments):
         """
-        Provisions the mech machine.
+        Provisions the Mech machine.
 
         Usage: mech provision [options] [<instance>]
 
@@ -973,7 +975,7 @@ class Mech(MechCommand):
 
     def reload(self, arguments):
         """
-        Restarts mech machine, loads new Mechfile configuration.
+        Restarts Mech machine, loads new Mechfile configuration.
 
         Usage: mech reload [options] [<instance>]
 
