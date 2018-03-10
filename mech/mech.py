@@ -152,6 +152,7 @@ class MechCommand(Command):
         if not os.path.exists(insecure_private_key):
             with open(insecure_private_key, 'w') as f:
                 f.write(INSECURE_PRIVATE_KEY)
+            os.chmod(insecure_private_key, 400)
         config = {
             "Host": DEFAULT_HOST,
             "User": self.user,
