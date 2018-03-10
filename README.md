@@ -63,6 +63,19 @@ Example:
 If the box you init was created properly, you will be able to access the host's current working directory in `/mnt/hgfs/mech`. If you are having trouble try running:
 
 ```bash
-sudo apt-get install linux-headers-$(uname -r)
+sudo apt-get update
+sudo apt-get install linux-headers-$(uname -r) open-vm-tools
+```
+
+followed by
+
+```bash
 sudo vmware-config-tools.pl
 ```
+
+or
+
+```bash
+vmhgfs-fuse .host:/mech /mnt/hgfs
+```
+
