@@ -29,7 +29,6 @@ import re
 import sys
 import time
 import utils
-import shutil
 import fnmatch
 import logging
 import tempfile
