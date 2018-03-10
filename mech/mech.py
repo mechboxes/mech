@@ -1092,11 +1092,13 @@ class Mech(MechCommand):
                         ip = colored.green(ip)
                 else:
                     ip = ""
+                box_name = self.box_name or ""
+                box_version = self.box_version or ""
                 print("{}\t{}\t{}\t{}\t{}".format(
                     colored.green(instance_name.rjust(20)),
                     ip.rjust(15),
-                    self.box_name.rjust(35),
-                    self.box_version.rjust(12),
+                    box_name.rjust(35),
+                    box_version.rjust(12),
                     path,
                 ))
     ls = list
