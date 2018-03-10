@@ -989,7 +989,17 @@ class Mech(MechCommand):
                 --machine-readable           Display machine-readable output
             -h, --help                       Print this help
         """
-        puts_err(colored.red("Not implemented!"))
+        instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
+
+        vmrun = VMrun(self.vmx)
+        for network in vmrun.listHostNetworks().split('\n'):
+            network = network.split()
+            if len(network) > 2 and network[2] == 'nat':
+                print(vmrun.listPortForwardings(network[1]))
+                break
+        else:
+            puts_err(colored.red("Cannot find a nat network"))
 
     def push(self, arguments):
         """
