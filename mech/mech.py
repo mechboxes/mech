@@ -997,7 +997,29 @@ class Mech(MechCommand):
                 --provision                  Enable provisioning
             -h, --help                       Print this help
         """
-        puts_err(colored.red("Not implemented!"))
+        instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
+
+        vmrun = VMrun(self.vmx)
+
+        puts_err(colored.blue("Reloading machine..."))
+        started = vmrun.reset()
+        if started is None:
+            puts_err(colored.red("VM not restarted"))
+        else:
+            time.sleep(3)
+            puts_err(colored.blue("Getting IP address..."))
+            ip = vmrun.getGuestIPAddress()
+            if ip:
+                if started:
+                    puts_err(colored.green("VM started on {}".format(ip)))
+                else:
+                    puts_err(colored.yellow("VM already was started on {}".format(ip)))
+            else:
+                if started:
+                    puts_err(colored.green("VM started on an unknown IP address"))
+                else:
+                    puts_err(colored.yellow("VM already was started on an unknown IP address"))
 
     def port(self, arguments):
         """
