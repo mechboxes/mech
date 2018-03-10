@@ -239,7 +239,7 @@ def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
             name = os.path.splitext(os.path.basename(descriptor))[0]
         mechfile['box'] = name
         if version:
-            mechfile['version'] = version
+            mechfile['box_version'] = version
         return mechfile
     elif os.path.isfile(descriptor):
         try:
@@ -251,7 +251,7 @@ def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
                 name = os.path.splitext(os.path.basename(descriptor))[0]
             mechfile['box'] = name
             if version:
-                mechfile['version'] = version
+                mechfile['box_version'] = version
         return mechfile
     else:
         try:
@@ -274,7 +274,7 @@ def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
             for provider in v['providers']:
                 if 'vmware' in provider['name']:
                     mechfile['box'] = catalog['name']
-                    mechfile['version'] = current_version
+                    mechfile['box_version'] = current_version
                     mechfile['url'] = provider['url']
                     return mechfile
     puts_err(colored.red("Couldn't find a VMWare compatible VM for '{}'{}".format(name, " ({})".format(version) if version else "")))
@@ -311,7 +311,7 @@ def add_box(descriptor, name=None, version=None, force=False, save=True, request
     url = mechfile.get('url')
     file = mechfile.get('file')
     name = mechfile.get('box')
-    version = mechfile.get('version')
+    version = mechfile.get('box_version')
     if file:
         return add_box_file(name, version, file, force=force, save=save)
     if url:

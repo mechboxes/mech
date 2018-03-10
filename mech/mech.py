@@ -120,7 +120,7 @@ class MechCommand(Command):
 
     @property
     def box_version(self):
-        return self.get('version')
+        return self.get('box_version')
 
     @property
     def user(self):
