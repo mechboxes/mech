@@ -599,6 +599,7 @@ class Mech(MechCommand):
             puts_err(colored.blue("Getting IP address..."))
             ip = vmrun.getGuestIPAddress()
             puts_err(colored.blue("Sharing current folder..."))
+            vmrun.enableSharedFolders()
             vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
             if ip:
                 if started:
