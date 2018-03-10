@@ -117,31 +117,36 @@ def parse_vmx(path):
 
 
 def update_vmx(path):
+    updated = False
+
     vmx = parse_vmx(path)
 
     # Check if there is an existing interface
+    has_network = False
     for vmx_key in vmx:
         if vmx_key.startswith('ethernet'):
-            return False
+            has_network = True
 
     # Write one if there is not
-    vmx["ethernet0.addresstype"] = "generated"
-    vmx["ethernet0.bsdname"] = "en0"
-    vmx["ethernet0.connectiontype"] = "nat"
-    vmx["ethernet0.displayname"] = "Ethernet"
-    vmx["ethernet0.linkstatepropagation.enable"] = "FALSE"
-    vmx["ethernet0.pcislotnumber"] = "32"
-    vmx["ethernet0.present"] = "TRUE"
-    vmx["ethernet0.virtualdev"] = "e1000"
-    vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
+    if not has_network:
+        vmx["ethernet0.addresstype"] = "generated"
+        vmx["ethernet0.bsdname"] = "en0"
+        vmx["ethernet0.connectiontype"] = "nat"
+        vmx["ethernet0.displayname"] = "Ethernet"
+        vmx["ethernet0.linkstatepropagation.enable"] = "FALSE"
+        vmx["ethernet0.pcislotnumber"] = "32"
+        vmx["ethernet0.present"] = "TRUE"
+        vmx["ethernet0.virtualdev"] = "e1000"
+        vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
+        puts_err(colored.yellow("Added network interface to vmx file"))
+        updated = True
 
-    with open(path, 'w') as new_vmx:
-        for key in vmx:
-            value = vmx[key]
-            row = "{} = {}".format(key, value)
-            new_vmx.write(row + os.linesep)
-
-    return True
+    if updated:
+        with open(path, 'w') as new_vmx:
+            for key in vmx:
+                value = vmx[key]
+                row = "{} = {}".format(key, value)
+                new_vmx.write(row + os.linesep)
 
 
 def instances():
@@ -417,8 +422,7 @@ def get_vmx():
         puts_err(colored.red("Cannot locate a VMX file"))
         sys.exit(1)
 
-    if update_vmx(vmx):
-        puts_err(colored.yellow("Added network interface to vmx file"))
+    update_vmx(vmx)
 
     return vmx
 
