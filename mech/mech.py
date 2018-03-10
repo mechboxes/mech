@@ -155,7 +155,7 @@ class MechCommand(Command):
         if not os.path.exists(insecure_private_key):
             with open(insecure_private_key, 'w') as f:
                 f.write(INSECURE_PRIVATE_KEY)
-            os.chmod(insecure_private_key, 400)
+            os.chmod(insecure_private_key, 0o400)
         config = {
             "Host": DEFAULT_HOST,
             "User": self.user,
@@ -691,7 +691,7 @@ class Mech(MechCommand):
         force = arguments['--force']
 
         instance_name = arguments['<instance>']
-        self.activate(instance_name)
+        instance_name = self.activate(instance_name)
 
         if instance_name:
             instance = utils.settle_instance(instance_name)
