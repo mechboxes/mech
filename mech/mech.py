@@ -607,12 +607,12 @@ class Mech(MechCommand):
                 if started:
                     puts_err(colored.green("VM started on {}".format(ip)))
                 else:
-                    puts_err(colored.yellow("VM already was started on {}".format(ip)))
+                    puts_err(colored.yellow("VM was already started on {}".format(ip)))
             else:
                 if started:
                     puts_err(colored.green("VM started on an unknown IP address"))
                 else:
-                    puts_err(colored.yellow("VM already was started on an unknown IP address"))
+                    puts_err(colored.yellow("VM was already started on an unknown IP address"))
     start = up
 
     def global_status(self, arguments):
