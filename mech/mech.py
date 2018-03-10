@@ -93,6 +93,7 @@ class MechCommand(Command):
             os.chdir(path)
         else:
             path = os.getcwd()
+            mechfile = utils.load_mechfile(path)
             instance_name = mechfile.get('name') or os.path.basename(path)  # Use the Mechfile's name if available
         if path in self.mechfiles:
             self.active_mechfile = self.mechfiles[path]
