@@ -235,14 +235,18 @@ class MechBox(MechCommand):
             -h, --help                       Print this help
         """
 
+        print("{}\t{}".format(
+            'BOX'.rjust(35),
+            'VERSION'.rjust(12),
+        ))
         path = os.path.abspath(os.path.join(HOME, 'boxes'))
         for root, dirnames, filenames in os.walk(path):
             for filename in fnmatch.filter(filenames, '*.box'):
                 directory = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
                 account, box, version = (directory.split('/', 2) + ['', ''])[:3]
                 print("{}\t{}".format(
-                    "%35s" % "{}/{}".format(account, box),
-                    version,
+                    "{}/{}".format(account, box).rjust(35),
+                    version.rjust(12),
                 ))
     ls = list
 
@@ -1023,9 +1027,9 @@ class Mech(MechCommand):
         """
         print("{}\t{}\t{}\t{}\t{}".format(
             'NAME'.rjust(20),
-            'ADDRESS',
+            'ADDRESS'.rjust(15),
             'BOX'.rjust(35),
-            'VERSION',
+            'VERSION'.rjust(12),
             'PATH',
         ))
         for instance_name, instance in utils.instances().items():
@@ -1037,7 +1041,7 @@ class Mech(MechCommand):
                     vmrun = VMrun(self.vmx)
                     ip = vmrun.getGuestIPAddress(wait=False, quiet=True)
                     if ip is None:
-                        ip = "poweroff"
+                        ip = colored.yellow("poweroff")
                     elif not ip:
                         ip = colored.green("running")
                     else:
@@ -1045,10 +1049,10 @@ class Mech(MechCommand):
                 else:
                     ip = ""
                 print("{}\t{}\t{}\t{}\t{}".format(
-                    colored.green("%20s" % instance_name),
-                    "%15s" % ip,
-                    "%35s" % self.box_name,
-                    self.box_version,
+                    colored.green(instance_name.rjust(20)),
+                    ip.rjust(15),
+                    self.box_name.rjust(35),
+                    self.box_version.rjust(12),
                     path,
                 ))
     ls = list
