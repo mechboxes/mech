@@ -442,7 +442,7 @@ class VMrun(object):
         return self.vmrun('typeKeystrokesInGuest', self.vmx_file, keystroke, quiet=quiet)
 
     def connectNamedDevice(self, device_name, quiet=False):
-        '''Disconnect the named device in the Guest OS'''
+        '''Connect the named device in the Guest OS'''
         return self.vmrun('connectNamedDevice', self.vmx_file, device_name, quiet=quiet)
 
     def disconnectNamedDevice(self, device_name, quiet=False):
