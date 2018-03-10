@@ -39,9 +39,10 @@ from shutil import copyfile
 
 import requests
 from filelock import Timeout, FileLock
-
 from clint.textui import colored, puts_err
 from clint.textui import progress
+
+from vmrun import VMrun
 
 
 logger = logging.getLogger(__name__)
@@ -147,6 +148,9 @@ def update_vmx(path):
                 value = vmx[key]
                 row = "{} = {}".format(key, value)
                 new_vmx.write(row + os.linesep)
+
+    vmrun = VMrun(path)
+    vmrun.upgradevm()
 
 
 def instances():
