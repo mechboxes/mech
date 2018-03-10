@@ -1011,6 +1011,13 @@ class Mech(MechCommand):
         Options:
             -h, --help                       Print this help
         """
+        print("{}\t{}\t{}\t{}\t{}".format(
+            'NAME'.rjust(20),
+            'ADDRESS',
+            'BOX'.rjust(35),
+            'VERSION',
+            'PATH',
+        ))
         for instance_name, instance in utils.instances().items():
             path = instance.get('path')
             if path and os.path.exists(path):
