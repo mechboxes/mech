@@ -80,6 +80,12 @@ HOME = os.path.expanduser("~/.mech")
 class MechCommand(Command):
     active_mechfile = None
 
+    def activate_mechfile(self, path):
+        if path in self.mechfiles:
+            self.active_mechfile = self.mechfiles[path]
+        else:
+            self.active_mechfile = self.mechfiles[path] = utils.load_mechfile(path)
+
     def activate(self, instance_name=None):
         if not hasattr(self, 'mechfiles'):
             self.mechfiles = {}
@@ -91,14 +97,11 @@ class MechCommand(Command):
                 sys.exit(1)
             path = os.path.abspath(os.path.expanduser(path))
             os.chdir(path)
+            self.activate_mechfile(path)
         else:
             path = os.getcwd()
-            mechfile = utils.load_mechfile(path)
-            instance_name = mechfile.get('name') or os.path.basename(path)  # Use the Mechfile's name if available
-        if path in self.mechfiles:
-            self.active_mechfile = self.mechfiles[path]
-        else:
-            self.active_mechfile = self.mechfiles[path] = utils.load_mechfile(path)
+            self.activate_mechfile(path)
+            instance_name = self.active_mechfile.get('name') or os.path.basename(path)  # Use the Mechfile's name if available
         return instance_name
 
     def get(self, name, default=None):
