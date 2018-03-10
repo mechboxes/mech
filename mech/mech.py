@@ -625,7 +625,21 @@ class Mech(MechCommand):
         """
         vmrun = VMrun()
         print(vmrun.list())
-    ps = global_status
+
+    def ps(self, arguments):
+        """
+        List running processes in Guest OS.
+
+        Usage: mech ps [options] [<instance>]
+
+        Options:
+            -h, --help                       Print this help
+        """
+        instance_name = arguments['<instance>']
+        instance_name = self.activate(instance_name)
+
+        vmrun = VMrun(self.vmx, self.user, self.password)
+        print(vmrun.listProcessesInGuest())
 
     def status(self, arguments):
         """
