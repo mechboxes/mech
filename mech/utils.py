@@ -155,7 +155,7 @@ def instances():
             if os.path.exists(index_path):
                 with open(index_path) as fp:
                     instances = json.loads(uncomment(fp.read()))
-                # prune unexistent mechfiles
+                # prune unexistent Mechfiles
                 for k in list(instances):
                     instance_data = instances[k]
                     path = instance_data and instance_data.get('path')
@@ -184,7 +184,7 @@ def settle_instance(instance_name, obj=None, force=False):
             if os.path.exists(index_path):
                 with open(index_path) as fp:
                     instances = json.loads(uncomment(fp.read()))
-                # prune unexistent mechfiles
+                # prune unexistent Mechfiles
                 for k in list(instances):
                     instance_data = instances[k]
                     path = instance_data and instance_data.get('path')
