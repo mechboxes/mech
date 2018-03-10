@@ -308,7 +308,11 @@ def init_box(name, version, force=False, save=True, requests_kwargs={}):
         if not save and box.startswith(tempfile.gettempdir()):
             os.unlink(box)
 
-    return get_vmx()
+    vmx = get_vmx()
+
+    update_vmx(vmx)
+
+    return vmx
 
 
 def add_box(descriptor, name=None, version=None, force=False, save=True, requests_kwargs={}):
@@ -421,9 +425,6 @@ def get_vmx():
     if not vmx:
         puts_err(colored.red("Cannot locate a VMX file"))
         sys.exit(1)
-
-    update_vmx(vmx)
-
     return vmx
 
 
