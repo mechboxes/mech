@@ -941,7 +941,7 @@ class Mech(MechCommand):
         if ip:
             puts_err(colored.green(ip))
         else:
-            puts_err(colored.red("Unkown IP address"))
+            puts_err(colored.red("Unknown IP address"))
 
     def provision(self, arguments):
         """
