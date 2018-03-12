@@ -202,7 +202,7 @@ class MechBox(MechCommand):
         """
         Add a box to the catalog of available boxes.
 
-        Usage: mech box add [options] <name|url|path>
+        Usage: mech box add [options] [<name> [<url|path>]]
 
         Notes:
             The box descriptor can be the name of a box on HashiCorp's Vagrant Cloud,
@@ -215,14 +215,17 @@ class MechBox(MechCommand):
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
                 --cert FILE                  A client SSL cert, if needed
-                --box-name BOX               Name of the box
                 --box-version VERSION        Constrain version of the added box
                 --checksum CHECKSUM          Checksum for the box
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
             -h, --help                       Print this help
         """
-        url = arguments['<name | url | path>']
-        name = arguments['--box-name']
+        url = arguments['<url | path>']
+        if url:
+            name = arguments['<name>']
+        else:
+            url = arguments['<name>']
+            name = None
         version = arguments['--box-version']
         force = arguments['--force']
         requests_kwargs = utils.get_requests_kwargs(arguments)
@@ -523,7 +526,7 @@ class Mech(MechCommand):
         """
         Initializes a new mech environment by creating a Mechfile.
 
-        Usage: mech init [options] [<name|url|path>]
+        Usage: mech init [options] [<name> [<url|path>]]
 
         Notes:
             The box descriptor can be the name of a box on HashiCorp's Vagrant Cloud,
@@ -536,15 +539,18 @@ class Mech(MechCommand):
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
                 --cert FILE                  A client SSL cert, if needed
-                --box-name BOX               Constrain version of the added box
                 --box-version VERSION        Constrain version of the added box
                 --checksum CHECKSUM          Checksum for the box
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
                 --name INSTANCE              Name of the instance
             -h, --help                       Print this help
         """
-        url = arguments['<name | url | path>']
-        name = arguments['--box-name']
+        url = arguments['<url | path>']
+        if url:
+            name = arguments['<name>']
+        else:
+            url = arguments['<name>']
+            name = None
         version = arguments['--box-version']
         instance_name = arguments['--name']
         force = arguments['--force']
