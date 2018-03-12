@@ -349,9 +349,15 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
             puts_err(colored.blue("URL: {}".format(url)))
             r = requests.get(url, stream=True, **requests_kwargs)
             r.raise_for_status()
-            length = int(r.headers['content-length'])
+            try:
+                length = int(r.headers['content-length'])
+                progress_args = dict(expected_size=length // 1024 + 1)
+                progress_type = progress.bar
+            except KeyError:
+                progress_args = dict(every=1024 * 100)
+                progress_type = progress.dots
             with tempfile.NamedTemporaryFile(delete=save) as fp:
-                for chunk in progress.bar(r.iter_content(chunk_size=1024), label=boxname, expected_size=(length // 1024) + 1):
+                for chunk in progress_type(r.iter_content(chunk_size=1024), label="{} ".format(boxname), **progress_args):
                     if chunk:
                         fp.write(chunk)
                 fp.flush()
