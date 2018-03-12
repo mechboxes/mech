@@ -273,13 +273,17 @@ def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
             r = requests.get(url, **requests_kwargs)
             r.raise_for_status()
             catalog = r.json()
-        except requests.HTTPError as exc:
+        except (requests.HTTPError, ValueError) as exc:
             puts_err(colored.red("Bad response from HashiCorp's Vagrant Cloud API: %s" % exc))
             sys.exit(1)
         except requests.ConnectionError:
             puts_err(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
             sys.exit(1)
+    return catalog_to_mechfile(catalog, name, version)
 
+
+def catalog_to_mechfile(catalog, name=None, version=None):
+    mechfile = {}
     versions = catalog.get('versions', [])
     for v in versions:
         current_version = v['version']
@@ -325,6 +329,10 @@ def init_box(name, version, force=False, save=True, requests_kwargs={}):
 
 def add_box(descriptor, name=None, version=None, force=False, save=True, requests_kwargs={}):
     mechfile = build_mechfile(descriptor, name=name, version=version, requests_kwargs=requests_kwargs)
+    return add_mechfile(mechfile, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
+
+
+def add_mechfile(mechfile, name=None, version=None, force=False, save=True, requests_kwargs={}):
     url = mechfile.get('url')
     file = mechfile.get('file')
     name = mechfile.get('box')
@@ -361,7 +369,15 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
                     if chunk:
                         fp.write(chunk)
                 fp.flush()
-                return add_box_file(name, version, fp.name, url=url, force=force, save=save)
+                if r.headers.get('content-type') == 'application/json':
+                    # Downloaded URL might be a Vagrant catalog if it's json:
+                    fp.seek(0)
+                    catalog = json.loads(fp.read())
+                    mechfile = catalog_to_mechfile(catalog, name, version)
+                    return add_mechfile(mechfile, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
+                else:
+                    # Otherwise it must be a valid box:
+                    return add_box_file(name, version, fp.name, url=url, force=force, save=save)
         except requests.HTTPError as exc:
             puts_err(colored.red("Bad response: %s" % exc))
             sys.exit(1)
