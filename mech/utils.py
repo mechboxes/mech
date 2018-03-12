@@ -42,8 +42,6 @@ from filelock import Timeout, FileLock
 from clint.textui import colored, puts_err
 from clint.textui import progress
 
-from vmrun import VMrun
-
 
 logger = logging.getLogger(__name__)
 
