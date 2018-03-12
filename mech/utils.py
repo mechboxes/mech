@@ -333,7 +333,6 @@ def add_box(descriptor, name=None, version=None, force=False, save=True, request
 
 
 def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
-    puts_err(colored.blue("URL: {}".format(url)))
     boxname = os.path.basename(url)
     box = os.path.join(*filter(None, (HOME, 'boxes', name, version, boxname)))
     exists = os.path.exists(box)
@@ -343,6 +342,7 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
         else:
             puts_err(colored.blue("Box '{}' could not be found. Attempting to download...".format(name)))
         try:
+            puts_err(colored.blue("URL: {}".format(url)))
             r = requests.get(url, stream=True, **requests_kwargs)
             length = int(r.headers['content-length'])
             with tempfile.NamedTemporaryFile(delete=save) as fp:
