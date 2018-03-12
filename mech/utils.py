@@ -272,7 +272,12 @@ def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
                 version = v
             puts_err(colored.blue("Loading metadata for box '{}'{}".format(descriptor, " ({})".format(version) if version else "")))
             url = 'https://app.vagrantup.com/{}/boxes/{}'.format(account, box)
-            catalog = requests.get(url, **requests_kwargs).json()
+            r = requests.get(url, **requests_kwargs)
+            r.raise_for_status()
+            catalog = r.json()
+        except requests.HTTPError as exc:
+            puts_err(colored.red("Bad response from HashiCorp's Vagrant Cloud API: %s" % exc))
+            sys.exit(1)
         except requests.ConnectionError:
             puts_err(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
             sys.exit(1)
@@ -345,6 +350,7 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
         try:
             puts_err(colored.blue("URL: {}".format(url)))
             r = requests.get(url, stream=True, **requests_kwargs)
+            r.raise_for_status()
             length = int(r.headers['content-length'])
             with tempfile.NamedTemporaryFile(delete=save) as fp:
                 for chunk in progress.bar(r.iter_content(chunk_size=1024), label=boxname, expected_size=(length // 1024) + 1):
@@ -352,8 +358,12 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
                         fp.write(chunk)
                 fp.flush()
                 return add_box_file(name, version, fp.name, url=url, force=force, save=save)
+        except requests.HTTPError as exc:
+            puts_err(colored.red("Bad response: %s" % exc))
+            sys.exit(1)
         except requests.ConnectionError:
-            puts_err(colored.red("Couldn't connect to %s" % url))
+            puts_err(colored.red("Couldn't connect to '%s'" % url))
+            sys.exit(1)
     return name, version, box
 
 
@@ -452,7 +462,11 @@ def provision_shell(vm, inline, path, args=[]):
                 if any(path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
                     puts_err(colored.blue("Downloading {}...".format(path)))
                     try:
-                        inline = requests.get(path).read()
+                        r = requests.get(path)
+                        r.raise_for_status()
+                        inline = r.read()
+                    except requests.HTTPError:
+                        return
                     except requests.ConnectionError:
                         return
                 else:
