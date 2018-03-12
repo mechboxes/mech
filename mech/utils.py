@@ -149,9 +149,9 @@ def update_vmx(path):
                 row = "{} = {}".format(key, value)
                 new_vmx.write(row + os.linesep)
 
-    puts_err(colored.yellow("Upgrading VM..."))
-    vmrun = VMrun(path)
-    vmrun.upgradevm()
+    # puts_err(colored.yellow("Upgrading VM..."))
+    # vmrun = VMrun(path)
+    # vmrun.upgradevm()
 
 
 def instances():
