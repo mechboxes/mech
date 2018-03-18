@@ -1,20 +1,22 @@
-from clint.textui import colored, puts
-from clint.textui import progress
-from clint.textui import prompt
-from docopt import docopt
-from vmrun import Vmrun
-from pprint import pprint
-from fnmatch import fnmatch
-from re import match, I
-import tarfile
-import requests
-import glob
+from __future__ import print_function
 import os
+import glob
 import json
+import tarfile
 import tempfile
 import collections
+from re import match, I
+
+import requests
+from clint.textui import prompt
+from clint.textui import progress
+from clint.textui import colored, puts
+
+from six import b as _b
+from six.moves import xrange, input as raw_input
 
 
+_o = lambda octnum: int(octnum, 8)
 HOME = os.path.expanduser("~/.mech")
 
 def locate_vmx(vm_name):
@@ -54,11 +56,11 @@ def rewrite_vmx(path):
         vmx["ethernet0.virtualdev"] = "e1000"
         vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
 
-    with open(path, 'w') as new_vmx:
+    with open(path, 'wb') as new_vmx:
         for key in vmx:
             value = vmx[key]
-            row = "{} = {}".format(key, value)
-            new_vmx.write(row + os.linesep)
+            row = _b("{} = {}".format(key, value))
+            new_vmx.write(row + _b(os.linesep))
     return True
 
 
@@ -114,10 +116,10 @@ def setup_url(url, name):
             if not name:
                 folder, dot, ext = vmx.rpartition('.')
                 path = os.path.join(HOME, folder)
-                os.mkdir(os.path.join(HOME, folder), 0755)
+                os.mkdir(os.path.join(HOME, folder), _o('0755'))
             else:
                 path = os.path.join(HOME, name)
-                os.mkdir(os.path.join(HOME, name), 0755)
+                os.mkdir(os.path.join(HOME, name), _o('0755'))
 
             vmx_path = os.path.join(path, vmx)
             config = {
@@ -150,10 +152,10 @@ def setup_tar(filename, name):
         if not name:
             folder, dot, ext = vmx.rpartition('.')
             path = os.path.join(HOME, folder)
-            os.mkdir(os.path.join(HOME, folder), 0755)
+            os.mkdir(os.path.join(HOME, folder), _o('0755'))
         else:
             path = os.path.join(HOME, name)
-            os.mkdir(os.path.join(HOME, name), 0755)
+            os.mkdir(os.path.join(HOME, name), _o('0755'))
         tar.extractall(path)
         vmx_path = os.path.join(path, vmx)
         config = {

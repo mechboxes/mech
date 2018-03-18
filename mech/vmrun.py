@@ -5,6 +5,7 @@ Control Vmware from Python. Used the vmrun.exe
 @author : Binjo <binjo.cn@gmail.com>
 @date   : 2008/03/15
 """
+from __future__ import print_function
 
 __description__ = "Control Vmware from Python. Used the vmrun.exe"
 __author__      = "Binjo"
@@ -16,22 +17,23 @@ __license__     = "GNU GPL v2"
 # Based on vmrun-ruby, Alexander Sotirov <asotirov@determina.com>
 #
 import os
+import operator
 import subprocess
-import socket
+from six import b as _b, binary_type, PY3
+
+# Safe conversion helper
+_s = operator.methodcaller('decode') if PY3 else _b
+b2s = lambda b: _s(b) if isinstance(b, binary_type) else b
 
 class Vmrun:
 
     def execute( self, path, *cmd ):
-        if os.sys.platform == 'darwin':
-            self.provider = 'fusion'
-        else:
-            self.provider = 'ws'
         cmds = list(cmd)
         cmds.insert( 1, "\"%s\"" % self.VM_FILE )
         cmds[0] = "-T {} -gu {} -gp {} {}".format(self.provider, self.VM_ADMIN, self.VM_PASS, cmds[0])
         params = " ".join( cmds )
 
-        if self.DEBUG: print "[DEBUG] %s" % params
+        if self.DEBUG: print("[DEBUG] %s" % params)
 
         if os.sys.platform == "win32":
             cmd = "%s %s" % (path, params)
@@ -45,7 +47,7 @@ class Vmrun:
     def vmrun(self, *cmd):
         output = self.execute( self.VMRUN_PATH, *cmd )
 
-        return output
+        return [ b2s(line) for line in output ]
 
     # TODO maintain vm's power state
     def __init__( self, vmx, user='', password='', vmrun='', debug=False ):
@@ -59,10 +61,11 @@ class Vmrun:
             self.VMRUN_PATH = vmrun
         else:
             if os.sys.platform == 'darwin':
+                self.provider = 'fusion'
                 self.VMRUN_PATH = '/Applications/VMware\ Fusion.app/Contents/Library/vmrun'
             elif os.sys.platform == "win32":
                 # get vmrun.exe's full path via registry
-                import _winreg
+                from six.moves import winreg as _winreg
                 reg = _winreg.ConnectRegistry( None, _winreg.HKEY_LOCAL_MACHINE )
                 try:
                     # Known registry key location in Windows 10
@@ -81,15 +84,21 @@ class Vmrun:
                 finally:
                     reg.Close()
 
+                self.provider = 'ws'
                 if vw_dir != '':
                     self.VMRUN_PATH = vw_dir + 'vmrun.exe'
             else:
+                self.provider = 'ws'
                 if os.environ.has_key("PATH"):
                     for path in os.environ["PATH"].split(os.pathsep):
                         tmp_file = path + os.sep + "vmrun"
                         if os.path.exists(tmp_file):
                             self.VMRUN_PATH = tmp_file
                             break
+        
+        vmrun_path = getattr(self, 'VMRUN_PATH', None)
+        if vmrun_path is None:
+            raise RuntimeError('Could not locate vmrun executable!')
 
     #
     # POWER COMMANDS
@@ -212,7 +221,7 @@ class Vmrun:
                   "a" : "-activeWindow",
                   "i" : "-interactive" }
 
-        if modes.has_key(mode):
+        if mode in modes:
             return self.vmrun( 'runProgramInGuest', modes[mode], program, *para )
         else:
             return "error mode : %s" % mode
@@ -481,11 +490,9 @@ class Vmrun:
         checkToolsState          Path to vmx file     Check the current Tools state
         '''
         state = self.vmrun('checkToolsState')[0].strip()
-        if state == 'installed' or state == 'running':
-            return True
-        else:
-            return False
-
+        if self.DEBUG: print("[DEBUG] State=%s" % repr(state))
+        return state in ('installed', 'running',)
+    
     def install_tools(self):
         '''
         installTools             Path to vmx file     Install Tools in Guest
@@ -493,4 +500,4 @@ class Vmrun:
         return self.vmrun('installTools')
 
 if __name__ == '__main__':
-    print 'Hello World'
+    print('Hello World')

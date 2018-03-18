@@ -8,7 +8,7 @@ setup(
             'mech = mech.__main__:main'
         ]
     },
-    install_requires=['requests', 'clint'],
+    install_requires=['requests', 'clint', 'six'],
     version='0.5',
     description='Tool for command line virtual machines',
     author='Kevin Chung',
