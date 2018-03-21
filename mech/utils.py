@@ -48,6 +48,9 @@ logger = logging.getLogger(__name__)
 
 HOME = os.path.expanduser('~/.mech')
 DATA_DIR = os.path.join(HOME, 'data')
+PY3 = sys.version_info[0] == 3
+if PY3:
+    raw_input = input
 
 
 def uncomment(text):

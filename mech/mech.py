@@ -28,7 +28,6 @@ import os
 import re
 import sys
 import time
-import utils
 import fnmatch
 import logging
 import tempfile
@@ -37,8 +36,9 @@ import subprocess
 
 from clint.textui import colored, puts_err
 
-from vmrun import VMrun
-from command import Command
+from . import utils
+from .vmrun import VMrun
+from .command import Command
 
 logger = logging.getLogger(__name__)
 

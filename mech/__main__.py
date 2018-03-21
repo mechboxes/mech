@@ -29,7 +29,7 @@ def main():
         import os
         import sys
 
-        from mech import Mech
+        from .mech import Mech
 
         HOME = os.path.expanduser('~/.mech')
         if not os.path.exists(HOME):

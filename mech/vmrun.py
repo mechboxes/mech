@@ -48,7 +48,12 @@ def get_darwin_executable():
 
 
 def get_win32_executable():
-    import _winreg
+    # Compatibility shim for Python 3
+    try:
+        import _winreg
+    except ImportError:
+        import winreg as _winreg
+    
     reg = _winreg.ConnectRegistry(None, _winreg.HKEY_LOCAL_MACHINE)
     try:
         key = _winreg.OpenKey(reg, 'SOFTWARE\\VMware, Inc.\\VMware Workstation')
