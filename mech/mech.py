@@ -850,7 +850,7 @@ class Mech(MechCommand):
         """
         Connects to machine via SSH.
 
-        Usage: mech ssh [options] [<instance>] [-- <extra ssh args>...]
+        Usage: mech ssh [options] [<instance>] [-- <extra_ssh_args>...]
 
         Options:
             -c, --command COMMAND            Execute an SSH command directly
@@ -858,7 +858,7 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         plain = arguments['--plain']
-        extra = arguments['<extra ssh args>']
+        extra = arguments['<extra_ssh_args>']
         command = arguments['--command']
 
         instance_name = arguments['<instance>']
