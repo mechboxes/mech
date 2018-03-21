@@ -202,7 +202,7 @@ class MechBox(MechCommand):
         """
         Add a box to the catalog of available boxes.
 
-        Usage: mech box add [options] [<name> [<url|path>]]
+        Usage: mech box add [options] [<name>] [<location>]
 
         Notes:
             The box descriptor can be the name of a box on HashiCorp's Vagrant Cloud,
@@ -220,7 +220,7 @@ class MechBox(MechCommand):
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
             -h, --help                       Print this help
         """
-        url = arguments['<url | path>']
+        url = arguments['<location>']
         if url:
             name = arguments['<name>']
         else:
@@ -526,7 +526,7 @@ class Mech(MechCommand):
         """
         Initializes a new mech environment by creating a Mechfile.
 
-        Usage: mech init [options] [<name> [<url|path>]]
+        Usage: mech init [options] [<name>] [<location>]
 
         Notes:
             The box descriptor can be the name of a box on HashiCorp's Vagrant Cloud,
@@ -545,7 +545,7 @@ class Mech(MechCommand):
                 --name INSTANCE              Name of the instance
             -h, --help                       Print this help
         """
-        url = arguments['<url | path>']
+        url = arguments['<location>']
         if url:
             name = arguments['<name>']
         else:
