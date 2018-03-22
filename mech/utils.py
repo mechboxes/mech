@@ -42,7 +42,7 @@ from filelock import Timeout, FileLock
 from clint.textui import colored, puts_err
 from clint.textui import progress
 
-from .compat import raw_input
+from .compat import raw_input, copyfileobj
 
 logger = logging.getLogger(__name__)
 
@@ -380,6 +380,7 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
                     return add_mechfile(mechfile, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
                 else:
                     # Otherwise it must be a valid box:
+                    fp.seek(0)
                     return add_box_file(name, version, fileobj=fp, url=url, force=force, save=save)
         except requests.HTTPError as exc:
             puts_err(colored.red("Bad response: %s" % exc))
@@ -424,7 +425,10 @@ def add_box_file(name, version, filename=None, fileobj=None, url=None, force=Fal
             if not os.path.exists(path):
                 os.makedirs(path)
             if not os.path.exists(box) or force:
-                copyfile(filename, box)
+                if os.name == 'posix':
+                    copyfile(filename, box)
+                else:
+                    copyfileobj(fileobj, box)
         else:
             box = filename
         return name, version, box

@@ -68,3 +68,19 @@ get_meth_func = operator.attrgetter(meth_func)
 
 #: "safe" form of ``b``. Checks for binary type before operating.
 b2s = lambda bytestr: s(bytestr) if isinstance(bytestr, binary_type) else bytestr
+
+def copyfileobj_binary(infile, outfile):
+    sbuffer = bytearray(4096)
+    while True:
+        c = infile.readinto(sbuffer)
+        if not c: break
+        outfile.write(sbuffer[:c])
+
+def copyfileobj_text(infile, outfile):
+    outfile.writeline(infile)
+
+def copyfileobj(infile, outpath, mode='wb'):
+    infile.seek(0)
+    writer = copyfileobj_binary if 'b' in mode else copyfileobj_text
+    with open(outpath, mode) as outfile:
+        writer(infile, outfile)
