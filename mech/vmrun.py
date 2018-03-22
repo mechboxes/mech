@@ -26,6 +26,8 @@ import sys
 import logging
 import subprocess
 
+from .compat import b2s
+
 logger = logging.getLogger(__name__)
 
 
@@ -109,7 +111,7 @@ class VMrun(object):
         logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
 
         proc = subprocess.Popen(cmds, stdout=subprocess.PIPE)
-        stdoutdata, stderrdata = proc.communicate()
+        stdoutdata, stderrdata = tuple(map(b2s, proc.communicate()))
 
         if stderrdata and not quiet:
             logger.error(stderrdata.strip())
