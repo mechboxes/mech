@@ -244,6 +244,8 @@ def load_mechfile(pwd):
 
 def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
     mechfile = {}
+    if descriptor is None:
+        return mechfile
     if any(descriptor.startswith(s) for s in ('https://', 'http://', 'ftp://')):
         mechfile['url'] = descriptor
         if not name:

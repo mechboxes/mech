@@ -202,7 +202,7 @@ class MechBox(MechCommand):
         """
         Add a box to the catalog of available boxes.
 
-        Usage: mech box add [options] [<name> [<url|path>]]
+        Usage: mech box add [options] [<name>] [<location>]
 
         Notes:
             The box descriptor can be the name of a box on HashiCorp's Vagrant Cloud,
@@ -220,7 +220,7 @@ class MechBox(MechCommand):
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
             -h, --help                       Print this help
         """
-        url = arguments['<url | path>']
+        url = arguments['<location>']
         if url:
             name = arguments['<name>']
         else:
@@ -526,7 +526,7 @@ class Mech(MechCommand):
         """
         Initializes a new mech environment by creating a Mechfile.
 
-        Usage: mech init [options] [<name> [<url|path>]]
+        Usage: mech init [options] [<name>] [<location>]
 
         Notes:
             The box descriptor can be the name of a box on HashiCorp's Vagrant Cloud,
@@ -545,7 +545,7 @@ class Mech(MechCommand):
                 --name INSTANCE              Name of the instance
             -h, --help                       Print this help
         """
-        url = arguments['<url | path>']
+        url = arguments['<location>']
         if url:
             name = arguments['<name>']
         else:
@@ -850,7 +850,7 @@ class Mech(MechCommand):
         """
         Connects to machine via SSH.
 
-        Usage: mech ssh [options] [<instance>] [-- <extra ssh args>...]
+        Usage: mech ssh [options] [<instance>] [-- <extra_ssh_args>...]
 
         Options:
             -c, --command COMMAND            Execute an SSH command directly
@@ -858,7 +858,7 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         plain = arguments['--plain']
-        extra = arguments['<extra ssh args>']
+        extra = arguments['<extra_ssh_args>']
         command = arguments['--command']
 
         instance_name = arguments['<instance>']
