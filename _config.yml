@@ -28,6 +28,9 @@ docs_branch: gh_pages
 github_username:  mechboxes
 disqus_shortname: mechboxes
 
+theme_color: "#8fc44a"
+theme_color_hover: "#bfdd97"
+
 logo: "/img/logo-2x.png"
 logo_width: 177
 logo_height: 230
