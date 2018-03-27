@@ -1,6 +1,6 @@
-- title: Wrlcome
+- title: Welcome
   docs:
-    - home
+    - welcome
     - unified-workflow
     - cross-platform
     - enforce-consistency

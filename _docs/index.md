@@ -1,6 +1,7 @@
 ---
 title: Welcome
-permalink: /docs/
+permalink: /docs/welcome/
+redirect_from: /docs/
 ---
 
 ## What is Mech?
