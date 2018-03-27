@@ -1,7 +1,6 @@
 ---
 title: Code of Conduct
 permalink: /docs/conduct/
-redirect_from: /conduct/index.html
 read_only: true
 ---
 
