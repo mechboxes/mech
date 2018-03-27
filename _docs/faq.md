@@ -6,7 +6,7 @@ permalink: /docs/faq/
 
 ---
 
-### Do I need to pay to get alicense?
+### Do I need to pay to get a license?
 No, Mech is free and open source (MIT license)
 
 
