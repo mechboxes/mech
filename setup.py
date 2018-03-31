@@ -9,7 +9,7 @@ setup(
         ]
     },
     install_requires=['requests', 'clint', 'docopt', 'filelock'],
-    version='0.6',
+    version='0.6.0',
     description='Tool for command line virtual machines',
     author='Kevin Chung',
     author_email='kchung@nyu.edu',
