@@ -25,3 +25,9 @@ Try reading the source code of {{ site.name }} to see how things work internally
 ### [Google](https://www.google.com/?q={{ site.name }}){:target="_blank"}
 
 Add **{{ site.name }}** to almost any query, and you'll find just what you need.
+
+
+### [@germbravo on Twitter](https://twitter.com/germbravo){:target="_blank"}
+
+The {{ site.name }} maintainer is on Twitter. The account is not checked often, so try
+the above first.
