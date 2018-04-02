@@ -30,10 +30,11 @@ disqus_shortname: mechboxes
 
 theme_color_light: "#bfdd97"
 theme_color_dark: "#8fc44a"
+theme_color_quickstart: "#689137"
 
 logo: "/img/logo-2x.png"
-logo_width: 177
-logo_height: 230
+logo_width: 221
+logo_height: 251
 
 # google_analytics_id: UA-00000000-0
 # google_site_verification: google_site_verification_key
