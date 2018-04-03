@@ -499,11 +499,11 @@ class Mech(MechCommand):
 
     Example:
 
-        Initializing and using a machine from HashiCorp's Vagrant Cloud:
+    Initializing and using a machine from HashiCorp's Vagrant Cloud:
 
-            mech init bento/ubuntu-14.04
-            mech up
-            mech ssh
+        mech init bento/ubuntu-14.04
+        mech up
+        mech ssh
     """
 
     subcommand_name = '<command>'
