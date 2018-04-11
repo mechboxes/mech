@@ -465,6 +465,18 @@ def get_vmx():
     return vmx
 
 
+def get_vm_ip(vm):
+    vm.runScriptInGuest('/bin/sh', "hostname -I > /tmp/ip_address")
+    with tempfile.NamedTemporaryFile() as fp:
+        vm.copyFileFromGuestToHost('/tmp/ip_address', fp.name)
+        fp.seek(0)
+        ip_addresses = fp.read()
+        if ip_addresses:
+            return ip_addresses.split()[0]
+        else:
+            return None
+
+
 def provision_file(vm, source, destination):
     return vm.copyFileFromHostToGuest(source, destination)
 

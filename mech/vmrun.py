@@ -25,6 +25,7 @@ import os
 import sys
 import logging
 import subprocess
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -461,8 +462,18 @@ class VMrun(object):
         '''Read a variable in the VM state'''
         return self.vmrun('readVariable', self.vmx_file, mode, var_name, quiet=quiet)
 
-    def getGuestIPAddress(self, wait=True, quiet=False):
+    def getGuestIPAddress(self, wait=True, quiet=False, lookup=False):
         '''Gets the IP address of the guest'''
+        if lookup is True:
+            self.runScriptInGuest('/bin/sh', "hostname -I > /tmp/ip_address")
+            with tempfile.NamedTemporaryFile() as fp:
+                self.copyFileFromGuestToHost('/tmp/ip_address', fp.name)
+                fp.seek(0)
+                ip_addresses = fp.read().strip()
+                if ip_addresses:
+                    return ip_addresses.split()[0]
+                else:
+                    return ''
         ip = self.vmrun('getGuestIPAddress', self.vmx_file, '-wait' if wait else None, quiet=quiet)
         if ip == 'unknown':
             ip = ''
