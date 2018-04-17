@@ -33,6 +33,7 @@ import fnmatch
 import logging
 import tempfile
 import textwrap
+import shutil
 import subprocess
 
 from clint.textui import colored, puts_err
@@ -715,7 +716,7 @@ class Mech(MechCommand):
                 vmrun.stop(mode='hard', quiet=True)
                 time.sleep(3)
                 vmrun.deleteVM()
-                # shutil.rmtree(mech_path)
+                shutil.rmtree(mech_path)
             else:
                 puts_err(colored.red("Deletion aborted"))
         else:
