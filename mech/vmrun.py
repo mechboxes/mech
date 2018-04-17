@@ -465,15 +465,15 @@ class VMrun(object):
     def getGuestIPAddress(self, wait=True, quiet=False, lookup=False):
         '''Gets the IP address of the guest'''
         if lookup is True:
-            self.runScriptInGuest('/bin/sh', "hostname -I > /tmp/ip_address")
+            self.runScriptInGuest('/bin/sh', "hostname -I > /tmp/ip_address", quiet=quiet)
             with tempfile.NamedTemporaryFile() as fp:
-                self.copyFileFromGuestToHost('/tmp/ip_address', fp.name)
+                self.copyFileFromGuestToHost('/tmp/ip_address', fp.name, quiet=quiet)
                 fp.seek(0)
                 ip_addresses = fp.read().strip()
                 if ip_addresses:
                     return ip_addresses.split()[0]
                 else:
-                    return ''
+                    return None
         ip = self.vmrun('getGuestIPAddress', self.vmx_file, '-wait' if wait else None, quiet=quiet)
         if ip == 'unknown':
             ip = ''
