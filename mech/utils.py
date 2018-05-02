@@ -111,7 +111,8 @@ def parse_vmx(path):
     with open(path) as fp:
         for line in fp:
             line = line.strip().split('=', 1)
-            vmx[line[0].rstrip()] = line[1].lstrip()
+            if len(line) > 1:
+                vmx[line[0].rstrip()] = line[1].lstrip()
     return vmx
 
 
