@@ -52,6 +52,10 @@ Example:
 
 # Install
 
+`pip install -U mech`
+
+or for the latest:
+
 `pip install -U git+https://github.com/mechboxes/mech.git@devel`
 
 # Shared Folders
