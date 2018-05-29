@@ -28,7 +28,6 @@ import os
 import re
 import sys
 import time
-import utils
 import fnmatch
 import logging
 import tempfile
@@ -38,8 +37,10 @@ import subprocess
 
 from clint.textui import colored, puts_err
 
-from vmrun import VMrun
-from command import Command
+from . import utils
+from .vmrun import VMrun
+from .command import Command
+from .compat import b
 
 logger = logging.getLogger(__name__)
 
@@ -871,7 +872,7 @@ class Mech(MechCommand):
 
         config_ssh = self.config_ssh
         with tempfile.NamedTemporaryFile() as fp:
-            fp.write(utils.config_ssh_string(config_ssh))
+            fp.write(b(utils.config_ssh_string(config_ssh)))
             fp.flush()
 
             cmds = ['ssh']

@@ -42,6 +42,7 @@ from filelock import Timeout, FileLock
 from clint.textui import colored, puts_err
 from clint.textui import progress
 
+from .compat import raw_input, copyfileobj
 
 logger = logging.getLogger(__name__)
 
@@ -341,7 +342,7 @@ def add_mechfile(mechfile, name=None, version=None, force=False, save=True, requ
     name = mechfile.get('box')
     version = mechfile.get('box_version')
     if file:
-        return add_box_file(name, version, file, force=force, save=save)
+        return add_box_file(name, version, filename=file, force=force, save=save)
     if url:
         return add_box_url(name, version, url, force=force, save=save, requests_kwargs=requests_kwargs)
     puts_err(colored.red("Couldn't find a VMWare compatible VM for '{}'{}".format(name, " ({})".format(version) if version else "")))
@@ -380,7 +381,8 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
                     return add_mechfile(mechfile, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
                 else:
                     # Otherwise it must be a valid box:
-                    return add_box_file(name, version, fp.name, url=url, force=force, save=save)
+                    fp.seek(0)
+                    return add_box_file(name, version, fileobj=fp, url=url, force=force, save=save)
         except requests.HTTPError as exc:
             puts_err(colored.red("Bad response: %s" % exc))
             sys.exit(1)
@@ -390,14 +392,19 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
     return name, version, box
 
 
-def add_box_file(name, version, filename, url=None, force=False, save=True):
+def add_box_file(name, version, filename=None, fileobj=None, url=None, force=False, save=True):
     puts_err(colored.blue("Checking box '{}' integrity...".format(name)))
-
+    if filename is None:
+        filename = fileobj.name
+    
     if os.name == 'posix':
         proc = subprocess.Popen(['tar', '-tqf' if sys.platform.startswith('darwin') else '-tf', filename, '*.vmx'])
         valid_tar = not proc.wait()
     else:
-        tar = tarfile.open(filename, 'r')
+        if fileobj is None:
+            tar = tarfile.open(name=filename)
+        else:
+            tar = tarfile.open(fileobj=fileobj)
         files = tar.getnames()
         valid_tar = False
         for i in files:
@@ -419,7 +426,10 @@ def add_box_file(name, version, filename, url=None, force=False, save=True):
             if not os.path.exists(path):
                 os.makedirs(path)
             if not os.path.exists(box) or force:
-                copyfile(filename, box)
+                if os.name == 'posix':
+                    copyfile(filename, box)
+                else:
+                    copyfileobj(fileobj, box)
         else:
             box = filename
         return name, version, box

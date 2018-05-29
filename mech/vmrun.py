@@ -27,6 +27,8 @@ import logging
 import subprocess
 import tempfile
 
+from .compat import b2s
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,7 +51,12 @@ def get_darwin_executable():
 
 
 def get_win32_executable():
-    import _winreg
+    # Compatibility shim for Python 3
+    try:
+        import _winreg
+    except ImportError:
+        import winreg as _winreg
+    
     reg = _winreg.ConnectRegistry(None, _winreg.HKEY_LOCAL_MACHINE)
     try:
         key = _winreg.OpenKey(reg, 'SOFTWARE\\VMware, Inc.\\VMware Workstation')
@@ -105,7 +112,7 @@ class VMrun(object):
         logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
 
         proc = subprocess.Popen(cmds, stdout=subprocess.PIPE)
-        stdoutdata, stderrdata = proc.communicate()
+        stdoutdata, stderrdata = tuple(map(b2s, proc.communicate()))
 
         if stderrdata and not quiet:
             logger.error(stderrdata.strip())

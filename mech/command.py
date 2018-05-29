@@ -26,6 +26,8 @@ import textwrap
 
 import docopt
 
+from .compat import meth_func, get_meth_func
+
 
 NBSP = '\xc2\xa0'
 
@@ -48,7 +50,7 @@ class Command(object):
     def docopt(doc, **kwargs):
         name = kwargs.pop('name', "")
         name = spaced(name)
-        doc = textwrap.dedent(doc).replace(name, name.replace(' ', NBSP))
+        doc = textwrap.dedent(doc).replace(name, name.replace(' ', '-'))
         arguments = docopt.docopt(doc, options_first=True, **kwargs)
         return arguments
 
@@ -61,8 +63,8 @@ class Command(object):
             cmd_attr = cmd.replace('-', '_')
             if hasattr(self, cmd_attr):
                 klass = getattr(self, cmd_attr)
-                if hasattr(klass, 'im_func'):
-                    cmd = klass.im_func.__name__.replace('_', '-')
+                if hasattr(klass, meth_func):
+                    cmd = get_meth_func(klass).__name__.replace('_', '-')
                 name = '{} {}'.format(self.__class__.__name__, cmd)
                 if klass.__doc__:
                     arguments = self.docopt(klass.__doc__, argv=self.arguments.get(self.argv_name, []), name=name)
