@@ -49,20 +49,23 @@ def get_darwin_executable():
 
 
 def get_win32_executable():
-    import _winreg
-    reg = _winreg.ConnectRegistry(None, _winreg.HKEY_LOCAL_MACHINE)
+    if sys.version_info[0] < 3:
+        import _winreg as winreg
+    else:
+        import winreg
+    reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
     try:
-        key = _winreg.OpenKey(reg, 'SOFTWARE\\VMware, Inc.\\VMware Workstation')
+        key = winreg.OpenKey(reg, 'SOFTWARE\\VMware, Inc.\\VMware Workstation')
         try:
-            return os.path.join(_winreg.QueryValueEx(key, 'InstallPath')[0], 'vmrun.exe')
+            return os.path.join(winreg.QueryValueEx(key, 'InstallPath')[0], 'vmrun.exe')
         finally:
-            _winreg.CloseKey(key)
+            winreg.CloseKey(key)
     except WindowsError:
-        key = _winreg.OpenKey(reg, 'SOFTWARE\\WOW6432Node\\VMware, Inc.\\VMware Workstation')
+        key = winreg.OpenKey(reg, 'SOFTWARE\\WOW6432Node\\VMware, Inc.\\VMware Workstation')
         try:
-            return os.path.join(_winreg.QueryValueEx(key, 'InstallPath')[0], 'vmrun.exe')
+            return os.path.join(winreg.QueryValueEx(key, 'InstallPath')[0], 'vmrun.exe')
         finally:
-            _winreg.CloseKey(key)
+            winreg.CloseKey(key)
     finally:
         reg.Close()
     return get_fallback_executable()
