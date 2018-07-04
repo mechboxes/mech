@@ -22,13 +22,12 @@
 # IN THE SOFTWARE.
 #
 
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 
 import os
 import re
 import sys
 import time
-import utils
 import fnmatch
 import logging
 import tempfile
@@ -38,8 +37,9 @@ import subprocess
 
 from clint.textui import colored, puts_err
 
-from vmrun import VMrun
-from command import Command
+from . import utils
+from .vmrun import VMrun
+from .command import Command
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +106,8 @@ class MechCommand(Command):
         return instance_name
 
     def get(self, name, default=None):
-        assert self.active_mechfile is not None, "Must activate(instance_name) first."
+        if self.active_mechfile is None:
+            raise AttributeError("Must activate(instance_name) first.")
         return self.active_mechfile.get(name, default)
 
     @property
@@ -872,7 +873,7 @@ class Mech(MechCommand):
         config_ssh = self.config_ssh
         fp = tempfile.NamedTemporaryFile(delete=False)
         try:
-            fp.write(utils.config_ssh_string(config_ssh))
+            fp.write(utils.config_ssh_string(config_ssh).encode('utf-8'))
             fp.close()
 
             cmds = ['ssh']

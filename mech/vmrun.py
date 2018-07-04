@@ -21,11 +21,15 @@
 # IN THE SOFTWARE.
 #
 
+from __future__ import absolute_import
+
 import os
 import sys
 import logging
 import subprocess
 import tempfile
+
+from .compat import PY3, b2s
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +53,10 @@ def get_darwin_executable():
 
 
 def get_win32_executable():
-    if sys.version_info[0] < 3:
-        import _winreg as winreg
-    else:
+    if PY3:
         import winreg
+    else:
+        import _winreg as winreg
     reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
     try:
         key = winreg.OpenKey(reg, 'SOFTWARE\\VMware, Inc.\\VMware Workstation')
@@ -108,7 +112,7 @@ class VMrun(object):
         logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
 
         proc = subprocess.Popen(cmds, stdout=subprocess.PIPE)
-        stdoutdata, stderrdata = proc.communicate()
+        stdoutdata, stderrdata = map(b2s, proc.communicate())
 
         if stderrdata and not quiet:
             logger.error(stderrdata.strip())

@@ -22,7 +22,7 @@
 # IN THE SOFTWARE.
 #
 
-from __future__ import division
+from __future__ import division, absolute_import
 
 import os
 import re
@@ -42,6 +42,7 @@ from filelock import Timeout, FileLock
 from clint.textui import colored, puts_err
 from clint.textui import progress
 
+from .compat import raw_input
 
 logger = logging.getLogger(__name__)
 

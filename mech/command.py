@@ -21,13 +21,30 @@
 # IN THE SOFTWARE.
 #
 
+from __future__ import absolute_import
+
 import re
 import textwrap
 
 import docopt
 
+from .compat import get_meth_func
 
-NBSP = '\xc2\xa0'
+
+NBSP = '__'
+
+def cmd_usage(doc):
+    return doc.replace(NBSP, ' ')
+
+docopt_extras_ref = docopt.extras
+def docopt_extras(help, version, options, doc):
+    return docopt_extras_ref(help, version, options, cmd_usage(doc))
+
+def DocoptExit____init__(self, message=''):
+    SystemExit.__init__(self, (message + '\n' + cmd_usage(self.usage)).strip())
+
+docopt.extras = docopt_extras
+docopt.DocoptExit.__init__ = DocoptExit____init__
 
 
 def spaced(name):
@@ -61,8 +78,9 @@ class Command(object):
             cmd_attr = cmd.replace('-', '_')
             if hasattr(self, cmd_attr):
                 klass = getattr(self, cmd_attr)
-                if hasattr(klass, 'im_func'):
-                    cmd = klass.im_func.__name__.replace('_', '-')
+                meth_func = get_meth_func(klass)
+                if meth_func:
+                    cmd = meth_func.__name__.replace('_', '-')
                 name = '{} {}'.format(self.__class__.__name__, cmd)
                 if klass.__doc__:
                     arguments = self.docopt(klass.__doc__, argv=self.arguments.get(self.argv_name, []), name=name)
