@@ -78,4 +78,3 @@ or
 ```bash
 vmhgfs-fuse .host:/mech /mnt/hgfs
 ```
-

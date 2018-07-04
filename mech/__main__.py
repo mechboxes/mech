@@ -21,20 +21,19 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
-__version__ = 'mech 0.6.0'
-
 
 def main():
     try:
         import os
         import sys
 
+        from . import VERSION
         from .mech import Mech
         from .utils import makedirs
 
         HOME = os.path.expanduser('~/.mech')
         makedirs(HOME)
-        arguments = Mech.docopt(Mech.__doc__, argv=sys.argv[1:], version=__version__)
+        arguments = Mech.docopt(Mech.__doc__, argv=sys.argv[1:], version=VERSION)
         return Mech(arguments)()
     except KeyboardInterrupt:
         sys.stderr.write('\n')
