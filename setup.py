@@ -27,7 +27,7 @@ setup(
     download_url="https://github.com/mechboxes/mech/tarball/master",
     license="MIT",
     description="Tool for command line virtual machines",
-    long_description=read("README"),
+    long_description=read("README.md"),
     long_description_content_type="text/markdown",
     keywords=['vagrant', 'vmware', 'vmrun', 'tool', 'virtualization'],
     classifiers=[
