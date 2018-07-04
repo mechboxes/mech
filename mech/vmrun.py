@@ -466,14 +466,17 @@ class VMrun(object):
         '''Gets the IP address of the guest'''
         if lookup is True:
             self.runScriptInGuest('/bin/sh', "hostname -I > /tmp/ip_address", quiet=quiet)
-            with tempfile.NamedTemporaryFile() as fp:
+            fp = tempfile.NamedTemporaryFile(delete=False)
+            try:
+                fp.close()
                 self.copyFileFromGuestToHost('/tmp/ip_address', fp.name, quiet=quiet)
-                fp.seek(0)
-                ip_addresses = fp.read().strip()
+                ip_addresses = open(fp.name).read().strip()
                 if ip_addresses:
                     return ip_addresses.split()[0]
                 else:
                     return None
+            finally:
+                os.unlink(fp.name)
         ip = self.vmrun('getGuestIPAddress', self.vmx_file, '-wait' if wait else None, quiet=quiet)
         if ip == 'unknown':
             ip = ''

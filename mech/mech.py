@@ -870,9 +870,10 @@ class Mech(MechCommand):
         instance_name = self.activate(instance_name)
 
         config_ssh = self.config_ssh
-        with tempfile.NamedTemporaryFile() as fp:
+        fp = tempfile.NamedTemporaryFile(delete=False)
+        try:
             fp.write(utils.config_ssh_string(config_ssh))
-            fp.flush()
+            fp.close()
 
             cmds = ['ssh']
             if not plain:
@@ -886,6 +887,8 @@ class Mech(MechCommand):
 
             logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
             return subprocess.call(cmds)
+        finally:
+            os.unlink(fp.name)
 
     def scp(self, arguments):
         """
@@ -918,9 +921,10 @@ class Mech(MechCommand):
         instance_name = self.activate(instance_name)
 
         config_ssh = self.config_ssh
-        with tempfile.NamedTemporaryFile() as fp:
+        fp = tempfile.NamedTemporaryFile(delete=False)
+        try:
             fp.write(utils.config_ssh_string(config_ssh))
-            fp.flush()
+            fp.close()
 
             cmds = ['scp']
             cmds.extend(('-F', fp.name))
@@ -934,6 +938,8 @@ class Mech(MechCommand):
 
             logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
             return subprocess.call(cmds)
+        finally:
+            os.unlink(fp.name)
 
     def ip(self, arguments):
         """

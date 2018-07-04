@@ -371,20 +371,22 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
             except KeyError:
                 progress_args = dict(every=1024 * 100)
                 progress_type = progress.dots
-            with tempfile.NamedTemporaryFile(delete=save) as fp:
+            fp = tempfile.NamedTemporaryFile(delete=False)
+            try:
                 for chunk in progress_type(r.iter_content(chunk_size=1024), label="{} ".format(boxname), **progress_args):
                     if chunk:
                         fp.write(chunk)
-                fp.flush()
+                fp.close()
                 if r.headers.get('content-type') == 'application/json':
                     # Downloaded URL might be a Vagrant catalog if it's json:
-                    fp.seek(0)
-                    catalog = json.loads(fp.read())
+                    catalog = json.load(fp.name)
                     mechfile = catalog_to_mechfile(catalog, name, version)
                     return add_mechfile(mechfile, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
                 else:
                     # Otherwise it must be a valid box:
                     return add_box_file(name, version, fp.name, url=url, force=force, save=save)
+            finally:
+                os.unlink(fp.name)
         except requests.HTTPError as exc:
             puts_err(colored.red("Bad response: %s" % exc))
             sys.exit(1)
@@ -471,14 +473,17 @@ def get_vmx():
 
 def get_vm_ip(vm):
     vm.runScriptInGuest('/bin/sh', "hostname -I > /tmp/ip_address")
-    with tempfile.NamedTemporaryFile() as fp:
+    fp = tempfile.NamedTemporaryFile(delete=False)
+    try:
+        fp.close()
         vm.copyFileFromGuestToHost('/tmp/ip_address', fp.name)
-        fp.seek(0)
-        ip_addresses = fp.read()
+        ip_addresses = open(fp.name).read().strip()
         if ip_addresses:
             return ip_addresses.split()[0]
         else:
             return None
+    finally:
+        os.unlink(fp.name)
 
 
 def provision_file(vm, source, destination):
@@ -516,11 +521,14 @@ def provision_shell(vm, inline, path, args=[]):
                 return
 
             puts_err(colored.blue("Configuring script..."))
-            with tempfile.NamedTemporaryFile() as fp:
+            fp = tempfile.NamedTemporaryFile(delete=False)
+            try:
                 fp.write(inline)
-                fp.flush()
+                fp.close()
                 if vm.copyFileFromHostToGuest(fp.name, tmp_path) is None:
                     return
+            finally:
+                os.unlink(fp.name)
 
         puts_err(colored.blue("Configuring environment..."))
         if vm.runScriptInGuest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
