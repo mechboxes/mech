@@ -50,6 +50,13 @@ HOME = os.path.expanduser('~/.mech')
 DATA_DIR = os.path.join(HOME, 'data')
 
 
+def makedirs(name, mode=0o777):
+    try:
+        os.makedirs(name, mode)
+    except OSError:
+        pass
+
+
 def uncomment(text):
     def e(m):
         return '\x00%02x' % ord(m.group(1))
@@ -152,10 +159,8 @@ def update_vmx(path):
     # vmrun = VMrun(path)
     # vmrun.upgradevm()
 
-
 def instances():
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
+    makedirs(DATA_DIR)
     index_path = os.path.join(DATA_DIR, 'index')
     index_lock = os.path.join(DATA_DIR, 'index.lock')
     try:
@@ -183,8 +188,7 @@ def instances():
 
 
 def settle_instance(instance_name, obj=None, force=False):
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
+    makedirs(DATA_DIR)
     index_path = os.path.join(DATA_DIR, 'index')
     index_lock = os.path.join(DATA_DIR, 'index.lock')
     try:
@@ -310,7 +314,7 @@ def init_box(name, version, force=False, save=True, requests_kwargs={}):
         # box = locate(os.path.join(*filter(None, (HOME, 'boxes', name, version))), '*.box')
 
         puts_err(colored.blue("Extracting box '{}'...".format(name)))
-        os.makedirs('.mech')
+        makedirs('.mech')
         if os.name == 'posix':
             proc = subprocess.Popen(['tar', '-xf', box], cwd='.mech')
             if proc.wait():
@@ -416,8 +420,7 @@ def add_box_file(name, version, filename, url=None, force=False, save=True):
             boxname = os.path.basename(url if url else filename)
             box = os.path.join(*filter(None, (HOME, 'boxes', name, version, boxname)))
             path = os.path.dirname(box)
-            if not os.path.exists(path):
-                os.makedirs(path)
+            makedirs(path)
             if not os.path.exists(box) or force:
                 copyfile(filename, box)
         else:
