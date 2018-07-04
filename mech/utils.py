@@ -306,7 +306,7 @@ def catalog_to_mechfile(catalog, name=None, version=None):
 
 
 def init_box(name, version, force=False, save=True, requests_kwargs={}):
-    if not os.path.exists('.mech'):
+    if not locate('.mech', '*.vmx'):
         name_version_box = add_box(name, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
         if not name_version_box:
             return
