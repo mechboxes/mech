@@ -28,6 +28,7 @@ setup(
     license="MIT",
     description="Tool for command line virtual machines",
     long_description=read("README"),
+    long_description_content_type='text/markdown',
     keywords=['vagrant', 'vmware', 'vmrun', 'tool', 'virtualization'],
     classifiers=[
         "Development Status :: 4 - Beta",
