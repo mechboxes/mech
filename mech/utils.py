@@ -477,9 +477,9 @@ def get_vm_ip(vm):
     try:
         fp.close()
         vm.copyFileFromGuestToHost('/tmp/ip_address', fp.name)
-        ip_addresses = open(fp.name).read().strip()
+        ip_addresses = open(fp.name).read().split()
         if ip_addresses:
-            return ip_addresses.split()[0]
+            return ip_addresses[0]
         else:
             return None
     finally:

@@ -470,9 +470,9 @@ class VMrun(object):
             try:
                 fp.close()
                 self.copyFileFromGuestToHost('/tmp/ip_address', fp.name, quiet=quiet)
-                ip_addresses = open(fp.name).read().strip()
+                ip_addresses = open(fp.name).read().split()
                 if ip_addresses:
-                    return ip_addresses.split()[0]
+                    return ip_addresses[0]
                 else:
                     return None
             finally:
