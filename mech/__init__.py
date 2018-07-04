@@ -22,5 +22,5 @@
 # IN THE SOFTWARE.
 #
 
-__version__ = '0.7.3'
+__version__ = '0.7.4'
 VERSION = "{} v{}".format(__name__, __version__)
