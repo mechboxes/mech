@@ -471,21 +471,6 @@ def get_vmx():
     return vmx
 
 
-def get_vm_ip(vm):
-    vm.runScriptInGuest('/bin/sh', "ifconfig | grep -Eo 'inet (addr:)?([0-9]*\\.){3}[0-9]*' | grep -Eo '([0-9]*\\.){3}[0-9]*' | grep -v '127.0.0.1' > /tmp/ip_address")
-    fp = tempfile.NamedTemporaryFile(delete=False)
-    try:
-        fp.close()
-        vm.copyFileFromGuestToHost('/tmp/ip_address', fp.name)
-        ip_addresses = open(fp.name).read().split()
-        if ip_addresses:
-            return ip_addresses[0]
-        else:
-            return None
-    finally:
-        os.unlink(fp.name)
-
-
 def provision_file(vm, source, destination):
     return vm.copyFileFromHostToGuest(source, destination)
 
