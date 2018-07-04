@@ -472,7 +472,7 @@ def get_vmx():
 
 
 def get_vm_ip(vm):
-    vm.runScriptInGuest('/bin/sh', "hostname -I > /tmp/ip_address")
+    vm.runScriptInGuest('/bin/sh', "ifconfig | grep -Eo 'inet (addr:)?([0-9]*\\.){3}[0-9]*' | grep -Eo '([0-9]*\\.){3}[0-9]*' | grep -v '127.0.0.1' > /tmp/ip_address")
     fp = tempfile.NamedTemporaryFile(delete=False)
     try:
         fp.close()

@@ -465,7 +465,7 @@ class VMrun(object):
     def getGuestIPAddress(self, wait=True, quiet=False, lookup=False):
         '''Gets the IP address of the guest'''
         if lookup is True:
-            self.runScriptInGuest('/bin/sh', "hostname -I > /tmp/ip_address", quiet=quiet)
+            self.runScriptInGuest('/bin/sh', "ifconfig | grep -Eo 'inet (addr:)?([0-9]*\\.){3}[0-9]*' | grep -Eo '([0-9]*\\.){3}[0-9]*' | grep -v '127.0.0.1' > /tmp/ip_address", quiet=quiet)
             fp = tempfile.NamedTemporaryFile(delete=False)
             try:
                 fp.close()
