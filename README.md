@@ -1,6 +1,7 @@
 # mech
 
-I made this because I don't like VirtualBox and I wanted to use vagrant with VMWare Fusion but was too cheap to buy the Vagrant plugin.
+I made this because I don't like VirtualBox and I wanted to use vagrant
+with VMWare Fusion but was too cheap to buy the Vagrant plugin.
 
 https://blog.kchung.co/mech-vagrant-with-vmware-integration-for-free/
 
@@ -41,14 +42,18 @@ For help on any individual command run `mech <command> -h`
 
 Example:
 
-    Initializing and using a machine from HashiCorp's Vagrant Cloud:
+Initializing and using a machine from HashiCorp's Vagrant Cloud:
 
-        mech init bento/ubuntu-14.04
-        mech up
-        mech ssh
+    mech init bento/ubuntu-14.04
+    mech up
+    mech ssh
 ```
 
-`mech init` can be used to pull a box file which will be installed and generate a Mechfile in the current directory. You can also pull boxes from Vagrant Cloud with `mech init freebsd/FreeBSD-11.1-RELEASE`. Barring that, `mech up <name>` can also be used to specify a vmx file to start.
+`mech init` can be used to pull a box file which will be installed and
+generate a Mechfile in the current directory. You can also pull boxes
+from Vagrant Cloud with `mech init freebsd/FreeBSD-11.1-RELEASE`.
+Barring that, `mech up <name>` can also be used to specify a vmx file
+to start.
 
 # Install
 
@@ -56,7 +61,7 @@ Example:
 
 or for the latest:
 
-`pip install -U git+https://github.com/mechboxes/mech.git@devel`
+`pip install -U git+https://github.com/mechboxes/mech.git`
 
 # Shared Folders
 
