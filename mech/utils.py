@@ -487,9 +487,9 @@ def get_requests_kwargs(arguments):
     return requests_kwargs
 
 
-def get_vmx():
+def get_vmx(silent=False):
     vmx = locate('.mech', '*.vmx')
-    if not vmx:
+    if not vmx and not silent:
         puts_err(colored.red("Cannot locate a VMX file"))
         sys.exit(1)
     return vmx

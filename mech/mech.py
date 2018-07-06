@@ -110,10 +110,13 @@ class MechCommand(Command):
             raise AttributeError("Must activate(instance_name) first.")
         return self.active_mechfile.get(name, default)
 
+    def get_vmx(self, silent=False):
+        self.get("")  # Check if there's a Mechfile
+        return utils.get_vmx(silent=silent)
+
     @property
     def vmx(self):
-        self.get("")  # Check if there's a Mechfile
-        return utils.get_vmx()
+        return self.get_vmx()
 
     @property
     def box_name(self):
@@ -1102,9 +1105,13 @@ class Mech(MechCommand):
                 self.activate(instance_name)
                 mech_path = os.path.join(path, '.mech')
                 if os.path.exists(mech_path):
-                    vmrun = VMrun(self.vmx, user=self.user, password=self.password)
-                    lookup = self.get("enable_ip_lookup", False)
-                    ip = vmrun.getGuestIPAddress(wait=False, quiet=True, lookup=lookup)
+                    vmx = self.get_vmx(silent=True)
+                    if vmx:
+                        vmrun = VMrun(vmx, user=self.user, password=self.password)
+                        lookup = self.get("enable_ip_lookup", False)
+                        ip = vmrun.getGuestIPAddress(wait=False, quiet=True, lookup=lookup)
+                    else:
+                        ip = colored.red("invalid")
                     if ip is None:
                         ip = colored.yellow("poweroff")
                     elif not ip:
