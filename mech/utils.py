@@ -160,6 +160,7 @@ def update_vmx(path):
     # vmrun = VMrun(path)
     # vmrun.upgradevm()
 
+
 def instances():
     makedirs(DATA_DIR)
     index_path = os.path.join(DATA_DIR, 'index')
@@ -465,6 +466,8 @@ def index_active_instance(instance_name):
 
 
 def init_mechfile(instance_name, descriptor, name=None, version=None, requests_kwargs={}):
+    if not instance_name:
+        instance_name = os.path.basename(os.getcwd())
     path = index_active_instance(instance_name)
     mechfile = build_mechfile(descriptor, name=name, version=version, requests_kwargs=requests_kwargs)
     mechfile['name'] = instance_name
