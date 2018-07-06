@@ -42,7 +42,7 @@ from filelock import Timeout, FileLock
 from clint.textui import colored, puts_err
 from clint.textui import progress
 
-from .compat import raw_input
+from .compat import raw_input, b2s
 
 logger = logging.getLogger(__name__)
 
@@ -306,6 +306,23 @@ def catalog_to_mechfile(catalog, name=None, version=None):
     sys.exit(1)
 
 
+def tar_cmd(*args, **kwargs):
+    try:
+        proc = subprocess.Popen(['tar', '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except OSError:
+        return None
+    if proc.returncode:
+        return None
+    stdoutdata, stderrdata = map(b2s, proc.communicate())
+    tar = ['tar']
+    if kwargs.get('wildcards') and re.search(r'\b--wildcards\b', stdoutdata):
+        tar.append('--wildcards')
+    if kwargs.get('fast_read') and sys.platform.startswith('darwin'):
+        tar.append('--fast-read')
+    tar.extend(args)
+    return tar
+
+
 def init_box(name, version, force=False, save=True, requests_kwargs={}):
     if not locate('.mech', '*.vmx'):
         name_version_box = add_box(name, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
@@ -317,8 +334,9 @@ def init_box(name, version, force=False, save=True, requests_kwargs={}):
 
         puts_err(colored.blue("Extracting box '{}'...".format(name)))
         makedirs('.mech')
-        if os.name == 'posix':
-            proc = subprocess.Popen(['tar', '-xf', box], cwd='.mech')
+        cmd = tar_cmd('-xf', box)
+        if cmd:
+            proc = subprocess.Popen(cmd, cwd='.mech')
             if proc.wait():
                 puts_err(colored.red("Cannot extract box"))
                 sys.exit(1)
@@ -401,8 +419,9 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
 def add_box_file(name, version, filename, url=None, force=False, save=True):
     puts_err(colored.blue("Checking box '{}' integrity...".format(name)))
 
-    if os.name == 'posix':
-        proc = subprocess.Popen(['tar', '-tqf' if sys.platform.startswith('darwin') else '-tf', filename, '*.vmx'])
+    cmd = tar_cmd('-tf', filename, '*.vmx', wildcards=True, fast_read=True)
+    if cmd:
+        proc = subprocess.Popen(cmd)
         valid_tar = not proc.wait()
     else:
         tar = tarfile.open(filename, 'r')
