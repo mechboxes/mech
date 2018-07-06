@@ -310,7 +310,8 @@ def init_box(name, version, force=False, save=True, requests_kwargs={}):
     if not locate('.mech', '*.vmx'):
         name_version_box = add_box(name, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
         if not name_version_box:
-            return
+            puts_err(colored.red("Cannot find a valid box with a VMX file in it"))
+            sys.exit(1)
         name, version, box = name_version_box
         # box = locate(os.path.join(*filter(None, (HOME, 'boxes', name, version))), '*.box')
 
