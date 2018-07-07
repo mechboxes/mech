@@ -111,7 +111,7 @@ class VMrun(object):
 
         logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
 
-        proc = subprocess.Popen(cmds, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdoutdata, stderrdata = map(b2s, proc.communicate())
 
         if stderrdata and not quiet:
