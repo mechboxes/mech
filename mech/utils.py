@@ -309,7 +309,11 @@ def catalog_to_mechfile(catalog, name=None, version=None):
 
 def tar_cmd(*args, **kwargs):
     try:
-        proc = subprocess.Popen(['tar', '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        startupinfo = None
+        if os.name == "nt":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
+        proc = subprocess.Popen(['tar', '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo)
     except OSError:
         return None
     if proc.returncode:
@@ -337,7 +341,11 @@ def init_box(name, version, force=False, save=True, requests_kwargs={}):
         makedirs('.mech')
         cmd = tar_cmd('-xf', box)
         if cmd:
-            proc = subprocess.Popen(cmd, cwd='.mech')
+            startupinfo = None
+            if os.name == "nt":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
+            proc = subprocess.Popen(cmd, cwd='.mech', startupinfo=startupinfo)
             if proc.wait():
                 puts_err(colored.red("Cannot extract box"))
                 sys.exit(1)
@@ -422,7 +430,11 @@ def add_box_file(name, version, filename, url=None, force=False, save=True):
 
     cmd = tar_cmd('-tf', filename, '*.vmx', wildcards=True, fast_read=True)
     if cmd:
-        proc = subprocess.Popen(cmd)
+        startupinfo = None
+        if os.name == "nt":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
+        proc = subprocess.Popen(cmd, startupinfo=startupinfo)
         valid_tar = not proc.wait()
     else:
         tar = tarfile.open(filename, 'r')
