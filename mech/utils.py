@@ -258,7 +258,7 @@ def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
         if version:
             mechfile['box_version'] = version
         return mechfile
-    elif os.path.isfile(re.sub(r'^file:(?://)?', '', descriptor)):
+    elif descriptor.startswith('file:') or os.path.isfile(re.sub(r'^file:(?://)?', '', descriptor)):
         descriptor = re.sub(r'^file:(?://)?', '', descriptor)
         try:
             with open(descriptor) as fp:
