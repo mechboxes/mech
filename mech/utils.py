@@ -269,7 +269,7 @@ def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
             mechfile['box'] = name
             if version:
                 mechfile['box_version'] = version
-        return mechfile
+            return mechfile
     else:
         try:
             account, box, v = (descriptor.split('/', 2) + ['', ''])[:3]
