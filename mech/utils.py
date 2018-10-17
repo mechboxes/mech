@@ -321,7 +321,7 @@ def tar_cmd(*args, **kwargs):
         return None
     stdoutdata, stderrdata = map(b2s, proc.communicate())
     tar = ['tar']
-    if kwargs.get('wildcards') and re.search(r'\b--wildcards\b', stdoutdata):
+    if kwargs.get('wildcards') and re.search(r'--wildcards', stdoutdata):
         tar.append('--wildcards')
     if kwargs.get('fast_read') and sys.platform.startswith('darwin'):
         tar.append('--fast-read')
