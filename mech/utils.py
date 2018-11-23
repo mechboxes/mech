@@ -323,6 +323,8 @@ def tar_cmd(*args, **kwargs):
     tar = ['tar']
     if kwargs.get('wildcards') and re.search(r'--wildcards\b', stdoutdata):
         tar.append('--wildcards')
+    if kwargs.get('force_local') and re.search(r'--force-local\b', stdoutdata):
+        tar.append('--force-local')
     if kwargs.get('fast_read') and sys.platform.startswith('darwin'):
         tar.append('--fast-read')
     tar.extend(args)
@@ -340,7 +342,10 @@ def init_box(name, version, force=False, save=True, requests_kwargs={}):
 
         puts_err(colored.blue("Extracting box '{}'...".format(name)))
         makedirs('.mech')
-        cmd = tar_cmd('-xf', box)
+        if sys.platform == 'win32':
+            cmd = tar_cmd('-xf', box, force_local=True)
+        else:
+            cmd = tar_cmd('-xf', box)
         if cmd:
             startupinfo = None
             if os.name == "nt":
@@ -429,7 +434,10 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
 def add_box_file(name, version, filename, url=None, force=False, save=True):
     puts_err(colored.blue("Checking box '{}' integrity...".format(name)))
 
-    cmd = tar_cmd('-tf', filename, '*.vmx', wildcards=True, fast_read=True)
+    if sys.platform == 'win32':
+        cmd = tar_cmd('-tf', filename, '*.vmx', wildcards=True, fast_read=True, force_local=True)
+    else:
+        cmd = tar_cmd('-tf', filename, '*.vmx', wildcards=True, fast_read=True)
     if cmd:
         startupinfo = None
         if os.name == "nt":
