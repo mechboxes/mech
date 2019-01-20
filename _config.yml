@@ -24,7 +24,7 @@ description: >- # this means to ignore newlines until "baseurl:"
 baseurl: /mech # the subpath of your site, e.g. /blog
 url: https://mechboxes.github.io
 repository: https://github.com/mechboxes/mech
-docs_branch: gh_pages
+docs_branch: gh-pages
 github_username:  mechboxes
 disqus_shortname: mechboxes
 
