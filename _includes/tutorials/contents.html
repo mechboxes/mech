@@ -1,8 +1,8 @@
 <div class="unit one-fifth hide-on-mobiles">
 	<aside id="sidebar">
-		{% for section in site.data.tutorials %}
-			<h4>{{ section.title }}</h4>
-			<ul>
+	{% for section in site.data.tutorials %}
+		<h4>{{ section.title }}</h4>
+		<ul>
 		{% for l1 in section.tutorials %}
 			{% assign l1_url = l1.url | prepend:"/tutorials/" | append:"/" %}
 			{% assign l1_doc = site.tutorials | where:"url", l1_url | first %}
@@ -33,9 +33,9 @@
 					</ul>
 				</li>
 			{% endif %}
-			{% endfor %}
-			</ul>
 		{% endfor %}
+		</ul>
+	{% endfor %}
 	</aside>
 	<script>
 		var sidebar = document.getElementById('sidebar');
