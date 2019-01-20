@@ -1,26 +1,26 @@
 - title: Welcome
   docs:
-    - welcome
-    - unified-workflow
-    - cross-platform
-    - enforce-consistency
+    - url: welcome
+    - url: unified-workflow
+    - url: cross-platform
+    - url: enforce-consistency
 
 - title: Getting Started
   docs:
-    - installation
-    - project-setup
-    - boxes
-    - up-n-ssh
-    - synced-folders
-    - provisioning
-    - networking
-    - share
-    - teardown
-    - rebuild
+    - url: installation
+    - url: project-setup
+    - url: boxes
+    - url: up-n-ssh
+    - url: synced-folders
+    - url: provisioning
+    - url: networking
+    - url: share
+    - url: teardown
+    - url: rebuild
 
 - title: Miscellaneous
   docs:
-    - faq
-    - contributing
-    - conduct
-    - history
+    - url: faq
+    - url: contributing
+    - url: conduct
+    - url: history
