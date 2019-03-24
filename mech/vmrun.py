@@ -74,23 +74,44 @@ def get_win32_executable():
         reg.Close()
     return get_fallback_executable()
 
+def get_provider(vmrun_exe):
+    """
+    identifies the right hosttype for vmrun command (ws | fusion | player)
+    """
+
+    if sys.platform == 'darwin':
+        return 'fusion'
+
+    for provider in ['ws', 'player', 'fusion']:
+        try:
+            startupinfo = None
+            if os.name == "nt":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
+            proc = subprocess.Popen([vmrun_exe, '-T', provider, 'list'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo)
+        except OSError:
+            pass
+
+        stdoutdata, stderrdata = map(b2s, proc.communicate())
+        if proc.returncode == 0:
+            return provider
+
 
 class VMrun(object):
     if sys.platform == 'darwin':
-        provider = 'fusion'
         default_executable = get_darwin_executable()
     elif sys.platform == 'win32':
-        provider = 'ws'
         default_executable = get_win32_executable()
     else:
-        provider = 'ws'
         default_executable = get_fallback_executable()
+    default_provider = get_provider(default_executable)
 
-    def __init__(self, vmx_file=None, user=None, password=None, executable=None):
+    def __init__(self, vmx_file=None, user=None, password=None, executable=None, provider=None):
         self.vmx_file = vmx_file
         self.user = user
         self.password = password
         self.executable = executable or self.default_executable
+        self.provider = provider or self.default_provider
 
     def vmrun(self, cmd, *args, **kwargs):
         quiet = kwargs.pop('quiet', False)
