@@ -720,7 +720,10 @@ class Mech(MechCommand):
                 vmrun.stop(mode='hard', quiet=True)
                 time.sleep(3)
                 vmrun.deleteVM()
-                shutil.rmtree(mech_path)
+                if os.path.exists(mech_path):
+                    shutil.rmtree(mech_path)
+                else:
+                    logger.debug("{} was not found.".format(mech_path))
             else:
                 puts_err(colored.red("Deletion aborted"))
         else:
