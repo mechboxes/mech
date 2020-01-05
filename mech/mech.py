@@ -585,6 +585,7 @@ class Mech(MechCommand):
 
         Options:
                 --gui                        Start GUI
+                --disable-shared-folder      Do not share folder with VM
                 --provision                  Enable provisioning
                 --insecure                   Do not validate SSL certificates
                 --cacert FILE                CA certificate for SSL download
@@ -596,6 +597,7 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         gui = arguments['--gui']
+        disable_shared_folder = not arguments['--disable-shared-folder']
         save = not arguments['--no-cache']
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
@@ -616,8 +618,9 @@ class Mech(MechCommand):
             lookup = self.get("enable_ip_lookup", False)
             ip = vmrun.getGuestIPAddress(lookup=lookup)
             puts_err(colored.blue("Sharing current folder..."))
-            vmrun.enableSharedFolders()
-            vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
+            if not disable_shared_folder:
+                vmrun.enableSharedFolders()
+                vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
             if ip:
                 if started:
                     puts_err(colored.green("VM started on {}".format(ip)))
