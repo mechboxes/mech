@@ -593,6 +593,8 @@ class Mech(MechCommand):
                 --checksum CHECKSUM          Checksum for the box
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
                 --no-cache                   Do not save the downloaded box
+                --memsize 1024               Specify the size of memory for VM
+                --numvcpus 1                 Specify the number of vcpus for VM
             -h, --help                       Print this help
         """
         gui = arguments['--gui']
@@ -604,7 +606,11 @@ class Mech(MechCommand):
 
         utils.index_active_instance(instance_name)
 
-        vmx = utils.init_box(self.box_name, self.box_version, requests_kwargs=requests_kwargs, save=save)
+        numvcpus = arguments['--numvcpus']
+        memsize = arguments['--memsize']
+
+        vmx = utils.init_box(self.box_name, self.box_version, requests_kwargs=requests_kwargs, save=save, numvcpus=numvcpus, memsize=memsize)
+
         vmrun = VMrun(vmx, user=self.user, password=self.password)
         puts_err(colored.blue("Bringing machine up..."))
         started = vmrun.start(gui=gui)

@@ -85,3 +85,10 @@ or
 ```bash
 vmhgfs-fuse .host:/mech /mnt/hgfs
 ```
+
+# Changing vcpus and/or memory size
+
+If you do not specify how many vcpus or memory, then the values
+in the .box file will be used. To override, use appropriate settings:
+
+`mech up --numvcpus 2 --memsize 1024`

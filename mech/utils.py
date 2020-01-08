@@ -124,7 +124,7 @@ def parse_vmx(path):
     return vmx
 
 
-def update_vmx(path):
+def update_vmx(path, numvcpus=None, memsize=None):
     updated = False
 
     vmx = parse_vmx(path)
@@ -147,6 +147,15 @@ def update_vmx(path):
         vmx["ethernet0.virtualdev"] = "e1000"
         vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
         puts_err(colored.yellow("Added network interface to vmx file"))
+        updated = True
+
+    # write out vmx file if memsize or numvcpus was specified
+    if numvcpus is not None:
+        vmx["numvcpus"] = '"{}"'.format(numvcpus)
+        updated = True
+
+    if memsize is not None:
+        vmx["memsize"] = '"{}"'.format(memsize)
         updated = True
 
     if updated:
@@ -331,7 +340,7 @@ def tar_cmd(*args, **kwargs):
     return tar
 
 
-def init_box(name, version, force=False, save=True, requests_kwargs={}):
+def init_box(name, version, force=False, save=True, requests_kwargs={}, numvcpus=None, memsize=None):
     if not locate('.mech', '*.vmx'):
         name_version_box = add_box(name, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
         if not name_version_box:
@@ -364,7 +373,7 @@ def init_box(name, version, force=False, save=True, requests_kwargs={}):
 
     vmx = get_vmx()
 
-    update_vmx(vmx)
+    update_vmx(vmx, numvcpus=numvcpus, memsize=memsize)
 
     return vmx
 
