@@ -187,6 +187,9 @@ def instances():
     except Timeout:
         puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
         sys.exit(1)
+    except json.decoder.JSONDecodeError:
+        puts_err(colored.red(textwrap.fill("Index file seems broken. Try to remove {}.".format(index_path))))
+        sys.exit(1)
 
 
 def settle_instance(instance_name, obj=None, force=False):
@@ -221,6 +224,9 @@ def settle_instance(instance_name, obj=None, force=False):
             return instance_data
     except Timeout:
         puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
+        sys.exit(1)
+    except json.decoder.JSONDecodeError:
+        puts_err(colored.red(textwrap.fill("Index file seems broken. Try to remove {}.".format(index_path))))
         sys.exit(1)
 
 
