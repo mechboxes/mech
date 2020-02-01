@@ -33,15 +33,21 @@ from .compat import get_meth_func
 
 NBSP = '__'
 
+
 def cmd_usage(doc):
     return doc.replace(NBSP, ' ')
 
+
 docopt_extras_ref = docopt.extras
+
+
 def docopt_extras(help, version, options, doc):
     return docopt_extras_ref(help, version, options, cmd_usage(doc))
 
+
 def DocoptExit____init__(self, message=''):
     SystemExit.__init__(self, (message + '\n' + cmd_usage(self.usage)).strip())
+
 
 docopt.extras = docopt_extras
 docopt.DocoptExit.__init__ = DocoptExit____init__
@@ -83,7 +89,8 @@ class Command(object):
                     cmd = meth_func.__name__.replace('_', '-')
                 name = '{} {}'.format(self.__class__.__name__, cmd)
                 if klass.__doc__:
-                    arguments = self.docopt(klass.__doc__, argv=self.arguments.get(self.argv_name, []), name=name)
+                    arguments = self.docopt(klass.__doc__,
+                                            argv=self.arguments.get(self.argv_name, []), name=name)
                 else:
                     arguments = []
                 obj = klass(arguments)

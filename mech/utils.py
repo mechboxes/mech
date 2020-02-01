@@ -197,7 +197,10 @@ def instances():
         puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
         sys.exit(1)
     except json.decoder.JSONDecodeError:
-        puts_err(colored.red(textwrap.fill("Index file seems broken. Try to remove {}.".format(index_path))))
+        puts_err(
+            colored.red(
+                textwrap.fill(
+                    "Index file seems broken. Try to remove {}.".format(index_path))))
         sys.exit(1)
 
 
@@ -235,7 +238,10 @@ def settle_instance(instance_name, obj=None, force=False):
         puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
         sys.exit(1)
     except json.decoder.JSONDecodeError:
-        puts_err(colored.red(textwrap.fill("Index file seems broken. Try to remove {}.".format(index_path))))
+        puts_err(
+            colored.red(
+                textwrap.fill(
+                    "Index file seems broken. Try to remove {}.".format(index_path))))
         sys.exit(1)
 
 
@@ -293,7 +299,11 @@ def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
                 puts_err(colored.red("Provided box name is not valid"))
             if v:
                 version = v
-            puts_err(colored.blue("Loading metadata for box '{}'{}".format(descriptor, " ({})".format(version) if version else "")))
+            puts_err(
+                colored.blue(
+                    "Loading metadata for box '{}'{}".format(
+                        descriptor,
+                        " ({})".format(version) if version else "")))
             url = 'https://app.vagrantup.com/{}/boxes/{}'.format(account, box)
             r = requests.get(url, **requests_kwargs)
             r.raise_for_status()
@@ -319,7 +329,11 @@ def catalog_to_mechfile(catalog, name=None, version=None):
                     mechfile['box_version'] = current_version
                     mechfile['url'] = provider['url']
                     return mechfile
-    puts_err(colored.red("Couldn't find a VMWare compatible VM for '{}'{}".format(name, " ({})".format(version) if version else "")))
+    puts_err(
+        colored.red(
+            "Couldn't find a VMWare compatible VM for '{}'{}".format(
+                name,
+                " ({})".format(version) if version else "")))
     sys.exit(1)
 
 
@@ -329,7 +343,8 @@ def tar_cmd(*args, **kwargs):
         if os.name == "nt":
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
-        proc = subprocess.Popen(['tar', '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo)
+        proc = subprocess.Popen(['tar', '--help'], stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, startupinfo=startupinfo)
     except OSError:
         return None
     if proc.returncode:
@@ -346,9 +361,22 @@ def tar_cmd(*args, **kwargs):
     return tar
 
 
-def init_box(name, version, force=False, save=True, requests_kwargs={}, numvcpus=None, memsize=None):
+def init_box(
+        name,
+        version,
+        force=False,
+        save=True,
+        requests_kwargs={},
+        numvcpus=None,
+        memsize=None):
     if not locate('.mech', '*.vmx'):
-        name_version_box = add_box(name, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
+        name_version_box = add_box(
+            name,
+            name=name,
+            version=version,
+            force=force,
+            save=save,
+            requests_kwargs=requests_kwargs)
         if not name_version_box:
             puts_err(colored.red("Cannot find a valid box with a VMX file in it"))
             sys.exit(1)
@@ -385,8 +413,18 @@ def init_box(name, version, force=False, save=True, requests_kwargs={}, numvcpus
 
 
 def add_box(descriptor, name=None, version=None, force=False, save=True, requests_kwargs={}):
-    mechfile = build_mechfile(descriptor, name=name, version=version, requests_kwargs=requests_kwargs)
-    return add_mechfile(mechfile, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
+    mechfile = build_mechfile(
+        descriptor,
+        name=name,
+        version=version,
+        requests_kwargs=requests_kwargs)
+    return add_mechfile(
+        mechfile,
+        name=name,
+        version=version,
+        force=force,
+        save=save,
+        requests_kwargs=requests_kwargs)
 
 
 def add_mechfile(mechfile, name=None, version=None, force=False, save=True, requests_kwargs={}):
@@ -397,8 +435,18 @@ def add_mechfile(mechfile, name=None, version=None, force=False, save=True, requ
     if file:
         return add_box_file(name, version, file, force=force, save=save)
     if url:
-        return add_box_url(name, version, url, force=force, save=save, requests_kwargs=requests_kwargs)
-    puts_err(colored.red("Couldn't find a VMWare compatible VM for '{}'{}".format(name, " ({})".format(version) if version else "")))
+        return add_box_url(
+            name,
+            version,
+            url,
+            force=force,
+            save=save,
+            requests_kwargs=requests_kwargs)
+    puts_err(
+        colored.red(
+            "Couldn't find a VMWare compatible VM for '{}'{}".format(
+                name,
+                " ({})".format(version) if version else "")))
 
 
 def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
@@ -409,7 +457,8 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
         if exists:
             puts_err(colored.blue("Attempting to download box '{}'...".format(name)))
         else:
-            puts_err(colored.blue("Box '{}' could not be found. Attempting to download...".format(name)))
+            puts_err(colored.blue("Box '{}' could not be found. "
+                     "Attempting to download...".format(name)))
         try:
             puts_err(colored.blue("URL: {}".format(url)))
             r = requests.get(url, stream=True, **requests_kwargs)
@@ -423,7 +472,11 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
                 progress_type = progress.dots
             fp = tempfile.NamedTemporaryFile(delete=False)
             try:
-                for chunk in progress_type(r.iter_content(chunk_size=1024), label="{} ".format(boxname), **progress_args):
+                for chunk in progress_type(
+                        r.iter_content(
+                            chunk_size=1024),
+                        label="{} ".format(boxname),
+                        **progress_args):
                     if chunk:
                         fp.write(chunk)
                 fp.close()
@@ -431,7 +484,13 @@ def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
                     # Downloaded URL might be a Vagrant catalog if it's json:
                     catalog = json.load(fp.name)
                     mechfile = catalog_to_mechfile(catalog, name, version)
-                    return add_mechfile(mechfile, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
+                    return add_mechfile(
+                        mechfile,
+                        name=name,
+                        version=version,
+                        force=force,
+                        save=save,
+                        requests_kwargs=requests_kwargs)
                 else:
                     # Otherwise it must be a valid box:
                     return add_box_file(name, version, fp.name, url=url, force=force, save=save)
@@ -505,7 +564,11 @@ def init_mechfile(instance_name, descriptor, name=None, version=None, requests_k
     if not instance_name:
         instance_name = os.path.basename(os.getcwd())
     path = index_active_instance(instance_name)
-    mechfile = build_mechfile(descriptor, name=name, version=version, requests_kwargs=requests_kwargs)
+    mechfile = build_mechfile(
+        descriptor,
+        name=name,
+        version=version,
+        requests_kwargs=requests_kwargs)
     mechfile['name'] = instance_name
     return save_mechfile(mechfile, path)
 

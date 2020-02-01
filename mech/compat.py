@@ -38,7 +38,11 @@ except ImportError:
 _builtin = functools.partial(getattr, _builtins_)
 
 #: No operation lambda
-_noop = lambda obj: obj
+
+
+def _noop(obj):
+    return obj
+
 
 if PY3:
     meth_func = '__func__'
@@ -60,11 +64,18 @@ else:
     s = _noop
     b = _noop
 
-#: Octal number compatibility shim
-o = lambda numstr: int(numstr, 8)
 
-#: Get a bound method's function
-get_meth_func = lambda klass: operator.attrgetter(meth_func)(klass) if hasattr(klass, meth_func) else None
+def o(numstr):
+    """Octal number compatibility shim."""
+    return int(numstr, 8)
 
-#: "safe" form of ``b``. Checks for binary type before operating.
-b2s = lambda bytestr: s(bytestr) if isinstance(bytestr, binary_type) else bytestr
+
+def get_meth_func(klass):
+    """Get a bound method's function."""
+    return operator.attrgetter(
+        meth_func)(klass) if hasattr(klass, meth_func) else None
+
+
+def b2s(bytestr):
+    '''"safe" form of ``b``. Checks for binary type before operating.'''
+    return s(bytestr) if isinstance(bytestr, binary_type) else bytestr

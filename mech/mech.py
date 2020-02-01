@@ -94,7 +94,10 @@ class MechCommand(Command):
             instance = utils.settle_instance(instance_name)
             path = instance.get('path')
             if not path:
-                puts_err(colored.red(textwrap.fill("Cannot find a valid path for '{}' instance".format(instance_name))))
+                puts_err(
+                    colored.red(
+                        textwrap.fill(
+                            "Cannot find a valid path for '{}' instance".format(instance_name))))
                 sys.exit(1)
             path = os.path.abspath(os.path.expanduser(path))
             os.chdir(path)
@@ -102,7 +105,8 @@ class MechCommand(Command):
         else:
             path = os.getcwd()
             self.activate_mechfile(path)
-            instance_name = self.active_mechfile.get('name') or os.path.basename(path)  # Use the Mechfile's name if available
+            instance_name = self.active_mechfile.get('name') or os.path.basename(
+                path)  # Use the Mechfile's name if available
         return instance_name
 
     def get(self, name, default=None):
@@ -176,7 +180,10 @@ class MechCommand(Command):
             k = re.sub(r'[ _]+', r' ', k)
             k = re.sub(r'(?<=[^_])([A-Z])', r' \1', k).lower()
             k = re.sub(r'^( *)(.*?)( *)$', r'\2', k)
-            callback = lambda pat: pat.group(1).upper()
+
+            def callback(pat):
+                return pat.group(1).upper()
+
             k = re.sub(r' (\w)', callback, k)
             if k[0].islower():
                 k = k[0].upper() + k[1:]
@@ -569,7 +576,12 @@ class Mech(MechCommand):
             return
 
         puts_err(colored.green("Initializing mech"))
-        if utils.init_mechfile(self.instance_name, url, name=name, version=version, requests_kwargs=requests_kwargs):
+        if utils.init_mechfile(
+                self.instance_name,
+                url,
+                name=name,
+                version=version,
+                requests_kwargs=requests_kwargs):
             puts_err(colored.green(textwrap.fill(
                 "A `Mechfile` has been initialized and placed in this directory. "
                 "You are now ready to `mech up` your first virtual environment!"
@@ -611,7 +623,13 @@ class Mech(MechCommand):
         numvcpus = arguments['--numvcpus']
         memsize = arguments['--memsize']
 
-        vmx = utils.init_box(self.box_name, self.box_version, requests_kwargs=requests_kwargs, save=save, numvcpus=numvcpus, memsize=memsize)
+        vmx = utils.init_box(
+            self.box_name,
+            self.box_version,
+            requests_kwargs=requests_kwargs,
+            save=save,
+            numvcpus=numvcpus,
+            memsize=memsize)
 
         vmrun = VMrun(vmx, user=self.user, password=self.password)
         puts_err(colored.blue("Bringing machine up..."))
@@ -696,7 +714,8 @@ class Mech(MechCommand):
         if ip == "poweroff":
             print(os.linesep + "The VM is powered off. To restart the VM, simply run `mech up`")
         elif ip == "unknown":
-            print(os.linesep + "The VM is on. but it has no IP to connect to, VMware Tools must be installed")
+            print(os.linesep + "The VM is on. but it has no IP to connect to,"
+                  "VMware Tools must be installed")
         elif state in ("installed", "running"):
             print(os.linesep + "The VM is ready. Connect to it using `mech ssh`")
 
@@ -723,7 +742,9 @@ class Mech(MechCommand):
         mech_path = os.path.join(path, '.mech')
 
         if os.path.exists(mech_path):
-            if force or utils.confirm("Are you sure you want to delete {self.instance_name} at {path}".format(instance_name=self.instance_name, path=path), default='n'):
+            if force or utils.confirm(
+                "Are you sure you want to delete {self.instance_name} at {path}".format(
+                    instance_name=self.instance_name, path=path), default='n'):
                 puts_err(colored.green("Deleting..."))
                 vmrun = VMrun(self.vmx, user=self.user, password=self.password)
                 vmrun.stop(mode='hard', quiet=True)
@@ -901,7 +922,12 @@ class Mech(MechCommand):
             if command:
                 cmds.extend(('--', command))
 
-            logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
+            logger.debug(
+                " ".join(
+                    "'{}'".format(
+                        c.replace(
+                            "'",
+                            "\\'")) if ' ' in c else c for c in cmds))
             return subprocess.call(cmds)
         finally:
             os.unlink(fp.name)
@@ -952,7 +978,12 @@ class Mech(MechCommand):
             src = '{}:{}'.format(host, src) if src_is_host else src
             cmds.extend((src, dst))
 
-            logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
+            logger.debug(
+                " ".join(
+                    "'{}'".format(
+                        c.replace(
+                            "'",
+                            "\\'")) if ' ' in c else c for c in cmds))
             return subprocess.call(cmds)
         finally:
             os.unlink(fp.name)

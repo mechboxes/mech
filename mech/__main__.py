@@ -24,6 +24,7 @@
 
 from __future__ import absolute_import
 
+
 def main():
     try:
         import os

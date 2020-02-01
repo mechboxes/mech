@@ -74,6 +74,7 @@ def get_win32_executable():
         reg.Close()
     return get_fallback_executable()
 
+
 def get_provider(vmrun_exe):
     """
     identifies the right hosttype for vmrun command (ws | fusion | player)
@@ -88,7 +89,13 @@ def get_provider(vmrun_exe):
             if os.name == "nt":
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
-            proc = subprocess.Popen([vmrun_exe, '-T', provider, 'list'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo)
+            proc = subprocess.Popen([vmrun_exe,
+                                     '-T',
+                                     provider,
+                                     'list'],
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    startupinfo=startupinfo)
         except OSError:
             pass
 
@@ -130,13 +137,22 @@ class VMrun(object):
         cmds.extend(filter(None, args))
         cmds.extend(filter(None, arguments))
 
-        logger.debug(" ".join("'{}'".format(c.replace("'", "\\'")) if ' ' in c else c for c in cmds))
+        logger.debug(
+            " ".join(
+                "'{}'".format(
+                    c.replace(
+                        "'",
+                        "\\'")) if ' ' in c else c for c in cmds))
 
         startupinfo = None
         if os.name == "nt":
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
-        proc = subprocess.Popen(cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo)
+        proc = subprocess.Popen(
+            cmds,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            startupinfo=startupinfo)
         stdoutdata, stderrdata = map(b2s, proc.communicate())
 
         if stderrdata and not quiet:
@@ -214,7 +230,11 @@ class VMrun(object):
 
     def listSnapshots(self, show_tree=False, quiet=False):
         '''List all snapshots in a VM'''
-        return self.vmrun('listSnapshots', self.vmx_file, 'showTree' if show_tree else None, quiet=quiet)
+        return self.vmrun(
+            'listSnapshots',
+            self.vmx_file,
+            'showTree' if show_tree else None,
+            quiet=quiet)
 
     def snapshot(self, snap_name, quiet=False):
         '''Create a snapshot of a VM'''
@@ -222,7 +242,12 @@ class VMrun(object):
 
     def deleteSnapshot(self, snap_name, and_delete_children=False, quiet=False):
         '''Remove a snapshot from a VM'''
-        return self.vmrun('deleteSnapshot', self.vmx_file, snap_name, 'andDeleteChildren' if and_delete_children else None, quiet=quiet)
+        return self.vmrun(
+            'deleteSnapshot',
+            self.vmx_file,
+            snap_name,
+            'andDeleteChildren' if and_delete_children else None,
+            quiet=quiet)
 
     def revertToSnapshot(self, snap_name, quiet=False):
         '''Set VM state to a snapshot'''
@@ -254,11 +279,22 @@ class VMrun(object):
 
     def addNetworkAdapter(self, adapter_type, host_network=None, quiet=False):
         '''Add a network adapter on a VM'''
-        return self.vmrun('addNetworkAdapter', self.vmx_file, adapter_type, host_network, quiet=quiet)
+        return self.vmrun(
+            'addNetworkAdapter',
+            self.vmx_file,
+            adapter_type,
+            host_network,
+            quiet=quiet)
 
     def setNetworkAdapter(self, adapter_index, adapter_type, host_network=None, quiet=False):
         '''Update a network adapter on a VM'''
-        return self.vmrun('setNetworkAdapter', self.vmx_file, adapter_index, adapter_type, host_network, quiet=quiet)
+        return self.vmrun(
+            'setNetworkAdapter',
+            self.vmx_file,
+            adapter_index,
+            adapter_type,
+            host_network,
+            quiet=quiet)
 
     def deleteNetworkAdapter(self, adapter_index, quiet=False):
         '''Remove a network adapter on a VM'''
@@ -269,10 +305,12 @@ class VMrun(object):
     # ---------------------    ----------           -----------
     # listHostNetworks                              List all networks in the host
     #
-    # listPortForwardings      Host network name    List all available port forwardings on a host network
+    # listPortForwardings      Host network name    List all available port
+    #                                               forwardings on a host network
     #
     #
-    # setPortForwarding        Host network name    Add or update a port forwarding on a host network
+    # setPortForwarding        Host network name    Add or update a port
+    #                                               forwarding on a host network
     #                          Protocol
     #                          Host port
     #                          Guest ip
@@ -291,9 +329,25 @@ class VMrun(object):
         '''List all available port forwardings on a host network'''
         return self.vmrun('listPortForwardings', host_network, quiet=quiet)
 
-    def setPortForwarding(self, host_network, protocol, host_port, guest_ip, guest_port, description=None, quiet=False):
+    def setPortForwarding(
+            self,
+            host_network,
+            protocol,
+            host_port,
+            guest_ip,
+            guest_port,
+            description=None,
+            quiet=False):
         '''Add or update a port forwarding on a host network'''
-        return self.vmrun('setPortForwarding', host_network, protocol, host_port, guest_ip, guest_port, description, quiet=quiet)
+        return self.vmrun(
+            'setPortForwarding',
+            host_network,
+            protocol,
+            host_port,
+            guest_ip,
+            guest_port,
+            description,
+            quiet=quiet)
 
     def deletePortForwarding(self, host_network, protocol, host_port, quiet=False):
         '''Delete a port forwarding on a host network'''
@@ -396,8 +450,23 @@ class VMrun(object):
     #                          [-wait]
     #
 
-    def runProgramInGuest(self, program_path, program_arguments=[], wait=True, activate_window=False, interactive=False, quiet=False):
-        return self.vmrun('runProgramInGuest', self.vmx_file, None if wait else '-noWait', '-activateWindow' if activate_window else None, '-interactive' if interactive else None, program_path, arguments=program_arguments, quiet=quiet)
+    def runProgramInGuest(
+            self,
+            program_path,
+            program_arguments=[],
+            wait=True,
+            activate_window=False,
+            interactive=False,
+            quiet=False):
+        return self.vmrun(
+            'runProgramInGuest',
+            self.vmx_file,
+            None if wait else '-noWait',
+            '-activateWindow' if activate_window else None,
+            '-interactive' if interactive else None,
+            program_path,
+            arguments=program_arguments,
+            quiet=quiet)
 
     def fileExistsInGuest(self, file, quiet=False):
         '''Check if a file exists in Guest OS'''
@@ -409,7 +478,13 @@ class VMrun(object):
 
     def setSharedFolderState(self, share_name, new_path, mode='readonly', quiet=False):
         '''Modify a Host-Guest shared folder'''
-        return self.vmrun('setSharedFolderState', self.vmx_file, share_name, new_path, mode, quiet=quiet)
+        return self.vmrun(
+            'setSharedFolderState',
+            self.vmx_file,
+            share_name,
+            new_path,
+            mode,
+            quiet=quiet)
 
     def addSharedFolder(self, share_name, host_path, quiet=False):
         '''Add a Host-Guest shared folder'''
@@ -434,9 +509,24 @@ class VMrun(object):
         '''Kill a process in Guest OS'''
         return self.vmrun('killProcessInGuest', self.vmx_file, pid, quiet=quiet)
 
-    def runScriptInGuest(self, interpreter_path, script, wait=True, activate_window=False, interactive=False, quiet=False):
+    def runScriptInGuest(
+            self,
+            interpreter_path,
+            script,
+            wait=True,
+            activate_window=False,
+            interactive=False,
+            quiet=False):
         '''Run a script in Guest OS'''
-        return self.vmrun('runScriptInGuest', self.vmx_file, interpreter_path, script, None if wait else '-noWait', '-activateWindow' if activate_window else None, '-interactive' if interactive else None, quiet=quiet)
+        return self.vmrun(
+            'runScriptInGuest',
+            self.vmx_file,
+            interpreter_path,
+            script,
+            None if wait else '-noWait',
+            '-activateWindow' if activate_window else None,
+            '-interactive' if interactive else None,
+            quiet=quiet)
 
     def deleteFileInGuest(self, file, quiet=False):
         '''Delete a file in Guest OS'''
@@ -460,11 +550,21 @@ class VMrun(object):
 
     def copyFileFromHostToGuest(self, host_path, guest_path, quiet=False):
         '''Copy a file from host OS to guest OS'''
-        return self.vmrun('copyFileFromHostToGuest', self.vmx_file, host_path, guest_path, quiet=quiet)
+        return self.vmrun(
+            'copyFileFromHostToGuest',
+            self.vmx_file,
+            host_path,
+            guest_path,
+            quiet=quiet)
 
     def copyFileFromGuestToHost(self, guest_path, host_path, quiet=False):
         '''Copy a file from guest OS to host OS'''
-        return self.vmrun('copyFileFromGuestToHost', self.vmx_file, guest_path, host_path, quiet=quiet)
+        return self.vmrun(
+            'copyFileFromGuestToHost',
+            self.vmx_file,
+            guest_path,
+            host_path,
+            quiet=quiet)
 
     def renameFileInGuest(self, original_name, new_name, quiet=False):
         '''Rename a file in Guest OS'''
@@ -497,7 +597,11 @@ class VMrun(object):
     def getGuestIPAddress(self, wait=True, quiet=False, lookup=False):
         '''Gets the IP address of the guest'''
         if lookup is True:
-            self.runScriptInGuest('/bin/sh', "ifconfig | grep -Eo 'inet (addr:)?([0-9]*\\.){3}[0-9]*' | grep -Eo '([0-9]*\\.){3}[0-9]*' | grep -v '127.0.0.1' > /tmp/ip_address", quiet=quiet)
+            self.runScriptInGuest(
+                '/bin/sh',
+                "ifconfig | grep -Eo 'inet (addr:)?([0-9]*\\.){3}[0-9]*' "
+                "| grep -Eo '([0-9]*\\.){3}[0-9]*' | grep -v '127.0.0.1' > /tmp/ip_address",
+                quiet=quiet)
             fp = tempfile.NamedTemporaryFile(delete=False)
             try:
                 fp.close()
