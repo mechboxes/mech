@@ -47,8 +47,8 @@ from .compat import raw_input, b2s
 logger = logging.getLogger(__name__)
 
 
-HOME = os.path.expanduser('~/.mech')
-DATA_DIR = os.path.join(HOME, 'data')
+MECH_DIR = os.path.expanduser(os.getcwd() + '/.mech')
+DATA_DIR = os.path.join(MECH_DIR, 'data')
 
 
 def makedirs(name, mode=0o777):
@@ -451,7 +451,7 @@ def add_mechfile(mechfile, name=None, version=None, force=False, save=True, requ
 
 def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
     boxname = os.path.basename(url)
-    box = os.path.join(*filter(None, (HOME, 'boxes', name, version, boxname)))
+    box = os.path.join(*filter(None, (MECH_DIR, 'boxes', name, version, boxname)))
     exists = os.path.exists(box)
     if not exists or force:
         if exists:
@@ -537,7 +537,7 @@ def add_box_file(name, version, filename, url=None, force=False, save=True):
     if valid_tar:
         if save:
             boxname = os.path.basename(url if url else filename)
-            box = os.path.join(*filter(None, (HOME, 'boxes', name, version, boxname)))
+            box = os.path.join(*filter(None, (MECH_DIR, 'boxes', name, version, boxname)))
             path = os.path.dirname(box)
             makedirs(path)
             if not os.path.exists(box) or force:

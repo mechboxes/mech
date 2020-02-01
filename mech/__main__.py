@@ -34,8 +34,8 @@ def main():
         from .mech import Mech
         from .utils import makedirs
 
-        HOME = os.path.expanduser('~/.mech')
-        makedirs(HOME)
+        MECH_DIR = os.path.expanduser(os.getcwd() + '/.mech')
+        makedirs(MECH_DIR)
         arguments = Mech.docopt(Mech.__doc__, argv=sys.argv[1:], version=VERSION)
         return Mech(arguments)()
     except KeyboardInterrupt:

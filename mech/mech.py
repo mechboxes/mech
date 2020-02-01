@@ -75,7 +75,7 @@ NE5OgEXk2wVfZczCZpigBKbKZHNYcelXtTt/nP3rsCuGcM4h53s=
 -----END RSA PRIVATE KEY-----
 """
 
-HOME = os.path.expanduser("~/.mech")
+MECH_DIR = os.path.expanduser(os.getcwd() + '/.mech')
 
 
 class MechCommand(Command):
@@ -160,7 +160,7 @@ class MechCommand(Command):
             )))
             sys.exit(1)
 
-        insecure_private_key = os.path.abspath(os.path.join(HOME, "insecure_private_key"))
+        insecure_private_key = os.path.abspath(os.path.join(MECH_DIR, "insecure_private_key"))
         if not os.path.exists(insecure_private_key):
             with open(insecure_private_key, 'w') as f:
                 f.write(INSECURE_PRIVATE_KEY)
@@ -258,7 +258,7 @@ class MechBox(MechCommand):
             'BOX'.rjust(35),
             'VERSION'.rjust(12),
         ))
-        path = os.path.abspath(os.path.join(HOME, 'boxes'))
+        path = os.path.abspath(os.path.join(MECH_DIR, 'boxes'))
         for root, dirnames, filenames in os.walk(path):
             for filename in fnmatch.filter(filenames, '*.box'):
                 directory = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
