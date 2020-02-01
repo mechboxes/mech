@@ -42,6 +42,32 @@ For help on any individual command run `mech <command> -h`
 
 Example:
 
+    mech up --help
+
+% mech up --help
+Starts and provisions the mech environment.
+
+Usage: mech up [options] [<instance>]
+
+Options:
+        --gui                        Start GUI
+        --disable-shared-folder      Do not share folder with VM
+        --provision                  Enable provisioning
+        --insecure                   Do not validate SSL certificates
+        --cacert FILE                CA certificate for SSL download
+        --capath DIR                 CA certificate directory for SSL download
+        --cert FILE                  A client SSL cert, if needed
+        --checksum CHECKSUM          Checksum for the box
+        --checksum-type TYPE         Checksum type (md5, sha1, sha256)
+        --no-cache                   Do not save the downloaded box
+        --memsize 1024               Specify the size of memory for VM
+        --numvcpus 1                 Specify the number of vcpus for VM
+    -h, --help                       Print this help
+
+
+Example using mech:
+
+
 Initializing and using a machine from HashiCorp's Vagrant Cloud:
 
     mech init bento/ubuntu-18.04
