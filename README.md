@@ -1,6 +1,6 @@
 # mech
 
-I made this because I don't like VirtualBox and I wanted to use vagrant
+One of the authors made this because they don't like VirtualBox and wanted to use vagrant
 with VMWare Fusion but was too cheap to buy the Vagrant plugin.
 
 https://blog.kchung.co/mech-vagrant-with-vmware-integration-for-free/
@@ -44,7 +44,7 @@ Example:
 
 Initializing and using a machine from HashiCorp's Vagrant Cloud:
 
-    mech init bento/ubuntu-14.04
+    mech init bento/ubuntu-18.04
     mech up
     mech ssh
 ```
@@ -62,6 +62,11 @@ to start.
 or for the latest:
 
 `pip install -U git+https://github.com/mechboxes/mech.git`
+
+There are some open PRs that have yet to be merged. Until they are, you may consider
+installing from:
+
+`pip install -U git+https://github.com/mkinney/mech.git@multi-pr#egg=mech`
 
 # Shared Folders
 
