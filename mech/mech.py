@@ -81,11 +81,8 @@ MECH_DIR = os.path.expanduser(os.getcwd() + '/.mech')
 class MechCommand(Command):
     active_mechfile = None
 
-    def activate_mechfile(self, path):
-        if path in self.mechfiles:
-            self.active_mechfile = self.mechfiles[path]
-        else:
-            self.active_mechfile = self.mechfiles[path] = utils.load_mechfile(path)
+    def activate_mechfile(self):
+        self.active_mechfile = utils.load_mechfile()
 
     def activate(self, instance_name=None):
         if not hasattr(self, 'mechfiles'):
@@ -100,13 +97,10 @@ class MechCommand(Command):
                             "Cannot find a valid path for '{}' instance".format(instance_name))))
                 sys.exit(1)
             path = os.path.abspath(os.path.expanduser(path))
-            os.chdir(path)
-            self.activate_mechfile(path)
+            self.activate_mechfile()
         else:
-            path = os.getcwd()
-            self.activate_mechfile(path)
-            instance_name = self.active_mechfile.get('name') or os.path.basename(
-                path)  # Use the Mechfile's name if available
+            self.activate_mechfile()
+            instance_name = self.active_mechfile.get('name')
         return instance_name
 
     def get(self, name, default=None):
@@ -538,12 +532,9 @@ class Mech(MechCommand):
         """
         Initializes a new mech environment by creating a Mechfile.
 
-        Usage: mech init [options] [<name>] [<location>]
+        Usage: mech init [options] <box>
 
-        Notes:
-            The box descriptor can be the name of a box on HashiCorp's Vagrant Cloud,
-            or a URL, a local .box or .tar file, or a local .json file containing
-            the catalog metadata.
+        Example box: bento/ubuntu-18.04
 
         Options:
             -f, --force                      Overwrite existing Mechfile
@@ -554,17 +545,18 @@ class Mech(MechCommand):
                 --box-version VERSION        Constrain version of the added box
                 --checksum CHECKSUM          Checksum for the box
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
-                --name INSTANCE              Name of the instance
+                --name INSTANCE              Name of the instance (myinst1)
+                --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
             -h, --help                       Print this help
         """
-        url = arguments['<location>']
-        if url:
-            name = arguments['<name>']
-        else:
-            url = arguments['<name>']
-            name = None
-        version = arguments['--box-version']
-        self.instance_name = arguments['--name']
+
+        name = arguments['--name']
+        box_version = arguments['--box-version']
+        box = arguments['<box>']
+
+        if not name or name == "":
+            name = "first"
+
         force = arguments['--force']
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
@@ -577,10 +569,9 @@ class Mech(MechCommand):
 
         puts_err(colored.green("Initializing mech"))
         if utils.init_mechfile(
-                self.instance_name,
-                url,
+                box,
                 name=name,
-                version=version,
+                box_version=box_version,
                 requests_kwargs=requests_kwargs):
             puts_err(colored.green(textwrap.fill(
                 "A `Mechfile` has been initialized and placed in this directory. "
@@ -624,6 +615,7 @@ class Mech(MechCommand):
         memsize = arguments['--memsize']
 
         vmx = utils.init_box(
+            self.instance_name,
             self.box_name,
             self.box_version,
             requests_kwargs=requests_kwargs,
@@ -736,24 +728,23 @@ class Mech(MechCommand):
 
         if self.instance_name:
             instance = utils.settle_instance(self.instance_name)
-            path = instance['path']
+            inst_path = instance['path']
         else:
-            path = os.getcwd()
-        mech_path = os.path.join(path, '.mech')
+            inst_path = os.getcwd()
 
-        if os.path.exists(mech_path):
+        if os.path.exists(inst_path):
             if force or utils.confirm(
-                "Are you sure you want to delete {self.instance_name} at {path}".format(
-                    instance_name=self.instance_name, path=path), default='n'):
+                "Are you sure you want to delete {instance_name} at {inst_path}".format(
+                    instance_name=self.instance_name, inst_path=inst_path), default='n'):
                 puts_err(colored.green("Deleting..."))
                 vmrun = VMrun(self.vmx, user=self.user, password=self.password)
                 vmrun.stop(mode='hard', quiet=True)
                 time.sleep(3)
                 vmrun.deleteVM()
-                if os.path.exists(mech_path):
-                    shutil.rmtree(mech_path)
+                if os.path.exists(inst_path):
+                    shutil.rmtree(inst_path)
                 else:
-                    logger.debug("{} was not found.".format(mech_path))
+                    logger.debug("{} was not found.".format(inst_path))
             else:
                 puts_err(colored.red("Deletion aborted"))
         else:
@@ -1146,7 +1137,7 @@ class Mech(MechCommand):
             path = instance.get('path')
             if path and os.path.exists(path):
                 self.activate(instance_name)
-                mech_path = os.path.join(path, '.mech')
+                mech_path = os.path.join(path, '.mech/' + instance_name)
                 if os.path.exists(mech_path):
                     vmx = self.get_vmx(silent=True)
                     if vmx:
