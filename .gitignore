@@ -6,3 +6,5 @@ dist/
 mech.egg-info/
 .mech/
 Mechfile
+.*swp
+venv/
