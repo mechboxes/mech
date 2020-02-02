@@ -75,10 +75,14 @@ NE5OgEXk2wVfZczCZpigBKbKZHNYcelXtTt/nP3rsCuGcM4h53s=
 -----END RSA PRIVATE KEY-----
 """
 
+MAIN_DIR = os.path.expanduser(os.getcwd())
 MECH_DIR = os.path.expanduser(os.getcwd() + '/.mech')
 
 
 class MechCommand(Command):
+    """Class to hold the Mechfile (as python object) and an active
+       instance's configuration.
+    """
     mechfile = None
     active_name = None
     created = False
@@ -89,6 +93,7 @@ class MechCommand(Command):
     user = None
     password = None
     enable_ip_lookup = False
+    config = {}
 
     def activate_mechfile(self):
         """Load the Mechfile."""
@@ -116,6 +121,7 @@ class MechCommand(Command):
         self.user = None
         self.password = None
         self.enable_ip_lookup = False
+        self.config = {}
         os.chdir(MECH_DIR)
 
     def activate(self, name):
@@ -172,11 +178,9 @@ class MechCommand(Command):
         """Enable ip lookup (defaults to False)."""
         return self.enable_ip_lookup
 
-    @property
-    def config(self):
-        return self.get('config', {}).get('ssh', {})
+#    def config(self):
+#        return self.config.get('ssh', {})
 
-    @property
     def config_ssh(self):
         vmrun = VMrun(self.vmx, user=self.user, password=self.password)
         lookup = self.enable_ip_lookup
@@ -195,7 +199,7 @@ class MechCommand(Command):
             with open(insecure_private_key, 'w') as f:
                 f.write(INSECURE_PRIVATE_KEY)
             os.chmod(insecure_private_key, 0o400)
-        config = {
+        self.config = {
             "Host": self.active_name,
             "User": self.user,
             "Port": "22",
@@ -217,11 +221,11 @@ class MechCommand(Command):
             k = re.sub(r' (\w)', callback, k)
             if k[0].islower():
                 k = k[0].upper() + k[1:]
-            config[k] = v
-        config.update({
+            self.config[k] = v
+        self.config.update({
             "HostName": ip,
         })
-        return config
+        return self.config
 
 
 class MechBox(MechCommand):
@@ -945,13 +949,13 @@ class Mech(MechCommand):
 
         for instance in instances:
             self.activate(instance)
-            print(utils.config_ssh_string(self.config_ssh))
+            print(utils.config_ssh_string(self.config_ssh()))
 
     def ssh(self, arguments):
         """
         Connects to machine via SSH.
 
-        Usage: mech ssh [options] [<instance>] [-- <extra_ssh_args>...]
+        Usage: mech ssh [options] <instance> [-- <extra_ssh_args>...]
 
         Options:
             -c, --command COMMAND            Execute an SSH command directly
@@ -964,59 +968,50 @@ class Mech(MechCommand):
 
         instance_name = arguments['<instance>']
 
-        if instance_name:
-            # single instance
-            instances = [instance_name]
-        else:
-            # multiple instances
-            instances = self.instances()
+        self.activate(instance_name)
 
-        for instance in instances:
-            self.activate(instance)
+        config_ssh = self.config_ssh()
+        fp = tempfile.NamedTemporaryFile(delete=False)
+        try:
+            fp.write(utils.config_ssh_string(config_ssh).encode('utf-8'))
+            fp.close()
 
-            config_ssh = self.config_ssh
-            fp = tempfile.NamedTemporaryFile(delete=False)
-            try:
-                fp.write(utils.config_ssh_string(config_ssh).encode('utf-8'))
-                fp.close()
+            cmds = ['ssh']
+            if not plain:
+                cmds.extend(('-F', fp.name))
+            if extra:
+                cmds.extend(extra)
+            if not plain:
+                cmds.append(config_ssh['Host'])
+            if command:
+                cmds.extend(('--', command))
 
-                cmds = ['ssh']
-                if not plain:
-                    cmds.extend(('-F', fp.name))
-                if extra:
-                    cmds.extend(extra)
-                if not plain:
-                    cmds.append(config_ssh['Host'])
-                if command:
-                    cmds.extend(('--', command))
-
-                logger.debug(
-                    " ".join(
-                        "'{}'".format(
-                            c.replace(
-                                "'",
-                                "\\'")) if ' ' in c else c for c in cmds))
-                return subprocess.call(cmds)
-            finally:
-                os.unlink(fp.name)
+            logger.debug(
+                " ".join(
+                    "'{}'".format(
+                        c.replace(
+                            "'",
+                            "\\'")) if ' ' in c else c for c in cmds))
+            return subprocess.call(cmds)
+        finally:
+            os.unlink(fp.name)
 
     def scp(self, arguments):
         """
         Copies files to and from the machine via SCP.
 
-        Usage: mech scp [options] <src> <dst> [-- <extra scp args>...]
+        Usage: mech scp [options] <src> <dst> [-- <extra_ssh_args>...]
 
         Options:
             -h, --help                       Print this help
         """
-        extra = arguments['<extra scp args>']
+        extra = arguments['<extra_ssh_args>']
         src = arguments['<src>']
         dst = arguments['<dst>']
 
         dst_instance, dst_is_host, dst = dst.partition(':')
         src_instance, src_is_host, src = src.partition(':')
 
-        # TODO: review this
         if dst_is_host and src_is_host:
             puts_err(colored.red("Both src and host are host destinations"))
             sys.exit(1)
@@ -1029,12 +1024,18 @@ class Mech(MechCommand):
         else:
             src = src_instance
 
-        self.instance_name = self.activate(instance_name)
+        self.activate(instance_name)
 
-        config_ssh = self.config_ssh
+        config_ssh = self.config_ssh()
         fp = tempfile.NamedTemporaryFile(delete=False)
+
+        # when we activate, we change to the directory where the .vmx file is
+        # since we are trying to copy files, we need to go back to the
+        # directory that we started in
+        os.chdir(MAIN_DIR)
+
         try:
-            fp.write(utils.config_ssh_string(config_ssh))
+            fp.write(utils.config_ssh_string(config_ssh).encode())
             fp.close()
 
             cmds = ['scp']
@@ -1061,34 +1062,25 @@ class Mech(MechCommand):
         """
         Outputs ip of the Mech machine.
 
-        Usage: mech ip [options] [<instance>]
+        Usage: mech ip [options] <instance>
 
         Options:
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
 
-        if instance_name:
-            # single instance
-            instances = [instance_name]
-        else:
-            # TODO: Does it make sense to have multiple?
-            # multiple instances
-            instances = self.instances()
+        self.activate(instance_name)
 
-        for instance in instances:
-            self.activate(instance)
-
-            if self.created:
-                vmrun = VMrun(self.vmx, user=self.user, password=self.password)
-                lookup = self.enable_ip_lookup
-                ip = vmrun.getGuestIPAddress(lookup=lookup)
-                if ip:
-                    puts_err(colored.green(ip))
-                else:
-                    puts_err(colored.red("Unknown IP address"))
+        if self.created:
+            vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+            lookup = self.enable_ip_lookup
+            ip = vmrun.getGuestIPAddress(lookup=lookup)
+            if ip:
+                puts_err(colored.green(ip))
             else:
-                puts_err(colored.yellow("VM not created"))
+                puts_err(colored.red("Unknown IP address"))
+        else:
+            puts_err(colored.yellow("VM not created"))
 
     def provision(self, arguments):
         """

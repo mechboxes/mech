@@ -20,6 +20,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+"""Handle the mech commands."""
 
 from __future__ import absolute_import
 
@@ -35,6 +36,7 @@ NBSP = '__'
 
 
 def cmd_usage(doc):
+    """Show the command usage."""
     return doc.replace(NBSP, ' ')
 
 
@@ -42,6 +44,7 @@ docopt_extras_ref = docopt.extras
 
 
 def docopt_extras(help, version, options, doc):
+    """Show the extra help info."""
     return docopt_extras_ref(help, version, options, cmd_usage(doc))
 
 
@@ -54,6 +57,7 @@ docopt.DocoptExit.__init__ = DocoptExit____init__
 
 
 def spaced(name):
+    """Return the name?"""
     name = re.sub(r'[ _]+', r' ', name)
     name = re.sub(r'(?<=[^_])([A-Z])', r' \1', name).lower()
     return re.sub(r'^( *)(.*?)( *)$', r'\2', name)
@@ -103,4 +107,5 @@ class Command(object):
         return obj
 
     def run(self):
+        """Run the command."""
         raise docopt.DocoptExit()

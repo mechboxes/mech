@@ -51,6 +51,7 @@ DATA_DIR = os.path.join(MECH_DIR, 'data')
 
 
 def makedirs(name, mode=0o777):
+    """Make directories with mode supplied."""
     try:
         os.makedirs(name, mode)
     except OSError:
@@ -58,6 +59,7 @@ def makedirs(name, mode=0o777):
 
 
 def uncomment(text):
+    """Uncomment a line of text."""
     def e(m):
         return '\x00%02x' % ord(m.group(1))
     e.re = re.compile(r'\\(.)', re.DOTALL | re.MULTILINE)
@@ -79,6 +81,7 @@ def uncomment(text):
 
 
 def confirm(prompt, default='y'):
+    """Confirmation prompt."""
     default = default.lower()
     if default not in ['y', 'n']:
         default = 'y'
@@ -101,6 +104,7 @@ def confirm(prompt, default='y'):
 
 
 def save_mechfile(mechfile, name, path):
+    """Save the Mechfile."""
     multiple_mechfiles = {name: mechfile}
     with open(os.path.join(path, 'Mechfile'), 'w+') as fp:
         json.dump(multiple_mechfiles, fp, sort_keys=True, indent=2, separators=(',', ': '))
@@ -108,6 +112,7 @@ def save_mechfile(mechfile, name, path):
 
 
 def locate(path, glob):
+    """Locate a file in the path provided."""
     for root, dirnames, filenames in os.walk(path):
         for filename in filenames:
             if fnmatch.fnmatch(filename, glob):
@@ -115,6 +120,7 @@ def locate(path, glob):
 
 
 def parse_vmx(path):
+    """Parse the virtual machine configuration (.vmx) file."""
     vmx = collections.OrderedDict()
     with open(path) as fp:
         for line in fp:
@@ -125,6 +131,9 @@ def parse_vmx(path):
 
 
 def update_vmx(path, numvcpus=None, memsize=None):
+    """Update the virtual machine configuration (.vmx)
+       file with desired settings.
+    """
     updated = False
 
     vmx = parse_vmx(path)
@@ -171,6 +180,7 @@ def update_vmx(path, numvcpus=None, memsize=None):
 
 
 def load_mechfile():
+    """Load the Mechfile from disk."""
     mechfile_full = os.path.join(os.path.expanduser(os.getcwd()), 'Mechfile')
     if os.path.isfile(mechfile_full):
         with open(mechfile_full) as fp:
@@ -190,6 +200,7 @@ def load_mechfile():
 
 
 def build_mechfile(descriptor, name=None, box_version=None, requests_kwargs={}):
+    """Build the Mechfile from the inputs."""
     mechfile = {}
     if descriptor is None:
         return mechfile
@@ -241,6 +252,7 @@ def build_mechfile(descriptor, name=None, box_version=None, requests_kwargs={}):
 
 
 def catalog_to_mechfile(catalog, name=None, version=None):
+    """Convert the Hashicorp cloud catalog entry to Mechfile entry."""
     mechfile = {}
     versions = catalog.get('versions', [])
     for v in versions:
@@ -262,6 +274,7 @@ def catalog_to_mechfile(catalog, name=None, version=None):
 
 
 def tar_cmd(*args, **kwargs):
+    """Build the tar command to be used to extract the box."""
     try:
         startupinfo = None
         if os.name == "nt":
@@ -285,16 +298,13 @@ def tar_cmd(*args, **kwargs):
     return tar
 
 
-def init_box(
-        name,
-        box,
-        box_version,
-        force=False,
-        save=True,
-        instance_path=None,
-        requests_kwargs={},
-        numvcpus=None,
-        memsize=None):
+def init_box(name, box, box_version, force=False, save=True,
+             instance_path=None, requests_kwargs={}, numvcpus=None,
+             memsize=None):
+    """Initialize the box. This includes uncompressing the files
+       from the box file and updating the vmx file with
+       desired settings.
+    """
     if not locate(instance_path, '*.vmx'):
         name_version_box = add_box(
             name=name,
@@ -340,11 +350,13 @@ def init_box(
         sys.exit(1)
 
     update_vmx(vmx, numvcpus=numvcpus, memsize=memsize)
-
     return vmx
 
 
 def add_box(name=None, box=None, box_version=None, force=False, save=True, requests_kwargs={}):
+    """Add a box.
+       TODO: Not quite sure why we have this function.
+    """
     # build the dict
     mechfile = build_mechfile(
         box,
@@ -390,6 +402,7 @@ def add_mechfile(mechfile, name=None, box=None, box_version=None,
 
 
 def add_box_url(name, box, box_version, url, force=False, save=True, requests_kwargs={}):
+    """Add a box using the URL."""
     boxname = os.path.basename(url)
     box_parts = box.split('/')
     box_dir = os.path.join(*filter(None, (MECH_DIR, 'boxes',
@@ -448,6 +461,7 @@ def add_box_url(name, box, box_version, url, force=False, save=True, requests_kw
 
 
 def add_box_file(box, box_version, filename, url=None, force=False, save=True):
+    """Add a box using a file as the source."""
     puts_err(colored.blue("Checking box '{}' integrity filename:{}...".format(box, filename)))
 
     if sys.platform == 'win32':
@@ -490,6 +504,7 @@ def add_box_file(box, box_version, filename, url=None, force=False, save=True):
 
 
 def init_mechfile(box=None, name=None, box_version=None, requests_kwargs={}):
+    """Initialize the Mechfile."""
     path = os.path.expanduser(os.getcwd())
     mechfile = build_mechfile(
         box,
@@ -501,6 +516,7 @@ def init_mechfile(box=None, name=None, box_version=None, requests_kwargs={}):
 
 
 def get_requests_kwargs(arguments):
+    """Get the requests key word arguments."""
     requests_kwargs = {}
     if arguments['--insecure']:
         requests_kwargs['verify'] = False
@@ -514,10 +530,12 @@ def get_requests_kwargs(arguments):
 
 
 def provision_file(vm, source, destination):
+    """Provision from file."""
     return vm.copyFileFromHostToGuest(source, destination)
 
 
 def provision_shell(vm, inline, path, args=[]):
+    """Provision from shell."""
     tmp_path = vm.createTempfileInGuest()
     if tmp_path is None:
         return
@@ -569,6 +587,7 @@ def provision_shell(vm, inline, path, args=[]):
 
 
 def config_ssh_string(config_ssh):
+    """Build the ssh-config string."""
     ssh_config = "Host {}".format(config_ssh['Host']) + os.linesep
     for k, v in config_ssh.items():
         if k != 'Host':
