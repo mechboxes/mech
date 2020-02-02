@@ -231,10 +231,8 @@ class MechBox(MechCommand):
 
     Available subcommands:
         add               add a box to the catalog of available boxes
-        list              list available boxes in the catalog
-        outdated          checks for outdated boxes
-        remove            removes a box that matches the given name
-        update
+        (list|ls)         list available boxes in the catalog
+        (remove|delete)   removes a box that matches the given name
 
     For help on any individual subcommand run `mech box <subcommand> -h`
     """
@@ -243,12 +241,10 @@ class MechBox(MechCommand):
         """
         Add a box to the catalog of available boxes.
 
-        Usage: mech box add [options] [<name>] [<location>]
+        Usage: mech box add [options] <location>
 
         Notes:
-            The box descriptor can be the name of a box on HashiCorp's Vagrant Cloud,
-            or a URL, a local .box or .tar file, or a local .json file containing
-            the catalog metadata.
+            The location can be a URL, local .box file, or 'bento/ubuntu-18.04'.
 
         Options:
             -f, --force                      Overwrite an existing box if it exists
@@ -261,16 +257,14 @@ class MechBox(MechCommand):
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
             -h, --help                       Print this help
         """
-        url = arguments['<location>']
-        if url:
-            name = arguments['<name>']
-        else:
-            url = arguments['<name>']
-            name = None
-        version = arguments['--box-version']
+
+        location = arguments['<location>']
+        box_version = arguments['--box-version']
+
         force = arguments['--force']
         requests_kwargs = utils.get_requests_kwargs(arguments)
-        utils.add_box(url, name=name, version=version, force=force, requests_kwargs=requests_kwargs)
+        utils.add_box(name=None, box=location, box_version=box_version,
+                      force=force, requests_kwargs=requests_kwargs)
 
     def list(self, arguments):
         """
@@ -296,57 +290,25 @@ class MechBox(MechCommand):
                     "{}/{}".format(account, box).rjust(35),
                     version.rjust(12),
                 ))
+    # add alias for 'mech box ls'
     ls = list
-
-    def outdated(self, arguments):
-        """
-        Checks if there is a new version available for the box.
-
-        Usage: mech box outdated [options]
-
-        Options:
-                --global                     Check all boxes installed
-                --insecure                   Do not validate SSL certificates
-                --cacert FILE                CA certificate for SSL download
-                --capath DIR                 CA certificate directory for SSL download
-                --cert FILE                  A client SSL cert, if needed
-            -h, --help                       Print this help
-        """
-        puts_err(colored.red("Not implemented!"))
 
     def remove(self, arguments):
         """
-        Remove a box from mech that matches the given name.
+        Remove a box from mech that matches the given name and version.
 
-        Usage: mech box remove [options] <name>
-
-        Options:
-            -f, --force                      Remove without confirmation.
-                --box-version VERSION        The specific version of the box to remove
-                --all                        Remove all available versions of the box
-            -h, --help                       Print this help
-        """
-        puts_err(colored.red("Not implemented!"))
-
-    def update(self, arguments):
-        """
-        Update the box that is in use in the current mech environment.
-
-        Usage: mech box update [options] [<name>]
-
-        Notes:
-            Only if there any updates available. This does not destroy/recreate
-            the machine, so you'll have to do that to see changes.
+        Usage: mech box remove [options] <name> <version>
 
         Options:
-            -f, --force                      Overwrite an existing box if it exists
-                --insecure                   Do not validate SSL certificates
-                --cacert FILE                CA certificate for SSL download
-                --capath DIR                 CA certificate directory for SSL download
-                --cert FILE                  A client SSL cert, if needed
             -h, --help                       Print this help
         """
-        puts_err(colored.red("Not implemented!"))
+        name = arguments['<name>']
+        box_version = arguments['<version>']
+        path = os.path.abspath(os.path.join(MECH_DIR, 'boxes', name, box_version))
+        if os.path.exists(path):
+            shutil.rmtree(path)
+    # add alias for 'mech box delete'
+    delelete = remove
 
 
 class MechSnapshot(MechCommand):
