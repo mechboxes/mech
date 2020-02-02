@@ -38,7 +38,6 @@ import collections
 from shutil import copyfile
 
 import requests
-from filelock import Timeout, FileLock
 from clint.textui import colored, puts_err
 from clint.textui import progress
 
@@ -102,7 +101,7 @@ def confirm(prompt, default='y'):
 
 
 def save_mechfile(mechfile, name, path):
-    multiple_mechfiles = { name: mechfile }
+    multiple_mechfiles = {name: mechfile}
     with open(os.path.join(path, 'Mechfile'), 'w+') as fp:
         json.dump(multiple_mechfiles, fp, sort_keys=True, indent=2, separators=(',', ': '))
     return True
@@ -169,69 +168,6 @@ def update_vmx(path, numvcpus=None, memsize=None):
     # puts_err(colored.yellow("Upgrading VM..."))
     # vmrun = VMrun(path)
     # vmrun.upgradevm()
-
-
-def instances():
-    makedirs(DATA_DIR)
-    index_path = os.path.join(DATA_DIR, 'index')
-    index_lock = os.path.join(DATA_DIR, 'index.lock')
-    try:
-        with FileLock(index_lock, timeout=3):
-            updated = False
-            if os.path.exists(index_path):
-                with open(index_path) as fp:
-                    instances = json.loads(uncomment(fp.read()))
-            else:
-                instances = {}
-            if updated:
-                with open(index_path, 'w') as fp:
-                    json.dump(instances, fp, sort_keys=True, indent=2, separators=(',', ': '))
-            return instances
-    except Timeout:
-        puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
-        sys.exit(1)
-    except json.decoder.JSONDecodeError:
-        puts_err(
-            colored.red(
-                textwrap.fill(
-                    "Index file seems broken. Try to remove {}.".format(index_path))))
-        sys.exit(1)
-
-
-def settle_instance(instance_name, obj=None, force=False):
-    print('in settle_instance instance_name:{}'.format(instance_name))
-    makedirs(DATA_DIR)
-    index_path = os.path.join(DATA_DIR, 'index')
-    index_lock = os.path.join(DATA_DIR, 'index.lock')
-    try:
-        with FileLock(index_lock, timeout=3):
-            updated = False
-            if os.path.exists(index_path):
-                with open(index_path) as fp:
-                    instances = json.loads(uncomment(fp.read()))
-                    print('instances:{}'.format(instances))
-            else:
-                instances = {}
-            instance_data = instances.get(instance_name)
-            if not instance_data or force:
-                if obj:
-                    instance_data = instances[instance_name] = obj
-                    updated = True
-                else:
-                    instance_data = {}
-            if updated:
-                with open(index_path, 'w') as fp:
-                    json.dump(instances, fp, sort_keys=True, indent=2, separators=(',', ': '))
-            return instance_data
-    except Timeout:
-        puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
-        sys.exit(1)
-    except json.decoder.JSONDecodeError:
-        puts_err(
-            colored.red(
-                textwrap.fill(
-                    "Index file seems broken. Try to remove {}.".format(index_path))))
-        sys.exit(1)
 
 
 def load_mechfile():
@@ -371,13 +307,10 @@ def init_box(
             puts_err(colored.red("Cannot find a valid box with a VMX file in it"))
             sys.exit(1)
 
-        #print('box:{}'.format(box))
         box_parts = box.split('/')
         box_dir = os.path.join(*filter(None, (MECH_DIR, 'boxes',
                                box_parts[0], box_parts[1], box_version)))
-        #print('box_dir:{}'.format(box_dir))
         box_file = locate(box_dir, '*.box')
-        #print('box_file:{}'.format(box_file))
 
         puts_err(colored.blue("Extracting box '{}'...".format(box_file)))
         makedirs(instance_path)
@@ -402,10 +335,9 @@ def init_box(
             os.unlink(box)
 
     vmx = locate(instance_path, '*.vmx')
-    if not vmx and not silent:
+    if not vmx:
         puts_err(colored.red("Cannot locate a VMX file"))
         sys.exit(1)
-    #print('in init_box name:{} vmx:{}'.format(name, vmx))
 
     update_vmx(vmx, numvcpus=numvcpus, memsize=memsize)
 
@@ -419,7 +351,6 @@ def add_box(name=None, box=None, box_version=None, force=False, save=True, reque
         name=name,
         box_version=box_version,
         requests_kwargs=requests_kwargs)
-    #print('mechfile:{}'.format(mechfile))
 
     return add_mechfile(
         mechfile,
@@ -464,7 +395,6 @@ def add_box_url(name, box, box_version, url, force=False, save=True, requests_kw
     box_dir = os.path.join(*filter(None, (MECH_DIR, 'boxes',
                            box_parts[0], box_parts[1], box_version)))
     exists = os.path.exists(box_dir)
-    print("box_parts:{} box_dir:{} exists:{}".format(box_parts, box_dir, exists))
     if not exists or force:
         if exists:
             puts_err(colored.blue("Attempting to download box '{}'...".format(box)))
@@ -559,23 +489,8 @@ def add_box_file(box, box_version, filename, url=None, force=False, save=True):
         return box, box_version
 
 
-def index_active_instance(name):
-    path = os.path.join(MECH_DIR, name)
-    print('in index_active_index path:{}'.format(path))
-    instance = settle_instance(name, {
-        'path': path,
-    })
-    if instance.get('path') != path:
-        puts_err(colored.red(textwrap.fill((
-            "There is already a Mech box with the name '{}' at {}"
-        ).format(name, instance.get('path')))))
-        sys.exit(1)
-    return path
-
-
 def init_mechfile(box=None, name=None, box_version=None, requests_kwargs={}):
     path = os.path.expanduser(os.getcwd())
-    print("in init_mechfile name:{}".format(name))
     mechfile = build_mechfile(
         box,
         name=name,
