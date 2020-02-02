@@ -178,9 +178,6 @@ class MechCommand(Command):
         """Enable ip lookup (defaults to False)."""
         return self.enable_ip_lookup
 
-#    def config(self):
-#        return self.config.get('ssh', {})
-
     def config_ssh(self):
         vmrun = VMrun(self.vmx, user=self.user, password=self.password)
         lookup = self.enable_ip_lookup
@@ -368,7 +365,7 @@ class MechSnapshot(MechCommand):
         """
         Delete a snapshot taken previously with snapshot save.
 
-        Usage: mech snapshot delete [options] <name> [<instance>]
+        Usage: mech snapshot delete [options] <name> <instance>
 
         Options:
             -h, --help                       Print this help
@@ -376,22 +373,13 @@ class MechSnapshot(MechCommand):
         name = arguments['<name>']
 
         instance_name = arguments['<instance>']
+        self.activate(instance_name)
 
-        if instance_name:
-            # single instance
-            instances = [instance_name]
+        vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+        if vmrun.deleteSnapshot(name) is None:
+            puts_err(colored.red("Cannot delete name"))
         else:
-            # multiple instances
-            instances = self.instances()
-
-        for instance in instances:
-            self.activate(instance)
-
-            vmrun = VMrun(self.vmx, user=self.user, password=self.password)
-            if vmrun.deleteSnapshot(name) is None:
-                puts_err(colored.red("Cannot delete name"))
-            else:
-                puts_err(colored.green("Snapshot {} deleted".format(name)))
+            puts_err(colored.green("Snapshot {} deleted".format(name)))
 
     def list(self, arguments):
         """
@@ -414,44 +402,33 @@ class MechSnapshot(MechCommand):
         for instance in instances:
             self.activate(instance)
             vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+            print('Snapshots for instance:{}'.format(instance))
             print(vmrun.listSnapshots())
 
     def save(self, arguments):
         """
         Take a snapshot of the current state of the machine.
 
-        Usage: mech snapshot save [options] <name> [<instance>]
+        Usage: mech snapshot save [options] <name> <instance>
 
         Notes:
-            Take a snapshot of the current state of the machine. The snapshot
-            can be restored via `mech snapshot restore` at any point in the
-            future to get back to this exact machine state.
+            Take a snapshot of the current state of the machine.
 
             Snapshots are useful for experimenting in a machine and being able
             to rollback quickly.
 
         Options:
-            -f  --force                      Replace snapshot without confirmation
             -h, --help                       Print this help
         """
         name = arguments['<name>']
-
         instance_name = arguments['<instance>']
 
-        if instance_name:
-            # single instance
-            instances = [instance_name]
+        self.activate(instance_name)
+        vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+        if vmrun.snapshot(name) is None:
+            puts_err(colored.red("Cannot take snapshot. Please provide a name."))
         else:
-            # multiple instances
-            instances = self.instances()
-
-        for instance in instances:
-            self.activate(instance)
-            vmrun = VMrun(self.vmx, user=self.user, password=self.password)
-            if vmrun.snapshot(name) is None:
-                puts_err(colored.red("Cannot take snapshot"))
-            else:
-                puts_err(colored.green("Snapshot {} taken".format(name)))
+            puts_err(colored.green("Snapshot {} taken".format(name)))
 
 
 class Mech(MechCommand):
@@ -484,7 +461,6 @@ class Mech(MechCommand):
         resume            resume a paused/suspended Mech machine
         snapshot          manages snapshots: saving, restoring, etc.
         port              displays information about guest port mappings
-        push              deploys code in this environment to a configured destination
 
     For help on any individual command run `mech <command> -h`
 
@@ -657,7 +633,6 @@ class Mech(MechCommand):
         Usage: mech global-status [options]
 
         Options:
-                --prune                      Prune invalid entries
             -h, --help                       Print this help
         """
         vmrun = VMrun()
@@ -667,24 +642,15 @@ class Mech(MechCommand):
         """
         List running processes in Guest OS.
 
-        Usage: mech ps [options] [<instance>]
+        Usage: mech ps [options] <instance>
 
         Options:
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
-
-        if instance_name:
-            # single instance
-            instances = [instance_name]
-        else:
-            # multiple instances
-            instances = self.instances()
-
-        for instance in instances:
-            self.activate(instance)
-            vmrun = VMrun(self.vmx, self.user, self.password)
-            print(vmrun.listProcessesInGuest())
+        self.activate(instance_name)
+        vmrun = VMrun(self.vmx, self.user, self.password)
+        print(vmrun.listProcessesInGuest())
 
     def status(self, arguments):
         """
