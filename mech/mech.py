@@ -273,7 +273,6 @@ class MechBox(MechCommand):
         Usage: mech box list [options]
 
         Options:
-            -i, --box-info                   Displays additional information about the boxes
             -h, --help                       Print this help
         """
 
@@ -308,7 +307,7 @@ class MechBox(MechCommand):
         if os.path.exists(path):
             shutil.rmtree(path)
     # add alias for 'mech box delete'
-    delelete = remove
+    delete = remove
 
 
 class MechSnapshot(MechCommand):
@@ -316,8 +315,8 @@ class MechSnapshot(MechCommand):
     Usage: mech snapshot <subcommand> [<args>...]
 
     Available subcommands:
-        delete            delete a snapshot taken previously with snapshot save
-        list              list all snapshots taken for a machine
+        (delete|remove)   delete a snapshot taken previously with snapshot save
+        (list|ls)         list all snapshots taken for a machine
         save              take a snapshot of the current state of the machine
 
     For help on any individual subcommand run `mech snapshot <subcommand> -h`
@@ -342,6 +341,8 @@ class MechSnapshot(MechCommand):
             puts_err(colored.red("Cannot delete name"))
         else:
             puts_err(colored.green("Snapshot {} deleted".format(name)))
+    # add alias for 'mech snapshot remove'
+    remove = delete
 
     def list(self, arguments):
         """
@@ -366,6 +367,8 @@ class MechSnapshot(MechCommand):
             vmrun = VMrun(self.vmx, user=self.user, password=self.password)
             print('Snapshots for instance:{}'.format(instance))
             print(vmrun.listSnapshots())
+    # add alias for 'mech snapshot ls'
+    ls = list
 
     def save(self, arguments):
         """
@@ -405,23 +408,23 @@ class Mech(MechCommand):
     Common commands:
         (list|ls)         lists all available boxes
         init              initializes a new Mech environment by creating a Mechfile
-        destroy           stops and deletes all traces of the Mech machine
-        (up|start)        starts and provisions the Mech environment
-        (down|stop|halt)  stops the Mech machine
-        suspend           suspends the machine
-        pause             pauses the Mech machine
-        ssh               connects to machine via SSH
-        ssh-config        outputs OpenSSH valid configuration to connect to the machine
-        scp               copies files to and from the machine via SCP
-        ip                outputs ip of the Mech machine
-        box               manages boxes: installation, removal, etc.
-        global-status     outputs status Mech environments for this user
-        status            outputs status of the Mech machine
-        ps                list running processes in Guest OS
+        destroy           stops and deletes all traces of the instances
+        (up|start)        starts instances (aka virtual machines)
+        (down|stop|halt)  stops the instances
+        suspend           suspends the instances
+        pause             pauses the instances
+        ssh               connects to an instance via SSH
+        ssh-config        outputs OpenSSH valid configuration to connect to the instances
+        scp               copies files to/from the machine via SCP
+        ip                outputs ip of an instance
+        box               manages boxes: add, list remove, etc.
+        global-status     outputs status of all virutal machines on this host
+        status            outputs status of the instances
+        ps                list running processes for an instance
         provision         provisions the Mech machine
         reload            restarts Mech machine, loads new Mechfile configuration
         resume            resume a paused/suspended Mech machine
-        snapshot          manages snapshots: saving, restoring, etc.
+        snapshot          manages snapshots: save, list, remove, etc.
         port              displays information about guest port mappings
 
     For help on any individual command run `mech <command> -h`
@@ -430,7 +433,7 @@ class Mech(MechCommand):
 
     Initializing and using a machine from HashiCorp's Vagrant Cloud:
 
-        mech init bento/ubuntu-14.04
+        mech init bento/ubuntu-18.04
         mech up
         mech ssh
     """
@@ -514,7 +517,6 @@ class Mech(MechCommand):
         Options:
                 --gui                        Start GUI
                 --disable-shared-folder      Do not share folder with VM
-                --provision                  Enable provisioning
                 --insecure                   Do not validate SSL certificates
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
@@ -590,7 +592,7 @@ class Mech(MechCommand):
 
     def global_status(self, arguments):
         """
-        Outputs mech environments status for this user.
+        Outputs info about all VMs running on this computer.
 
         Usage: mech global-status [options]
 
@@ -616,7 +618,7 @@ class Mech(MechCommand):
 
     def status(self, arguments):
         """
-        Outputs status of the Mech machine.
+        Outputs status of the instances.
 
         Usage: mech status [options] [<instance>]
 
@@ -660,7 +662,7 @@ class Mech(MechCommand):
 
     def destroy(self, arguments):
         """
-        Stops and deletes all traces of the Mech machine.
+        Stops and deletes all traces of the instances.
 
         Usage: mech destroy [options] [<instance>]
 
@@ -709,7 +711,7 @@ class Mech(MechCommand):
 
     def down(self, arguments):
         """
-        Stops the Mech machine.
+        Stops the instances.
 
         Usage: mech down [options] [<instance>]
 
@@ -747,7 +749,7 @@ class Mech(MechCommand):
 
     def pause(self, arguments):
         """
-        Pauses the Mech machine.
+        Pauses the instances.
 
         Usage: mech pause [options] [<instance>]
 
@@ -773,12 +775,11 @@ class Mech(MechCommand):
 
     def resume(self, arguments):
         """
-        Resume a paused/suspended Mech machine.
+        Resume a paused/suspended instances.
 
         Usage: mech resume [options] [<instance>]
 
         Options:
-                --provision                  Enable provisioning
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
@@ -833,7 +834,7 @@ class Mech(MechCommand):
 
     def suspend(self, arguments):
         """
-        Suspends the machine.
+        Suspends instances.
 
         Usage: mech suspend [options] [<instance>]
 
@@ -1076,7 +1077,6 @@ class Mech(MechCommand):
         Usage: mech reload [options] [<instance>]
 
         Options:
-                --provision                  Enable provisioning
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
@@ -1133,7 +1133,7 @@ class Mech(MechCommand):
             # multiple instances
             instances = self.instances()
 
-        # TODO: implement port forwarding?
+        # FUTURE: implement port forwarding?
         for instance in instances:
             self.activate(instance)
 
