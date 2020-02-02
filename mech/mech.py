@@ -79,62 +79,90 @@ MECH_DIR = os.path.expanduser(os.getcwd() + '/.mech')
 
 
 class MechCommand(Command):
-    active_mechfile = None
+    mechfile = None
+    active_name = None
+    created = False
+    box = None
+    box_version = None
+    url = None
+    vmx = None
+    user = None
+    password = None
+    enable_ip_lookup = False
 
     def activate_mechfile(self):
-        self.active_mechfile = utils.load_mechfile()
+        """Load the Mechfile."""
+        self.mechfile = utils.load_mechfile()
 
-    def activate(self, instance_name=None):
-        if not hasattr(self, 'mechfiles'):
-            self.mechfiles = {}
-        if instance_name:
-            instance = utils.settle_instance(instance_name)
-            path = instance.get('path')
-            if not path:
-                puts_err(
-                    colored.red(
-                        textwrap.fill(
-                            "Cannot find a valid path for '{}' instance".format(instance_name))))
-                sys.exit(1)
-            path = os.path.abspath(os.path.expanduser(path))
+    def instances(self):
+        """Returns a list of the instances from the Mechfile."""
+        if not self.mechfile:
             self.activate_mechfile()
+        return list(self.mechfile)
+
+    @staticmethod
+    def instance_path(name):
+        """Return the path for an instance."""
+        return os.path.join(MECH_DIR, name)
+
+    def activate(self, name):
+        """Sets the active instance name and changes to the
+           directory for that instance."""
+        if not self.mechfile:
+            self.activate_mechfile()
+        if name == "":
+            raise AttributeError("Must activate with name.")
+        print('self.mechfile:{}'.format(self.mechfile))
+        print('name:{}'.format(name))
+        if self.mechfile.get(name, None):
+            self.active_name = name
         else:
-            self.activate_mechfile()
-            instance_name = self.active_mechfile.get('name')
-        return instance_name
-
-    def get(self, name, default=None):
-        if self.active_mechfile is None:
-            raise AttributeError("Must activate(instance_name) first.")
-        return self.active_mechfile.get(name, default)
-
-    def get_vmx(self, silent=False):
-        self.get("")  # Check if there's a Mechfile
-        return utils.get_vmx(silent=silent)
-
-    @property
-    def vmx(self):
-        return self.get_vmx()
-
-    @property
-    def box_name(self):
-        box_name = self.get('box')
-        if not box_name:
-            puts_err(colored.red(textwrap.fill("Cannot find a box configured in the Mechfile")))
+            puts_err(colored.red("Instance ({}) was not found in the Mechfile".format(name)))
             sys.exit(1)
-        return box_name
+        self.box = self.mechfile[name].get('box', None)
+        self.box_version = self.mechfile[name].get('box_version', None)
+        self.url = self.mechfile[name].get('url', None)
+        self.user = DEFAULT_USER
+        self.password = DEFAULT_PASSWORD
+        path = MechCommand.instance_path(name)
+        print(' path:{}'.format(path))
+        vmx = utils.locate(path, '*.vmx')
+        print(' vmx:{}'.format(vmx))
+        # Note: If vm has not been started vmx will be None
+        if vmx:
+            self.vmx = vmx
+            self.created = True
+        else:
+            self.vmx = None
+            self.created = False
+        if os.path.exists(path):
+            #print('path exists')
+            # change to the path of the instance
+            os.chdir(path)
 
-    @property
+    def vmx(self):
+        """Get the fully qualified path to the vmx file."""
+        return self.vmx
+
+    def box(self):
+        """Get the box (ex: 'bento/ubuntu-18.04')."""
+        return self.box
+
     def box_version(self):
-        return self.get('box_version')
+        """Get the box_version (ex: '2020-01-16')."""
+        return self.box_version
 
-    @property
     def user(self):
-        return self.get('user', DEFAULT_USER)
+        """Get the username (ex: 'vagrant')."""
+        return self.user
 
-    @property
     def password(self):
-        return self.get('password', DEFAULT_PASSWORD)
+        """Get the password (ex: 'temp123')."""
+        return self.password
+
+    def enable_ip_lookup(self):
+        """Enable ip lookup (defaults to False)."""
+        return self.enable_ip_lookup
 
     @property
     def config(self):
@@ -143,7 +171,7 @@ class MechCommand(Command):
     @property
     def config_ssh(self):
         vmrun = VMrun(self.vmx, user=self.user, password=self.password)
-        lookup = self.get("enable_ip_lookup", False)
+        lookup = self.enable_ip_lookup
         ip = vmrun.getGuestIPAddress(wait=False, lookup=lookup) if vmrun.installedTools() else None
         if not ip:
             puts_err(colored.red(textwrap.fill(
@@ -586,6 +614,8 @@ class Mech(MechCommand):
 
         Usage: mech up [options] [<instance>]
 
+        Note: If no instance is specified, all instances will be started.
+
         Options:
                 --gui                        Start GUI
                 --disable-shared-folder      Do not share folder with VM
@@ -606,47 +636,67 @@ class Mech(MechCommand):
         save = not arguments['--no-cache']
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
-        instance_name = arguments['<instance>']
-        self.instance_name = self.activate(instance_name)
-
-        utils.index_active_instance(self.instance_name)
-
         numvcpus = arguments['--numvcpus']
         memsize = arguments['--memsize']
 
-        vmx = utils.init_box(
-            self.instance_name,
-            self.box_name,
-            self.box_version,
-            requests_kwargs=requests_kwargs,
-            save=save,
-            numvcpus=numvcpus,
-            memsize=memsize)
+        instance_name = arguments['<instance>']
 
-        vmrun = VMrun(vmx, user=self.user, password=self.password)
-        puts_err(colored.blue("Bringing machine up..."))
-        started = vmrun.start(gui=gui)
-        if started is None:
-            puts_err(colored.red("VM not started"))
+        if instance_name:
+            # spin up a single instance
+            instances = [instance_name]
         else:
-            time.sleep(3)
-            puts_err(colored.blue("Getting IP address..."))
-            lookup = self.get("enable_ip_lookup", False)
-            ip = vmrun.getGuestIPAddress(lookup=lookup)
-            puts_err(colored.blue("Sharing current folder..."))
-            if not disable_shared_folder:
-                vmrun.enableSharedFolders()
-                vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
-            if ip:
-                if started:
-                    puts_err(colored.green("VM started on {}".format(ip)))
-                else:
-                    puts_err(colored.yellow("VM was already started on {}".format(ip)))
+            # want to spin up multiple instances
+            instances = self.instances()
+
+        print('instances:{}'.format(instances))
+
+        for instance in instances:
+            print('instance:{}'.format(instance))
+            self.activate(instance)
+            print('{} has been activated'.format(instance))
+            print('self.active_name:{}'.format(self.active_name))
+            instance_path = MechCommand.instance_path(instance)
+
+            vmx = utils.init_box(
+                instance,
+                box=self.box,
+                box_version=self.box_version,
+                instance_path=instance_path,
+                requests_kwargs=requests_kwargs,
+                save=save,
+                numvcpus=numvcpus,
+                memsize=memsize)
+            print('vmx:{}'.format(vmx))
+            if vmx:
+                self.vmx = vmx
+                self.created = True
+
+            vmrun = VMrun(vmx, user=self.user, password=self.password)
+            puts_err(colored.blue("Bringing machine up..."))
+            started = vmrun.start(gui=gui)
+            if started is None:
+                puts_err(colored.red("VM not started"))
             else:
-                if started:
-                    puts_err(colored.green("VM started on an unknown IP address"))
+                time.sleep(3)
+                puts_err(colored.blue("Getting IP address..."))
+                lookup = self.enable_ip_lookup
+                ip = vmrun.getGuestIPAddress(lookup=lookup)
+                puts_err(colored.blue("Sharing current folder..."))
+                if not disable_shared_folder:
+                    vmrun.enableSharedFolders()
+                    vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
+                if ip:
+                    if started:
+                        puts_err(colored.green("VM started on {}".format(ip)))
+                    else:
+                        puts_err(colored.yellow("VM was already started on {}".format(ip)))
                 else:
-                    puts_err(colored.yellow("VM was already started on an unknown IP address"))
+                    if started:
+                        puts_err(colored.green("VM started on an unknown IP address"))
+                    else:
+                        puts_err(colored.yellow("VM was already started on an unknown IP address"))
+
+    # allows "mech start" to alias to "mech up"
     start = up
 
     def global_status(self, arguments):
@@ -692,7 +742,7 @@ class Mech(MechCommand):
         vmrun = VMrun(self.vmx, user=self.user, password=self.password)
 
         box_name = self.box_name
-        lookup = self.get("enable_ip_lookup", False)
+        lookup = self.enable_ip_lookup
         ip = vmrun.getGuestIPAddress(wait=False, quiet=True, lookup=lookup)
         state = vmrun.checkToolsState(quiet=True)
 
@@ -816,7 +866,7 @@ class Mech(MechCommand):
         if vmrun.unpause(quiet=True) is not None:
             time.sleep(1)
             puts_err(colored.blue("Getting IP address..."))
-            lookup = self.get("enable_ip_lookup", False)
+            lookup = self.enable_ip_lookup
             ip = vmrun.getGuestIPAddress(lookup=lookup)
             if ip:
                 puts_err(colored.green("VM resumed on {}".format(ip)))
@@ -831,7 +881,7 @@ class Mech(MechCommand):
             else:
                 time.sleep(3)
                 puts_err(colored.blue("Getting IP address..."))
-                lookup = self.get("enable_ip_lookup", False)
+                lookup = self.enable_ip_lookup
                 ip = vmrun.getGuestIPAddress(lookup=lookup)
                 puts_err(colored.blue("Sharing current folder..."))
                 vmrun.enableSharedFolders()
@@ -992,7 +1042,7 @@ class Mech(MechCommand):
         self.instance_name = self.activate(instance_name)
 
         vmrun = VMrun(self.vmx, user=self.user, password=self.password)
-        lookup = self.get("enable_ip_lookup", False)
+        lookup = self.enable_ip_lookup
         ip = vmrun.getGuestIPAddress(lookup=lookup)
         if ip:
             puts_err(colored.green(ip))
@@ -1070,7 +1120,7 @@ class Mech(MechCommand):
         else:
             time.sleep(3)
             puts_err(colored.blue("Getting IP address..."))
-            lookup = self.get("enable_ip_lookup", False)
+            lookup = self.enable_ip_lookup
             ip = vmrun.getGuestIPAddress(lookup=lookup)
             if ip:
                 if started:
@@ -1106,16 +1156,6 @@ class Mech(MechCommand):
         else:
             puts_err(colored.red("Cannot find a nat network"))
 
-    def push(self, arguments):
-        """
-        Deploys code in this environment to a configured destination.
-
-        Usage: mech push [options] [<strategy>]
-
-        Options:
-            -h, --help                       Print this help
-        """
-        puts_err(colored.red("Not implemented!"))
 
     def list(self, arguments):
         """
@@ -1126,41 +1166,37 @@ class Mech(MechCommand):
         Options:
             -h, --help                       Print this help
         """
-        print("{}\t{}\t{}\t{}\t{}".format(
+
+        self.activate_mechfile()
+
+        print("{}\t{}\t{}\t{}".format(
             'NAME'.rjust(20),
             'ADDRESS'.rjust(15),
             'BOX'.rjust(35),
-            'VERSION'.rjust(12),
-            'PATH',
+            'VERSION'.rjust(12)
         ))
-        for instance_name, instance in utils.instances().items():
-            path = instance.get('path')
-            if path and os.path.exists(path):
-                self.activate(instance_name)
-                mech_path = os.path.join(path, '.mech/' + instance_name)
-                if os.path.exists(mech_path):
-                    vmx = self.get_vmx(silent=True)
-                    if vmx:
-                        vmrun = VMrun(vmx, user=self.user, password=self.password)
-                        lookup = self.get("enable_ip_lookup", False)
-                        ip = vmrun.getGuestIPAddress(wait=False, quiet=True, lookup=lookup)
-                    else:
-                        ip = colored.red("invalid")
-                    if ip is None:
-                        ip = colored.yellow("poweroff")
-                    elif not ip:
-                        ip = colored.green("running")
-                    else:
-                        ip = colored.green(ip)
+        for name in self.mechfile:
+            self.activate(name)
+            #print('name:{} box:{} created:{}'.format(name, self.box, self.created))
+            if self.created:
+                vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+                lookup = self.enable_ip_lookup
+                ip = vmrun.getGuestIPAddress(wait=False, quiet=True, lookup=lookup)
+                if ip is None:
+                    ip = colored.yellow("poweroff")
+                elif not ip:
+                    ip = colored.green("running")
                 else:
-                    ip = ""
-                box_name = self.box_name or ""
-                box_version = self.box_version or ""
-                print("{}\t{}\t{}\t{}\t{}".format(
-                    colored.green(instance_name.rjust(20)),
-                    ip.rjust(15),
-                    box_name.rjust(35),
-                    box_version.rjust(12),
-                    path,
-                ))
+                    ip = colored.green(ip)
+            else:
+                ip = "notcreated"
+
+            print("{}\t{}\t{}\t{}".format(
+                colored.green(name.rjust(20)),
+                ip.rjust(15),
+                self.box.rjust(35),
+                self.box_version.rjust(12)
+            ))
+
+    # allow 'mech ls' as alias to 'mech list'
     ls = list

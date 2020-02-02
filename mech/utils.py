@@ -101,9 +101,10 @@ def confirm(prompt, default='y'):
             return False
 
 
-def save_mechfile(mechfile, path):
+def save_mechfile(mechfile, name, path):
+    multiple_mechfiles = { name: mechfile }
     with open(os.path.join(path, 'Mechfile'), 'w+') as fp:
-        json.dump(mechfile, fp, sort_keys=True, indent=2, separators=(',', ': '))
+        json.dump(multiple_mechfiles, fp, sort_keys=True, indent=2, separators=(',', ': '))
     return True
 
 
@@ -198,6 +199,7 @@ def instances():
 
 
 def settle_instance(instance_name, obj=None, force=False):
+    print('in settle_instance instance_name:{}'.format(instance_name))
     makedirs(DATA_DIR)
     index_path = os.path.join(DATA_DIR, 'index')
     index_lock = os.path.join(DATA_DIR, 'index.lock')
@@ -207,6 +209,7 @@ def settle_instance(instance_name, obj=None, force=False):
             if os.path.exists(index_path):
                 with open(index_path) as fp:
                     instances = json.loads(uncomment(fp.read()))
+                    print('instances:{}'.format(instances))
             else:
                 instances = {}
             instance_data = instances.get(instance_name)
@@ -352,11 +355,11 @@ def init_box(
         box_version,
         force=False,
         save=True,
+        instance_path=None,
         requests_kwargs={},
         numvcpus=None,
         memsize=None):
-    inst_dir = '.mech/' + name
-    if not locate(inst_dir, '*.vmx'):
+    if not locate(instance_path, '*.vmx'):
         name_version_box = add_box(
             name=name,
             box=box,
@@ -368,16 +371,16 @@ def init_box(
             puts_err(colored.red("Cannot find a valid box with a VMX file in it"))
             sys.exit(1)
 
-        print('box:{}'.format(box))
+        #print('box:{}'.format(box))
         box_parts = box.split('/')
         box_dir = os.path.join(*filter(None, (MECH_DIR, 'boxes',
                                box_parts[0], box_parts[1], box_version)))
-        print('box_dir:{}'.format(box_dir))
+        #print('box_dir:{}'.format(box_dir))
         box_file = locate(box_dir, '*.box')
-        print('box_file:{}'.format(box_file))
+        #print('box_file:{}'.format(box_file))
 
         puts_err(colored.blue("Extracting box '{}'...".format(box_file)))
-        makedirs(inst_dir)
+        makedirs(instance_path)
         if sys.platform == 'win32':
             cmd = tar_cmd('-xf', box_file, force_local=True)
         else:
@@ -387,18 +390,22 @@ def init_box(
             if os.name == "nt":
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
-            proc = subprocess.Popen(cmd, cwd=inst_dir, startupinfo=startupinfo)
+            proc = subprocess.Popen(cmd, cwd=instance_path, startupinfo=startupinfo)
             if proc.wait():
                 puts_err(colored.red("Cannot extract box"))
                 sys.exit(1)
         else:
             tar = tarfile.open(box_file, 'r')
-            tar.extractall(inst_dir)
+            tar.extractall(instance_path)
 
         if not save and box.startswith(tempfile.gettempdir()):
             os.unlink(box)
 
-    vmx = get_vmx()
+    vmx = locate(instance_path, '*.vmx')
+    if not vmx and not silent:
+        puts_err(colored.red("Cannot locate a VMX file"))
+        sys.exit(1)
+    #print('in init_box name:{} vmx:{}'.format(name, vmx))
 
     update_vmx(vmx, numvcpus=numvcpus, memsize=memsize)
 
@@ -412,7 +419,7 @@ def add_box(name=None, box=None, box_version=None, force=False, save=True, reque
         name=name,
         box_version=box_version,
         requests_kwargs=requests_kwargs)
-    print('mechfile:{}'.format(mechfile))
+    #print('mechfile:{}'.format(mechfile))
 
     return add_mechfile(
         mechfile,
@@ -575,7 +582,7 @@ def init_mechfile(box=None, name=None, box_version=None, requests_kwargs={}):
         box_version=box_version,
         requests_kwargs=requests_kwargs)
     print("saving mechfile:{} to path:{}".format(mechfile, path))
-    return save_mechfile(mechfile, path)
+    return save_mechfile(mechfile, name, path)
 
 
 def get_requests_kwargs(arguments):
@@ -589,14 +596,6 @@ def get_requests_kwargs(arguments):
     elif arguments['--cert']:
         requests_kwargs['cert'] = arguments['--cert']
     return requests_kwargs
-
-
-def get_vmx(silent=False):
-    vmx = locate('.mech', '*.vmx')
-    if not vmx and not silent:
-        puts_err(colored.red("Cannot locate a VMX file"))
-        sys.exit(1)
-    return vmx
 
 
 def provision_file(vm, source, destination):
