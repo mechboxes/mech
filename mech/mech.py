@@ -569,7 +569,7 @@ class Mech(MechCommand):
                 self.created = True
 
             vmrun = VMrun(vmx, user=self.user, password=self.password)
-            puts_err(colored.blue("Bringing machine up..."))
+            puts_err(colored.blue("Bringing machine ({}) up...".format(instance)))
             started = vmrun.start(gui=gui)
             if started is None:
                 puts_err(colored.red("VM not started"))
@@ -697,7 +697,7 @@ class Mech(MechCommand):
                 if force or utils.confirm(
                     "Are you sure you want to delete {} at {}".format(
                         self.active_name, instance_path), default='n'):
-                    puts_err(colored.green("Deleting..."))
+                    puts_err(colored.green("Deleting ({})...".format(instance)))
                     vmrun = VMrun(self.vmx, user=self.user, password=self.password)
                     vmrun.stop(mode='hard', quiet=True)
                     time.sleep(3)
@@ -713,7 +713,7 @@ class Mech(MechCommand):
                 else:
                     puts_err(colored.red("Deletion aborted"))
             else:
-                puts_err(colored.red("The box hasn't been initialized."))
+                puts_err(colored.red("The box ({}) hasn't been initialized.".format(instance)))
 
     def down(self, arguments):
         """
