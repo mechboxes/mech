@@ -41,4 +41,7 @@ brew install bats-core
 cd tests/int
 ./simple.bats
 ./two_ubuntu.bats
+
+# consider installing/using direnv (there is a .envrc in this repo)
+# may need to run "direnv allow"
 ```
