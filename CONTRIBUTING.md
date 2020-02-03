@@ -36,4 +36,9 @@ flake8 --install-hook git
 # install bats (on mac)
 # see https://github.com/bats-core/bats-core
 brew install bats-core
+
+# for testing/validation, we have some integration tests
+cd tests/int
+./simple.bats
+./two_ubuntu.bats
 ```
