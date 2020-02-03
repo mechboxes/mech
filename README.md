@@ -1,7 +1,7 @@
 # mech
 
 One of the authors made this because they don't like VirtualBox and wanted to use vagrant
-with VMWare Fusion but was too cheap to buy the Vagrant plugin.
+with VMmare Fusion but was too cheap to buy the Vagrant plugin.
 
 https://blog.kchung.co/mech-vagrant-with-vmware-integration-for-free/
 
@@ -16,27 +16,26 @@ Options:
     --debug                          Show debug messages.
 
 Common commands:
-    (list|ls)         lists all available boxes
-    init              initializes a new Mech environment by creating a Mechfile
-    destroy           stops and deletes all traces of the Mech machine
-    (up|start)        starts and provisions the Mech environment
-    (down|stop|halt)  stops the Mech machine
-    suspend           suspends the machine
-    pause             pauses the Mech machine
-    ssh               connects to machine via SSH
-    ssh-config        outputs OpenSSH valid configuration to connect to the machine
-    scp               copies files to and from the machine via SCP
-    ip                outputs ip of the Mech machine
-    box               manages boxes: installation, removal, etc.
-    global-status     outputs status Mech environments for this user
-    status            outputs status of the Mech machine
-    ps                list running processes in Guest OS
-    provision         provisions the Mech machine
-    reload            restarts Mech machine, loads new Mechfile configuration
-    resume            resume a paused/suspended Mech machine
-    snapshot          manages snapshots: saving, restoring, etc.
-    port              displays information about guest port mappings
-    push              deploys code in this environment to a configured destination
+        (list|ls)         lists all available boxes
+        init              initializes a new Mech environment by creating a Mechfile
+        destroy           stops and deletes all traces of the instances
+        (up|start)        starts instances (aka virtual machines)
+        (down|stop|halt)  stops the instances
+        suspend           suspends the instances
+        pause             pauses the instances
+        ssh               connects to an instance via SSH
+        ssh-config        outputs OpenSSH valid configuration to connect to the instances
+        scp               copies files to/from the machine via SCP
+        ip                outputs ip of an instance
+        box               manages boxes: add, list remove, etc.
+        global-status     outputs status of all virutal machines on this host
+        status            outputs status of the instances
+        ps                list running processes for an instance
+        provision         provisions the Mech machine
+        reload            restarts Mech machine, loads new Mechfile configuration
+        resume            resume a paused/suspended Mech machine
+        snapshot          manages snapshots: save, list, remove, etc.
+        port              displays information about guest port mappings
 
 For help on any individual command run `mech <command> -h`
 

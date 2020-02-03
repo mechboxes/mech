@@ -537,6 +537,7 @@ class Mech(MechCommand):
         disable_shared_folder = not arguments['--disable-shared-folder']
         save = not arguments['--no-cache']
         requests_kwargs = utils.get_requests_kwargs(arguments)
+        # TODO: --no-provision option
 
         numvcpus = arguments['--numvcpus']
         memsize = arguments['--memsize']
@@ -824,7 +825,7 @@ class Mech(MechCommand):
                     lookup = self.enable_ip_lookup
                     ip = vmrun.getGuestIPAddress(lookup=lookup)
                     puts_err(colored.blue("Sharing current folder..."))
-                    # TODO: param
+                    # TODO: honor param
                     vmrun.enableSharedFolders()
                     vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
                     if ip:
@@ -1028,6 +1029,7 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+        # TODO: flip the provisioned flag in Mechfile
 
         if instance_name:
             # single instance
