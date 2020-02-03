@@ -477,10 +477,6 @@ class Mech(MechCommand):
                 --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
             -h, --help                       Print this help
         """
-        # TODO: with provision example
-        # TODO: multiple names?
-        # TODO: multiple boxes?
-
         name = arguments['--name']
         box_version = arguments['--box-version']
         box = arguments['<box>']
@@ -537,11 +533,9 @@ class Mech(MechCommand):
         disable_shared_folder = not arguments['--disable-shared-folder']
         save = not arguments['--no-cache']
         requests_kwargs = utils.get_requests_kwargs(arguments)
-        # TODO: --no-provision option
 
         numvcpus = arguments['--numvcpus']
         memsize = arguments['--memsize']
-        # TODO: disabled_shared_folder/cpus/ram from config
 
         instance_name = arguments['<instance>']
 
@@ -825,7 +819,6 @@ class Mech(MechCommand):
                     lookup = self.enable_ip_lookup
                     ip = vmrun.getGuestIPAddress(lookup=lookup)
                     puts_err(colored.blue("Sharing current folder..."))
-                    # TODO: honor param
                     vmrun.enableSharedFolders()
                     vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
                     if ip:
@@ -1029,7 +1022,6 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
-        # TODO: flip the provisioned flag in Mechfile
 
         if instance_name:
             # single instance
@@ -1049,8 +1041,6 @@ class Mech(MechCommand):
 
             provisioned = 0
             for i, provision in enumerate(self.get('provision', [])):
-
-                # TODO: re-review this
                 if provision.get('type') == 'file':
                     source = provision.get('source')
                     destination = provision.get('destination')

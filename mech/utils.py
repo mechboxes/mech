@@ -354,9 +354,7 @@ def init_box(name, box, box_version, force=False, save=True,
 
 
 def add_box(name=None, box=None, box_version=None, force=False, save=True, requests_kwargs={}):
-    """Add a box.
-       TODO: Not quite sure why we have this function.
-    """
+    """Add a box."""
     # build the dict
     mechfile = build_mechfile(
         box,
