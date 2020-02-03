@@ -1,0 +1,10 @@
+# all - run all integration tests
+#
+# Note: must be run from this directory
+# like this: ./all
+
+./quick.bats
+./no_mechfile.bats
+./simple.bats
+./two_ubuntu.bats
+./init_from_file.bats

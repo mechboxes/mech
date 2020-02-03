@@ -396,9 +396,10 @@ class MechSnapshot(MechCommand):
         self.activate(instance_name)
         vmrun = VMrun(self.vmx, user=self.user, password=self.password)
         if vmrun.snapshot(name) is None:
-            puts_err(colored.red("Cannot take snapshot. Please provide a name."))
+            puts_err(colored.red("Warning: Could not take snapshot."))
+            sys.exit(1)
         else:
-            puts_err(colored.green("Snapshot {} taken".format(name)))
+            puts_err(colored.green("Snapshot ({}) on VM ({}) taken".format(name, instance_name)))
 
 
 class Mech(MechCommand):

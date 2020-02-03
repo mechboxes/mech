@@ -5,50 +5,13 @@
 # Note: must be run from this directory
 # like this: ./simple.bats
 
-@test "help" {
-  run mech --help
-  [ "$status" -eq 0 ]
-
-  # cleanup
-  find . -type d -name .mech -exec rm -rf {} \; 2> /dev/null || true
-}
-
-@test "no args" {
-  run mech
-  [ "$status" -eq 1 ]
-  [ "$output" = "Usage: mech [options] <command> [<args>...]" ]
-
-  # cleanup
-  find . -type d -name .mech -exec rm -rf {} \; 2> /dev/null || true
-}
-
-@test "version" {
-  run mech --version
-  [ "$status" -eq 0 ]
-  regex='mech v[0-9\.]+'
-  [[ "$output" =~ $regex ]]
-
-  # cleanup
-  find . -type d -name .mech -exec rm -rf {} \; 2> /dev/null || true
-}
-
-@test "no Mechfile" {
-  cd no_mechfile
-
-  run mech ls
-  [ "$status" -eq 1 ]
-  regex="Couldn't find a Mechfile"
-  [[ "$output" =~ $regex ]]
-
-  # cleanup
-  find . -type d -name .mech -exec rm -rf {} \; 2> /dev/null || true
-  cd ..
-}
-
 # Note: Using alpine because the image is the smallest I could find.
 # This will download the box from internet.
 @test "mech init, up, destroy of alpine" {
-  cd init_mechfile
+  if ! [ -d simple ]; then
+    mkdir simple
+  fi
+  cd simple
 
   # setup
   # ensure there is no Mechfile first
@@ -98,6 +61,109 @@
   [[ "$output" =~ $regex9 ]]
   [[ "$output" =~ $regex10 ]]
   [[ "$output" =~ $regex11 ]]
+
+  run mech list
+  regex1="first"
+  regex2="alpine"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+  [[ "$output" =~ $regex2 ]]
+
+  # validate alias works, too
+  run mech ls
+  regex1="first"
+  regex2="alpine"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+  [[ "$output" =~ $regex2 ]]
+
+  run mech box list
+  regex1="alpine"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # validate alias works, too
+  run mech box list
+  regex1="alpine"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  ## snapshots
+  run mech snapshot list
+  regex1="Total snapshots: 0"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # validate alias works, too
+  run mech snapshot ls
+  regex1="Total snapshots: 0"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # make sure params are used
+  run mech snapshot
+  regex1="Usage: mech snapshot <subcommand>"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # make sure params are used
+  run mech snapshot save
+  regex1="Usage: mech snapshot save"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # make sure params are used
+  run mech snapshot save snap1
+  regex1="Usage: mech snapshot save"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech snapshot save snap1 first
+  regex1="taken"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # re-run with same params, should err
+  run mech snapshot save snap1 first
+  regex1="A snapshot with the name already exists"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech snapshot ls
+  regex1="Total snapshots: 1"
+  regex2="snap1"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+  [[ "$output" =~ $regex2 ]]
+
+  # make sure params are used
+  run mech snapshot delete
+  regex1="Usage: mech snapshot delete"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # make sure params are used (alias)
+  run mech snapshot remove
+  regex1="Usage: mech snapshot delete"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # make sure params are used
+  run mech snapshot delete snap1
+  regex1="Usage: mech snapshot delete"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # make sure params are valid
+  run mech snapshot delete snap1 first1
+  regex1="Usage: mech snapshot delete"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech snapshot delete snap1 first
+  regex1=" deleted"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
 
   run mech destroy -f
   regex1="Deleting"
