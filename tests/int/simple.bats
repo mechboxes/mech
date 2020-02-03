@@ -82,10 +82,10 @@
   regex5=".vmx"
   regex6="Extracting"
   regex7="Added network"
-  regex8="Bringing machine up"
+  regex8="Bringing machine"
   regex9="Getting IP"
   regex10="Sharing current folder"
-  regex11="VM started"
+  regex11="started"
   [ "$status" -eq 0 ]
   [[ "$output" =~ $regex1 ]]
   [[ "$output" =~ $regex2 ]]

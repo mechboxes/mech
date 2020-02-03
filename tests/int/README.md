@@ -12,5 +12,6 @@ files from the internet and start up/stop/destroy VMs.
 
 # Scripts
 
-- `./simple.bats` - run some simple tests with Alpine image
-- `./two_ubuntu.bats` - validate two ubuntu instances work as expected
+- `./simple.bats` - simple validations
+- `./two_ubuntu.bats` - validate two ubuntu instances
+- `./init_from_file.bats` - validate create box from file

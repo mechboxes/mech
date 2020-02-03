@@ -46,8 +46,17 @@ from .compat import raw_input, b2s
 logger = logging.getLogger(__name__)
 
 
-MECH_DIR = os.path.expanduser(os.getcwd() + '/.mech')
-DATA_DIR = os.path.join(MECH_DIR, 'data')
+MAIN_DIR = os.path.expanduser(os.getcwd())
+
+
+def main_dir():
+    """Return the main directory."""
+    return MAIN_DIR
+
+
+def mech_dir():
+    """Return the mech directory."""
+    return os.path.join(MAIN_DIR, '.mech')
 
 
 def makedirs(name, mode=0o777):
@@ -106,6 +115,7 @@ def confirm(prompt, default='y'):
 def save_mechfile(mechfile, name, path):
     """Save the Mechfile."""
     multiple_mechfiles = {name: mechfile}
+    logger.debug("path:{}".format(path))
     with open(os.path.join(path, 'Mechfile'), 'w+') as fp:
         json.dump(multiple_mechfiles, fp, sort_keys=True, indent=2, separators=(',', ': '))
     return True
@@ -181,7 +191,8 @@ def update_vmx(path, numvcpus=None, memsize=None):
 
 def load_mechfile():
     """Load the Mechfile from disk."""
-    mechfile_full = os.path.join(os.path.expanduser(os.getcwd()), 'Mechfile')
+    mechfile_full = os.path.join(main_dir(), 'Mechfile')
+    logger.debug("mechfile_full:{}".format(mechfile_full))
     if os.path.isfile(mechfile_full):
         with open(mechfile_full) as fp:
             try:
@@ -190,54 +201,57 @@ def load_mechfile():
                 puts_err(colored.red("Invalid Mechfile." + os.linesep))
     else:
         puts_err(colored.red(textwrap.fill(
-            "Couldn't find a Mechfile in the current directory any deeper directories. "
+            "Could not find a Mechfile in the current directory. "
             "A Mech environment is required to run this command. Run `mech init` "
-            "to create a new Mech environment. Or specify the name of the VM you'd "
+            "to create a new Mech environment. Or specify the name of the VM you would "
             "like to start with `mech up <name>`. A final option is to change to a "
             "directory with a Mechfile and to try again."
         )))
         sys.exit(1)
 
 
-def build_mechfile(descriptor, name=None, box_version=None, requests_kwargs={}):
+def build_mechfile(location, box=None, name=None, box_version=None, requests_kwargs={}):
     """Build the Mechfile from the inputs."""
+    logger.debug("location:{} name:{} box:{} box_version:{}".format(
+                 location, name, box, box_version))
     mechfile = {}
-    if descriptor is None:
+    if location is None:
         return mechfile
     mechfile['name'] = name
-    if any(descriptor.startswith(s) for s in ('https://', 'http://', 'ftp://')):
-        mechfile['url'] = descriptor
+    if any(location.startswith(s) for s in ('https://', 'http://', 'ftp://')):
+        mechfile['url'] = location
         if not name:
-            name = os.path.splitext(os.path.basename(descriptor))[0]
-        mechfile['box'] = name
+            name = 'first'
+        mechfile['box'] = box
         if box_version:
             mechfile['box_version'] = box_version
         return mechfile
-    elif descriptor.startswith('file:') or os.path.isfile(re.sub(r'^file:(?://)?', '', descriptor)):
-        descriptor = re.sub(r'^file:(?://)?', '', descriptor)
+    elif location.startswith('file:') or os.path.isfile(re.sub(r'^file:(?://)?', '', location)):
+        location = re.sub(r'^file:(?://)?', '', location)
+        logger.debug('location:{}'.format(location))
         try:
-            with open(descriptor) as fp:
+            # see if the location is a json file
+            with open(location) as fp:
                 catalog = json.loads(uncomment(fp.read()))
         except Exception:
-            mechfile['file'] = descriptor
-            if not name:
-                name = os.path.splitext(os.path.basename(descriptor))[0]
-            mechfile['box'] = name
-            if box_version:
-                mechfile['box_version'] = box_version
-            return mechfile
+            mechfile['file'] = location
+        if not name:
+            name = 'first'
+        mechfile['box'] = box
+        if box_version:
+            mechfile['box_version'] = box_version
+        logger.debug('mechfile:{}'.format(mechfile))
+        return mechfile
     else:
         try:
-            account, box, v = (descriptor.split('/', 2) + ['', ''])[:3]
+            account, box, v = (location.split('/', 2) + ['', ''])[:3]
             if not account or not box:
                 puts_err(colored.red("Provided box name is not valid"))
             if v:
                 box_version = v
             puts_err(
-                colored.blue(
-                    "Loading metadata for box '{}'{}".format(
-                        descriptor,
-                        " ({})".format(box_version) if box_version else "")))
+                colored.blue("Loading metadata for box '{}'{}".format(
+                             location, " ({})".format(box_version) if box_version else "")))
             url = 'https://app.vagrantup.com/{}/boxes/{}'.format(account, box)
             r = requests.get(url, **requests_kwargs)
             r.raise_for_status()
@@ -248,16 +262,18 @@ def build_mechfile(descriptor, name=None, box_version=None, requests_kwargs={}):
         except requests.ConnectionError:
             puts_err(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
             sys.exit(1)
-    return catalog_to_mechfile(catalog, name, box_version)
+    logger.debug("catalog:{} name:{} box_version:{}".format(catalog, name, box_version))
+    return catalog_to_mechfile(catalog, name=name, box=box, box_version=box_version)
 
 
-def catalog_to_mechfile(catalog, name=None, version=None):
+def catalog_to_mechfile(catalog, name=None, box=None, box_version=None):
     """Convert the Hashicorp cloud catalog entry to Mechfile entry."""
+    logger.debug('catalog:{} name:{} box:{} box_version:{}'.format(catalog, name, box, box_version))
     mechfile = {}
     versions = catalog.get('versions', [])
     for v in versions:
         current_version = v['version']
-        if not version or current_version == version:
+        if not box_version or current_version == box_version:
             for provider in v['providers']:
                 if 'vmware' in provider['name']:
                     mechfile['name'] = name
@@ -268,8 +284,7 @@ def catalog_to_mechfile(catalog, name=None, version=None):
     puts_err(
         colored.red(
             "Couldn't find a VMWare compatible VM for '{}'{}".format(
-                name,
-                " ({})".format(version) if version else "")))
+                name, " ({})".format(box_version) if box_version else "")))
     sys.exit(1)
 
 
@@ -298,18 +313,21 @@ def tar_cmd(*args, **kwargs):
     return tar
 
 
-def init_box(name, box, box_version, force=False, save=True,
+def init_box(name, box, box_version, location=None, force=False, save=True,
              instance_path=None, requests_kwargs={}, numvcpus=None,
              memsize=None):
     """Initialize the box. This includes uncompressing the files
        from the box file and updating the vmx file with
        desired settings.
     """
+    logger.debug("name:{} box:{} box_version:{} location:{}".format(
+                 name, box, box_version, location))
     if not locate(instance_path, '*.vmx'):
         name_version_box = add_box(
             name=name,
             box=box,
             box_version=box_version,
+            location=location,
             force=force,
             save=save,
             requests_kwargs=requests_kwargs)
@@ -318,7 +336,7 @@ def init_box(name, box, box_version, force=False, save=True,
             sys.exit(1)
 
         box_parts = box.split('/')
-        box_dir = os.path.join(*filter(None, (MECH_DIR, 'boxes',
+        box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes',
                                box_parts[0], box_parts[1], box_version)))
         box_file = locate(box_dir, '*.box')
 
@@ -353,18 +371,24 @@ def init_box(name, box, box_version, force=False, save=True,
     return vmx
 
 
-def add_box(name=None, box=None, box_version=None, force=False, save=True, requests_kwargs={}):
+def add_box(name=None, box=None, box_version=None, location=None,
+            force=False, save=True, requests_kwargs={}):
     """Add a box."""
     # build the dict
+    logger.debug('name:{} box:{} box_version:{} location:{}'.format(
+                 name, box, box_version, location))
     mechfile = build_mechfile(
-        box,
+        box=box,
         name=name,
+        location=location,
         box_version=box_version,
         requests_kwargs=requests_kwargs)
 
     return add_mechfile(
         mechfile,
         name=name,
+        box=box,
+        location=location,
         box_version=box_version,
         force=force,
         save=save,
@@ -372,38 +396,37 @@ def add_box(name=None, box=None, box_version=None, force=False, save=True, reque
 
 
 def add_mechfile(mechfile, name=None, box=None, box_version=None,
-                 force=False, save=True, requests_kwargs={}):
+                 location=None, force=False, save=True, requests_kwargs={}):
+    logger.debug('mechfile:{} name:{} box:{} box_version:{} location:{}'.format(
+                 mechfile, name, box, box_version, location))
+
     box = mechfile.get('box')
     name = mechfile.get('name')
-    version = mechfile.get('box_version')
+    box_version = mechfile.get('box_version')
 
     url = mechfile.get('url')
     box_file = mechfile.get('file')
 
     if box_file:
-        return add_box_file(box, version, box_file, force=force, save=save)
+        return add_box_file(box=box, box_version=box_version, filename=box_file,
+                            force=force, save=save)
 
     if url:
-        return add_box_url(
-            name=name,
-            box=box,
-            box_version=box_version,
-            url=url,
-            force=force,
-            save=save,
-            requests_kwargs=requests_kwargs)
+        return add_box_url(name=name, box=box, box_version=box_version,
+                           url=url, force=force, save=save,
+                           requests_kwargs=requests_kwargs)
     puts_err(
         colored.red(
-            "Couldn't find a VMWare compatible VM for '{}'{}".format(
-                name,
-                " ({})".format(version) if version else "")))
+            "Could not find a VMWare compatible VM for '{}'{}".format(
+                name, " ({})".format(box_version) if box_version else "")))
 
 
 def add_box_url(name, box, box_version, url, force=False, save=True, requests_kwargs={}):
     """Add a box using the URL."""
+    logger.debug('name:{} box:{} box_version:{} url:{}'.format(name, box, box_version, url))
     boxname = os.path.basename(url)
     box_parts = box.split('/')
-    box_dir = os.path.join(*filter(None, (MECH_DIR, 'boxes',
+    box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes',
                            box_parts[0], box_parts[1], box_version)))
     exists = os.path.exists(box_dir)
     if not exists or force:
@@ -446,7 +469,9 @@ def add_box_url(name, box, box_version, url, force=False, save=True, requests_kw
                         requests_kwargs=requests_kwargs)
                 else:
                     # Otherwise it must be a valid box:
-                    return add_box_file(box, box_version, fp.name, url=url, force=force, save=save)
+                    return add_box_file(box=box, box_version=box_version,
+                                        filename=fp.name, url=url, force=force,
+                                        save=save)
             finally:
                 os.unlink(fp.name)
         except requests.HTTPError as exc:
@@ -458,7 +483,7 @@ def add_box_url(name, box, box_version, url, force=False, save=True, requests_kw
     return name, box_version, box
 
 
-def add_box_file(box, box_version, filename, url=None, force=False, save=True):
+def add_box_file(box=None, box_version=None, filename=None, url=None, force=False, save=True):
     """Add a box using a file as the source."""
     puts_err(colored.blue("Checking box '{}' integrity filename:{}...".format(box, filename)))
 
@@ -491,7 +516,7 @@ def add_box_file(box, box_version, filename, url=None, force=False, save=True):
     if valid_tar:
         if save:
             boxname = os.path.basename(url if url else filename)
-            box = os.path.join(*filter(None, (MECH_DIR, 'boxes', box, box_version, boxname)))
+            box = os.path.join(*filter(None, (mech_dir(), 'boxes', box, box_version, boxname)))
             path = os.path.dirname(box)
             makedirs(path)
             if not os.path.exists(box) or force:
@@ -501,15 +526,17 @@ def add_box_file(box, box_version, filename, url=None, force=False, save=True):
         return box, box_version
 
 
-def init_mechfile(box=None, name=None, box_version=None, requests_kwargs={}):
+def init_mechfile(location=None, box=None, name=None, box_version=None, requests_kwargs={}):
     """Initialize the Mechfile."""
-    path = os.path.expanduser(os.getcwd())
+    path = main_dir()
+    logger.debug("name:{} box:{} box_version:{} location:{} path:{}".format(
+        name, box, box_version, location, path))
     mechfile = build_mechfile(
-        box,
+        location=location,
+        box=box,
         name=name,
         box_version=box_version,
         requests_kwargs=requests_kwargs)
-    print("saving mechfile:{} to path:{}".format(mechfile, path))
     return save_mechfile(mechfile, name, path)
 
 

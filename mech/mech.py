@@ -43,7 +43,6 @@ from .command import Command
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_HOST = 'mech'
 DEFAULT_USER = 'vagrant'
 DEFAULT_PASSWORD = 'vagrant'
 INSECURE_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
@@ -75,9 +74,6 @@ NE5OgEXk2wVfZczCZpigBKbKZHNYcelXtTt/nP3rsCuGcM4h53s=
 -----END RSA PRIVATE KEY-----
 """
 
-MAIN_DIR = os.path.expanduser(os.getcwd())
-MECH_DIR = os.path.expanduser(os.getcwd() + '/.mech')
-
 
 class MechCommand(Command):
     """Class to hold the Mechfile (as python object) and an active
@@ -89,6 +85,7 @@ class MechCommand(Command):
     box = None
     box_version = None
     url = None
+    box_file = None
     vmx = None
     user = None
     password = None
@@ -98,6 +95,7 @@ class MechCommand(Command):
     def activate_mechfile(self):
         """Load the Mechfile."""
         self.mechfile = utils.load_mechfile()
+        logger.debug("loaded mechfile:{}".format(self.mechfile))
 
     def instances(self):
         """Returns a list of the instances from the Mechfile."""
@@ -108,7 +106,7 @@ class MechCommand(Command):
     @staticmethod
     def instance_path(name):
         """Return the path for an instance."""
-        return os.path.join(MECH_DIR, name)
+        return os.path.join(utils.mech_dir(), name)
 
     def deactivate(self):
         """Make it so we do have have an active instance selected."""
@@ -117,12 +115,13 @@ class MechCommand(Command):
         self.box = None
         self.box_version = None
         self.url = None
+        self.box_file = None
         self.vmx = None
         self.user = None
         self.password = None
         self.enable_ip_lookup = False
         self.config = {}
-        os.chdir(MECH_DIR)
+        os.chdir(utils.mech_dir())
 
     def activate(self, name):
         """Sets the active instance name and changes to the
@@ -139,6 +138,7 @@ class MechCommand(Command):
         self.box = self.mechfile[name].get('box', None)
         self.box_version = self.mechfile[name].get('box_version', None)
         self.url = self.mechfile[name].get('url', None)
+        self.box_file = self.mechfile[name].get('file', None)
         self.user = DEFAULT_USER
         self.password = DEFAULT_PASSWORD
         path = MechCommand.instance_path(name)
@@ -191,7 +191,8 @@ class MechCommand(Command):
             )))
             sys.exit(1)
 
-        insecure_private_key = os.path.abspath(os.path.join(MECH_DIR, "insecure_private_key"))
+        insecure_private_key = os.path.abspath(os.path.join(
+            utils.mech_dir(), "insecure_private_key"))
         if not os.path.exists(insecure_private_key):
             with open(insecure_private_key, 'w') as f:
                 f.write(INSECURE_PRIVATE_KEY)
@@ -280,7 +281,7 @@ class MechBox(MechCommand):
             'BOX'.rjust(35),
             'VERSION'.rjust(12),
         ))
-        path = os.path.abspath(os.path.join(MECH_DIR, 'boxes'))
+        path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes'))
         for root, dirnames, filenames in os.walk(path):
             for filename in fnmatch.filter(filenames, '*.box'):
                 directory = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
@@ -289,6 +290,7 @@ class MechBox(MechCommand):
                     "{}/{}".format(account, box).rjust(35),
                     version.rjust(12),
                 ))
+
     # add alias for 'mech box ls'
     ls = list
 
@@ -303,9 +305,10 @@ class MechBox(MechCommand):
         """
         name = arguments['<name>']
         box_version = arguments['<version>']
-        path = os.path.abspath(os.path.join(MECH_DIR, 'boxes', name, box_version))
+        path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes', name, box_version))
         if os.path.exists(path):
             shutil.rmtree(path)
+
     # add alias for 'mech box delete'
     delete = remove
 
@@ -341,6 +344,7 @@ class MechSnapshot(MechCommand):
             puts_err(colored.red("Cannot delete name"))
         else:
             puts_err(colored.green("Snapshot {} deleted".format(name)))
+
     # add alias for 'mech snapshot remove'
     remove = delete
 
@@ -367,6 +371,7 @@ class MechSnapshot(MechCommand):
             vmrun = VMrun(self.vmx, user=self.user, password=self.password)
             print('Snapshots for instance:{}'.format(instance))
             print(vmrun.listSnapshots())
+
     # add alias for 'mech snapshot ls'
     ls = list
 
@@ -447,7 +452,8 @@ class Mech(MechCommand):
 
         logger = logging.getLogger()
         handler = logging.StreamHandler(sys.stderr)
-        formatter = logging.Formatter('%(levelname)s: %(message)s')
+        formatter = logging.Formatter('%(filename)s:%(lineno)s %(funcName)s() '
+                                      '%(levelname)s: %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
         if arguments['--debug']:
@@ -460,7 +466,7 @@ class Mech(MechCommand):
         """
         Initializes a new mech environment by creating a Mechfile.
 
-        Usage: mech init [options] <box>
+        Usage: mech init [options] <location>
 
         Example box: bento/ubuntu-18.04
 
@@ -479,13 +485,17 @@ class Mech(MechCommand):
         """
         name = arguments['--name']
         box_version = arguments['--box-version']
-        box = arguments['<box>']
+        box = arguments['--box']
+        location = arguments['<location>']
 
         if not name or name == "":
             name = "first"
 
         force = arguments['--force']
         requests_kwargs = utils.get_requests_kwargs(arguments)
+
+        logger.debug('name:{} box:{} box_version:{} location:{}'.format(
+                     name, box, box_version, location))
 
         if os.path.exists('Mechfile') and not force:
             puts_err(colored.red(textwrap.fill(
@@ -496,7 +506,8 @@ class Mech(MechCommand):
 
         puts_err(colored.green("Initializing mech"))
         if utils.init_mechfile(
-                box,
+                location=location,
+                box=box,
                 name=name,
                 box_version=box_version,
                 requests_kwargs=requests_kwargs):
@@ -550,10 +561,15 @@ class Mech(MechCommand):
             self.activate(instance)
             instance_path = MechCommand.instance_path(instance)
 
+            location = self.url
+            if not location:
+                location = self.box_file
+
             vmx = utils.init_box(
                 instance,
                 box=self.box,
                 box_version=self.box_version,
+                location=location,
                 instance_path=instance_path,
                 requests_kwargs=requests_kwargs,
                 save=save,
@@ -579,14 +595,18 @@ class Mech(MechCommand):
                     vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
                 if ip:
                     if started:
-                        puts_err(colored.green("VM started on {}".format(ip)))
+                        puts_err(colored.green("VM ({}) started "
+                                 "on {}".format(instance, ip)))
                     else:
-                        puts_err(colored.yellow("VM was already started on {}".format(ip)))
+                        puts_err(colored.yellow("VM ({}) was already started "
+                                 "on {}".format(instance, ip)))
                 else:
                     if started:
-                        puts_err(colored.green("VM started on an unknown IP address"))
+                        puts_err(colored.green("VM ({}) started on an unknown "
+                                 "IP address".format(instance)))
                     else:
-                        puts_err(colored.yellow("VM was already started on an unknown IP address"))
+                        puts_err(colored.yellow("VM ({}) was already started on an "
+                                                "unknown IP address".format(instance)))
 
     # allows "mech start" to alias to "mech up"
     start = up
@@ -823,15 +843,18 @@ class Mech(MechCommand):
                     vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
                     if ip:
                         if started:
-                            puts_err(colored.green("VM started on {}".format(ip)))
+                            puts_err(colored.green("VM ({}) started on "
+                                     "{}".format(instance, ip)))
                         else:
-                            puts_err(colored.yellow("VM already was started on {}".format(ip)))
+                            puts_err(colored.yellow("VM ({}) already was started "
+                                     "on {}".format(instance, ip)))
                     else:
                         if started:
-                            puts_err(colored.green("VM started on an unknown IP address"))
+                            puts_err(colored.green("VM ({}) started on an unknown "
+                                     "IP address".format(instance)))
                         else:
-                            puts_err(colored.yellow("VM already was started "
-                                     "on an unknown IP address"))
+                            puts_err(colored.yellow("VM ({}) already was started "
+                                     "on an unknown IP address".format(instance)))
 
     def suspend(self, arguments):
         """
@@ -962,7 +985,7 @@ class Mech(MechCommand):
         # when we activate, we change to the directory where the .vmx file is
         # since we are trying to copy files, we need to go back to the
         # directory that we started in
-        os.chdir(MAIN_DIR)
+        os.chdir(utils.main_dir())
 
         try:
             fp.write(utils.config_ssh_string(config_ssh).encode())
@@ -1103,14 +1126,17 @@ class Mech(MechCommand):
                 ip = vmrun.getGuestIPAddress(lookup=lookup)
                 if ip:
                     if started:
-                        puts_err(colored.green("VM started on {}".format(ip)))
+                        puts_err(colored.green("VM ({}) started on {}".format(instance, ip)))
                     else:
-                        puts_err(colored.yellow("VM already was started on {}".format(ip)))
+                        puts_err(colored.yellow("VM ({}) already was started on "
+                                 "{}".format(instance, ip)))
                 else:
                     if started:
-                        puts_err(colored.green("VM started on an unknown IP address"))
+                        puts_err(colored.green("VM ({}) started on an unknown IP "
+                                 "address".format(instance)))
                     else:
-                        puts_err(colored.yellow("VM already was started on an unknown IP address"))
+                        puts_err(colored.yellow("VM ({}) already was started "
+                                 "on an unknown IP address".format(instance)))
 
     def port(self, arguments):
         """
