@@ -62,6 +62,53 @@
   [[ "$output" =~ $regex10 ]]
   [[ "$output" =~ $regex11 ]]
 
+  # make sure we can re-run 'up'
+  run mech up
+  regex1="Bringing machine"
+  regex2="Getting IP"
+  regex3="Sharing current folder"
+  regex4="was already started"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+  [[ "$output" =~ $regex2 ]]
+  [[ "$output" =~ $regex3 ]]
+  [[ "$output" =~ $regex4 ]]
+
+  # make sure we can re-run 'up' with alias 'start'
+  run mech start
+  regex1="Bringing machine"
+  regex2="Getting IP"
+  regex3="Sharing current folder"
+  regex4="was already started"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+  [[ "$output" =~ $regex2 ]]
+  [[ "$output" =~ $regex3 ]]
+  [[ "$output" =~ $regex4 ]]
+
+  # validate ps required arg
+  run mech ps
+  regex1="Usage: mech ps"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech ps first
+  regex1="cmd=/sbin/init"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech status
+  regex1="first"
+  regex2="Tools running"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+  [[ "$output" =~ $regex2 ]]
+
+  run mech global-status
+  regex1="simple/.mech/first/"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
   run mech list
   regex1="first"
   regex2="alpine"
@@ -76,6 +123,100 @@
   [ "$status" -eq 0 ]
   [[ "$output" =~ $regex1 ]]
   [[ "$output" =~ $regex2 ]]
+
+  run mech stop
+  regex1="Stopped"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # try to stop a Stopped instance
+  run mech stop
+  regex1="Not stopped"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech start
+  regex1="started"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech pause
+  regex1="Paused"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech resume
+  regex1="resumed"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech suspend
+  regex1="Suspended"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech resume
+  regex1="started"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # ssh: incomplete args
+  run mech ssh
+  regex1="Usage: mech ssh"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech ssh -c 'uptime' first
+  regex1="load average"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # other form of command
+  run mech ssh --command 'uptime' first
+  regex1="load average"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # scp: incomplete args
+  run mech scp
+  regex1="Usage: mech scp"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  date > now
+  run mech scp now first:/tmp
+  regex1="100%"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+  rm now
+
+  run mech scp first:/tmp/now .
+  regex1="100%"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+  rm now
+
+  # ip: incomplete args
+  run mech ip
+  regex1="Usage: mech ip"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech ip first
+  regex1="^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+
+  # ip: invalid arg
+  run mech ip first2
+  regex1="not found in the Mechfile"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ $regex1 ]]
+
+  run mech port
+  regex1="Total port forwardings: 0"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
 
   run mech box list
   regex1="alpine"
