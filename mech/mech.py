@@ -429,6 +429,8 @@ class Mech(MechCommand):
 
     For help on any individual command run `mech <command> -h`
 
+    All "state" will be saved in .mech directory. (boxes and instances)
+
     Example:
 
     Initializing and using a machine from HashiCorp's Vagrant Cloud:
@@ -475,6 +477,9 @@ class Mech(MechCommand):
                 --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
             -h, --help                       Print this help
         """
+        # TODO: with provision example
+        # TODO: multiple names?
+        # TODO: multiple boxes?
 
         name = arguments['--name']
         box_version = arguments['--box-version']
@@ -535,6 +540,7 @@ class Mech(MechCommand):
 
         numvcpus = arguments['--numvcpus']
         memsize = arguments['--memsize']
+        # TODO: disabled_shared_folder/cpus/ram from config
 
         instance_name = arguments['<instance>']
 
@@ -818,6 +824,7 @@ class Mech(MechCommand):
                     lookup = self.enable_ip_lookup
                     ip = vmrun.getGuestIPAddress(lookup=lookup)
                     puts_err(colored.blue("Sharing current folder..."))
+                    # TODO: param
                     vmrun.enableSharedFolders()
                     vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
                     if ip:

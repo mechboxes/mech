@@ -28,8 +28,12 @@ pip install flake8
 
 # also optional
 pip install autopep8
-# use like this: autopep8 --in-place --aggressive --aggressive somefile.py 
+# use like this: autopep8 --in-place --aggressive --aggressive somefile.py
 
 # Configure git to use pre-commit hook
 flake8 --install-hook git
+
+# install bats (on mac)
+# see https://github.com/bats-core/bats-core
+brew install bats-core
 ```
