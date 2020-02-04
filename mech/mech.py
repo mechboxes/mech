@@ -543,6 +543,7 @@ class Mech(MechCommand):
         Options:
                 --gui                        Start GUI
                 --disable-shared-folders     Do not share folders with VM
+                --disable-provisioning       Do not provision
                 --insecure                   Do not validate SSL certificates
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
@@ -556,6 +557,7 @@ class Mech(MechCommand):
         """
         gui = arguments['--gui']
         disable_shared_folders = arguments['--disable-shared-folders']
+        disable_provisioning = arguments['--disable-provisioning']
         save = not arguments['--no-cache']
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
@@ -564,8 +566,10 @@ class Mech(MechCommand):
 
         instance_name = arguments['<instance>']
 
-        logger.debug('gui:{} disable_shared_folders:{} save:{} numvcpus:{} memsize:{}'.format(
-                     gui, disable_shared_folders, save, numvcpus, memsize))
+        logger.debug('gui:{} disable_shared_folders:{} disable_provisioning:{} '
+                     'save:{} numvcpus:{} memsize:{}'.format(gui, disable_shared_folders,
+                                                             disable_provisioning, save,
+                                                             numvcpus, memsize))
 
         if instance_name:
             # single instance
@@ -624,6 +628,9 @@ class Mech(MechCommand):
                     else:
                         puts_err(colored.yellow("VM ({}) was already started on an "
                                                 "unknown IP address".format(instance)))
+                if not disable_provisioning:
+                    utils.provision(instance, self.vmx, self.user, self.password,
+                                    self.provision, show=False)
 
     # allows "mech start" to alias to "mech up"
     start = up
@@ -1093,60 +1100,7 @@ class Mech(MechCommand):
 
         for instance in instances:
             self.activate(instance)
-
-            puts_err(colored.green('Provisioning instance:{}'.format(instance)))
-
-            # cannot run provisioning if vmware tools are not installed
-            vmrun = VMrun(self.vmx, self.user, self.password)
-            if not vmrun.installedTools():
-                puts_err(colored.red("Tools not installed"))
-                return
-
-            provisioned = 0
-            for i, provision in enumerate(self.provision):
-                provision_type = provision.get('type')
-                if provision_type == 'file':
-                    source = provision.get('source')
-                    # Note: When we activate the instance, we change down to where the .vmx file
-                    # is. For the source to "work", we need to pre-pend the main_dir().
-                    source = os.path.join(utils.main_dir(), source)
-                    destination = provision.get('destination')
-                    if show:
-                        puts_err(colored.green(" instance:{} provision_type:{} source:{} "
-                                 "destination:{}".format(instance, provision_type,
-                                                         source, destination)))
-                    else:
-                        if utils.provision_file(vmrun, source, destination) is None:
-                            puts_err(colored.red("Not Provisioned"))
-                            return
-                    provisioned += 1
-
-                elif provision_type == 'shell':
-                    inline = provision.get('inline')
-                    path = provision.get('path')
-                    if path:
-                        # Note: When we activate the instance, we change down to where the .vmx file
-                        # is. For the source to "work", we need to pre-pend the main_dir().
-                        path = os.path.join(utils.main_dir(), path)
-
-                    args = provision.get('args')
-                    if not isinstance(args, list):
-                        args = [args]
-                    if show:
-                        puts_err(colored.green(" instance:{} provision_type:{} inline:{} path:{} "
-                                 "args:{}".format(instance, provision_type, inline, path, args)))
-                    else:
-                        if utils.provision_shell(vmrun, inline, path, args) is None:
-                            puts_err(colored.red("Not Provisioned"))
-                            return
-                    provisioned += 1
-
-                else:
-                    puts_err(colored.red("Not Provisioned ({}".format(i)))
-                    return
-            else:
-                puts_err(colored.green("VM ({}) Provision {} "
-                         "entries".format(instance, provisioned)))
+            utils.provision(instance, self.vmx, self.user, self.password, self.provision, show)
 
     def reload(self, arguments):
         """

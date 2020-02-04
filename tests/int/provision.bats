@@ -11,7 +11,7 @@
   # setup
   find . -type d -name .mech -exec rm -rf {} \; 2> /dev/null || true
 
-  run mech up
+  run mech up --disable-provisioning
   regex1="VM (first) started"
   regex2="VM (second) started"
   regex3="VM (third) started"
@@ -69,6 +69,16 @@
   regex1="VM (third) Provision 0 entries"
   [ "$status" -eq 0 ]
   [[ "$output" =~ $regex1 ]]
+
+  # ensure that provision runs on 'mech up'
+  run mech up
+  regex1="VM (first) Provision 2 entries"
+  regex2="VM (second) Provision 3 entries"
+  regex3="VM (third) Provision 0 entries"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+  [[ "$output" =~ $regex2 ]]
+  [[ "$output" =~ $regex3 ]]
 
   run mech destroy -f
   regex1="Deleting"

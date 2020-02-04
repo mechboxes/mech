@@ -42,6 +42,7 @@ from clint.textui import colored, puts_err
 from clint.textui import progress
 
 from .compat import raw_input, b2s
+from .vmrun import VMrun
 
 logger = logging.getLogger(__name__)
 
@@ -552,6 +553,72 @@ def get_requests_kwargs(arguments):
     elif arguments['--cert']:
         requests_kwargs['cert'] = arguments['--cert']
     return requests_kwargs
+
+
+def provision(instance, vmx, user, password, provision, show):
+    """Provision an instance."""
+
+    if instance == '':
+        puts_err(colored.red("Need to provide an instance to provision()."))
+        return
+
+    if not vmx or not user or not password:
+        puts_err(colored.red("Need provide vmx/user/password to provision()."))
+        return
+
+    puts_err(colored.green('Provisioning instance:{}'.format(instance)))
+
+    vmrun = VMrun(vmx, user, password)
+    # cannot run provisioning if vmware tools are not installed
+    if not vmrun.installedTools():
+        puts_err(colored.red("Cannot provision if VMware Tools are not installed."))
+        return
+
+    provisioned = 0
+    for i, provision in enumerate(provision):
+        provision_type = provision.get('type')
+        if provision_type == 'file':
+            source = provision.get('source')
+            # Note: When we activate the instance, we change down to where the .vmx file
+            # is. For the source to "work", we need to pre-pend the main_dir().
+            source = os.path.join(main_dir(), source)
+            destination = provision.get('destination')
+            if show:
+                puts_err(colored.green(" instance:{} provision_type:{} source:{} "
+                         "destination:{}".format(instance, provision_type,
+                                                 source, destination)))
+            else:
+                if provision_file(vmrun, source, destination) is None:
+                    puts_err(colored.red("Not Provisioned"))
+                    return
+            provisioned += 1
+
+        elif provision_type == 'shell':
+            inline = provision.get('inline')
+            path = provision.get('path')
+            if path:
+                # Note: When we activate the instance, we change down to where the .vmx file
+                # is. For the source to "work", we need to pre-pend the main_dir().
+                path = os.path.join(main_dir(), path)
+
+            args = provision.get('args')
+            if not isinstance(args, list):
+                args = [args]
+            if show:
+                puts_err(colored.green(" instance:{} provision_type:{} inline:{} path:{} "
+                         "args:{}".format(instance, provision_type, inline, path, args)))
+            else:
+                if provision_shell(vmrun, inline, path, args) is None:
+                    puts_err(colored.red("Not Provisioned"))
+                    return
+            provisioned += 1
+
+        else:
+            puts_err(colored.red("Not Provisioned ({}".format(i)))
+            return
+    else:
+        puts_err(colored.green("VM ({}) Provision {} "
+                 "entries".format(instance, provisioned)))
 
 
 def provision_file(vm, source, destination):
