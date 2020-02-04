@@ -86,6 +86,7 @@ class MechCommand(Command):
     box_version = None
     url = None
     box_file = None
+    provision = None
     vmx = None
     user = None
     password = None
@@ -116,6 +117,7 @@ class MechCommand(Command):
         self.box_version = None
         self.url = None
         self.box_file = None
+        self.provision = None
         self.vmx = None
         self.user = None
         self.password = None
@@ -139,6 +141,7 @@ class MechCommand(Command):
         self.box_version = self.mechfile[name].get('box_version', None)
         self.url = self.mechfile[name].get('url', None)
         self.box_file = self.mechfile[name].get('file', None)
+        self.provision = self.mechfile[name].get('provision', None)
         self.user = DEFAULT_USER
         self.password = DEFAULT_PASSWORD
         path = MechCommand.instance_path(name)
@@ -153,6 +156,15 @@ class MechCommand(Command):
         if os.path.exists(path):
             # change to the path of the instance
             os.chdir(path)
+
+    def __repr__(self):
+        """Return a representation of this object."""
+        return ('active_name:{} created:{} box:{} box_version:{} '
+            'url:{} box_file:{} provision:{} vmx:{} user:{} password:{} '
+            'enable_ip_lookup:{} config:{}'.format(self.active_name,
+            self.created, self.box, self.box_version, self.url, self.box_file,
+            self.provision, self.vmx, self.user, self.password,
+            self.enable_ip_lookup, self.config))
 
     def vmx(self):
         """Get the fully qualified path to the vmx file."""
@@ -1043,8 +1055,10 @@ class Mech(MechCommand):
         Usage: mech provision [options] [<instance>]
 
         Options:
+            -s, --show-only                  Show the provisioning info (do not run)
             -h, --help                       Print this help
         """
+        show = arguments['--show-only']
         instance_name = arguments['<instance>']
 
         if instance_name:
@@ -1057,41 +1071,58 @@ class Mech(MechCommand):
         for instance in instances:
             self.activate(instance)
 
-            vmrun = VMrun(self.vmx, self.user, self.password)
+            puts_err(colored.green('Provisioning instance:{}'.format(instance)))
 
+            # cannot run provisioning if vmware tools are not installed
+            vmrun = VMrun(self.vmx, self.user, self.password)
             if not vmrun.installedTools():
                 puts_err(colored.red("Tools not installed"))
                 return
 
             provisioned = 0
-            for i, provision in enumerate(self.get('provision', [])):
-                if provision.get('type') == 'file':
+            for i, provision in enumerate(self.provision):
+                provision_type = provision.get('type')
+                if provision_type == 'file':
                     source = provision.get('source')
+                    # Note: When we activate the instance, we change down to where the .vmx file
+                    # is. For the source to "work", we need to pre-pend the main_dir().
+                    source = os.path.join(utils.main_dir(), source)
                     destination = provision.get('destination')
-                    if utils.provision_file(vmrun, source, destination) is None:
-                        puts_err(colored.red("Not Provisioned"))
-                        return
+                    if show:
+                        puts_err(colored.green(" instance:{} provision_type:{} source:{} destination:{}".format(
+                                 instance, provision_type, source, destination)))
+                    else:
+                        if utils.provision_file(vmrun, source, destination) is None:
+                            puts_err(colored.red("Not Provisioned"))
+                            return
                     provisioned += 1
 
-                elif provision.get('type') == 'shell':
+                elif provision_type == 'shell':
                     inline = provision.get('inline')
                     path = provision.get('path')
+                    if path:
+                        # Note: When we activate the instance, we change down to where the .vmx file
+                        # is. For the source to "work", we need to pre-pend the main_dir().
+                        path = os.path.join(utils.main_dir(), path)
+
                     args = provision.get('args')
                     if not isinstance(args, list):
                         args = [args]
-                    if utils.provision_shell(vmrun, inline, path, args) is None:
-                        puts_err(colored.red("Not Provisioned"))
-                        return
+                    if show:
+                        puts_err(colored.green(" instance:{} provision_type:{} inline:{} path:{} args:{}".format(
+                                 instance, provision_type, inline, path, args)))
+                    else:
+                        if utils.provision_shell(vmrun, inline, path, args) is None:
+                            puts_err(colored.red("Not Provisioned"))
+                            return
                     provisioned += 1
 
                 else:
                     puts_err(colored.red("Not Provisioned ({}".format(i)))
                     return
             else:
-                puts_err(colored.green("Provisioned {} entries".format(provisioned)))
-                return
+                puts_err(colored.green("VM ({}) Provision {} entries".format(instance, provisioned)))
 
-            puts_err(colored.red("Not Provisioned ({}".format(i)))
 
     def reload(self, arguments):
         """

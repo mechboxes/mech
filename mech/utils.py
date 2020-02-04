@@ -555,13 +555,18 @@ def get_requests_kwargs(arguments):
 
 
 def provision_file(vm, source, destination):
-    """Provision from file."""
+    """Provision from file.
+       This simply copies a file from host to guest.
+    """
+    puts_err(colored.blue("Copying ({}) to ({})".format(source, destination)))
     return vm.copyFileFromHostToGuest(source, destination)
 
 
 def provision_shell(vm, inline, path, args=[]):
     """Provision from shell."""
     tmp_path = vm.createTempfileInGuest()
+    logger.debug('inline:{} path:{} args:{} tmp_path:{}'.format(
+                 inline, path, args, tmp_path))
     if tmp_path is None:
         return
 
@@ -590,10 +595,10 @@ def provision_shell(vm, inline, path, args=[]):
                 puts_err(colored.red("No script to execute"))
                 return
 
-            puts_err(colored.blue("Configuring script..."))
+            puts_err(colored.blue("Configuring script to run inline..."))
             fp = tempfile.NamedTemporaryFile(delete=False)
             try:
-                fp.write(inline)
+                fp.write(str.encode(inline))
                 fp.close()
                 if vm.copyFileFromHostToGuest(fp.name, tmp_path) is None:
                     return
