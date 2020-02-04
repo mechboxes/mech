@@ -21,3 +21,4 @@ files from the internet and start up/stop/destroy VMs.
 - `./quick.bats` - quick validations (ex: help, version)
 - `./simple.bats` - simple validations of most basic functionality
 - `./two_ubuntu.bats` - validate two ubuntu instances
+- `./shared_folders.bats` - validate shared folders functionality

@@ -9,3 +9,4 @@
 ./two_ubuntu.bats
 ./init_from_file.bats
 ./provision.bats
+./shared_folders.bats

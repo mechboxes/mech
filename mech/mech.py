@@ -160,11 +160,12 @@ class MechCommand(Command):
     def __repr__(self):
         """Return a representation of this object."""
         return ('active_name:{} created:{} box:{} box_version:{} '
-            'url:{} box_file:{} provision:{} vmx:{} user:{} password:{} '
-            'enable_ip_lookup:{} config:{}'.format(self.active_name,
-            self.created, self.box, self.box_version, self.url, self.box_file,
-            self.provision, self.vmx, self.user, self.password,
-            self.enable_ip_lookup, self.config))
+                'url:{} box_file:{} provision:{} vmx:{} user:{} '
+                'password:{} enable_ip_lookup:{} config:{}'.
+                format(self.active_name, self.created, self.box,
+                       self.box_version, self.url, self.box_file,
+                       self.provision, self.vmx, self.user, self.password,
+                       self.enable_ip_lookup, self.config))
 
     def vmx(self):
         """Get the fully qualified path to the vmx file."""
@@ -541,7 +542,7 @@ class Mech(MechCommand):
 
         Options:
                 --gui                        Start GUI
-                --disable-shared-folder      Do not share folder with VM
+                --disable-shared-folders     Do not share folders with VM
                 --insecure                   Do not validate SSL certificates
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
@@ -554,7 +555,7 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         gui = arguments['--gui']
-        disable_shared_folder = not arguments['--disable-shared-folder']
+        disable_shared_folders = arguments['--disable-shared-folders']
         save = not arguments['--no-cache']
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
@@ -562,6 +563,9 @@ class Mech(MechCommand):
         memsize = arguments['--memsize']
 
         instance_name = arguments['<instance>']
+
+        logger.debug('gui:{} disable_shared_folders:{} save:{} numvcpus:{} memsize:{}'.format(
+                     gui, disable_shared_folders, save, numvcpus, memsize))
 
         if instance_name:
             # single instance
@@ -602,10 +606,10 @@ class Mech(MechCommand):
                 puts_err(colored.blue("Getting IP address..."))
                 lookup = self.enable_ip_lookup
                 ip = vmrun.getGuestIPAddress(lookup=lookup)
-                puts_err(colored.blue("Sharing current folder..."))
-                if not disable_shared_folder:
-                    vmrun.enableSharedFolders()
-                    vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
+                if not disable_shared_folders:
+                    puts_err(colored.blue("Sharing current folder..."))
+                    vmrun.enableSharedFolders(quiet=False)
+                    vmrun.addSharedFolder('mech', utils.main_dir(), quiet=True)
                 if ip:
                     if started:
                         puts_err(colored.green("VM ({}) started "
@@ -814,9 +818,14 @@ class Mech(MechCommand):
         Usage: mech resume [options] [<instance>]
 
         Options:
+            --disable-shared-folders         Do not share folders with VM
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+        disable_shared_folders = arguments['--disable-shared-folders']
+
+        logger.debug('instance_name:{} '
+                     'disable_shared_folders:{}'.format(instance_name, disable_shared_folders))
 
         if instance_name:
             # single instance
@@ -827,47 +836,61 @@ class Mech(MechCommand):
 
         for instance in instances:
             self.activate(instance)
+            logger.debug('instance:{} self.vmx:{}'.format(instance, self.vmx))
 
-            vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+            # if we have started this instance before, try to unpause
+            if self.vmx:
 
-            # Try to unpause
-            if vmrun.unpause(quiet=True) is not None:
-                time.sleep(1)
-                puts_err(colored.blue("Getting IP address..."))
-                lookup = self.enable_ip_lookup
-                ip = vmrun.getGuestIPAddress(lookup=lookup)
-                if ip:
-                    puts_err(colored.green("VM resumed on {}".format(ip)))
-                else:
-                    puts_err(colored.green("VM resumed on an unknown IP address"))
+                vmrun = VMrun(self.vmx, user=self.user, password=self.password)
 
-            # Otherwise try starting
-            else:
-                started = vmrun.start()
-                if started is None:
-                    puts_err(colored.red("VM not started"))
-                else:
-                    time.sleep(3)
+                if vmrun.unpause(quiet=True) is not None:
+                    time.sleep(1)
                     puts_err(colored.blue("Getting IP address..."))
                     lookup = self.enable_ip_lookup
                     ip = vmrun.getGuestIPAddress(lookup=lookup)
-                    puts_err(colored.blue("Sharing current folder..."))
-                    vmrun.enableSharedFolders()
-                    vmrun.addSharedFolder('mech', os.getcwd(), quiet=True)
-                    if ip:
-                        if started:
-                            puts_err(colored.green("VM ({}) started on "
-                                     "{}".format(instance, ip)))
-                        else:
-                            puts_err(colored.yellow("VM ({}) already was started "
-                                     "on {}".format(instance, ip)))
+                    if not disable_shared_folders:
+                        puts_err(colored.blue("Sharing current folder..."))
+                        vmrun.enableSharedFolders(quiet=False)
+                        vmrun.addSharedFolder('mech', utils.main_dir(), quiet=True)
                     else:
-                        if started:
-                            puts_err(colored.green("VM ({}) started on an unknown "
-                                     "IP address".format(instance)))
+                        puts_err(colored.blue("Disabling shared folders..."))
+                        vmrun.disableSharedFolders(quiet=False)
+                    if ip:
+                        puts_err(colored.green("VM resumed on {}".format(ip)))
+                    else:
+                        puts_err(colored.green("VM resumed on an unknown IP address"))
+
+                else:
+                    # Otherwise try starting
+                    vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+                    started = vmrun.start()
+                    if started is None:
+                        puts_err(colored.red("VM not started"))
+                    else:
+                        time.sleep(3)
+                        puts_err(colored.blue("Getting IP address..."))
+                        lookup = self.enable_ip_lookup
+                        ip = vmrun.getGuestIPAddress(lookup=lookup)
+                        if not disable_shared_folders:
+                            puts_err(colored.blue("Sharing current folder..."))
+                            vmrun.enableSharedFolders(quiet=False)
+                            vmrun.addSharedFolder('mech', utils.main_dir(), quiet=True)
+                        if ip:
+                            if started:
+                                puts_err(colored.green("VM ({}) started on "
+                                         "{}".format(instance, ip)))
+                            else:
+                                puts_err(colored.yellow("VM ({}) already was started "
+                                         "on {}".format(instance, ip)))
                         else:
-                            puts_err(colored.yellow("VM ({}) already was started "
-                                     "on an unknown IP address".format(instance)))
+                            if started:
+                                puts_err(colored.green("VM ({}) started on an unknown "
+                                         "IP address".format(instance)))
+                            else:
+                                puts_err(colored.yellow("VM ({}) already was started "
+                                         "on an unknown IP address".format(instance)))
+            else:
+                puts_err(colored.red("Need to start VM first"))
 
     def suspend(self, arguments):
         """
@@ -1089,8 +1112,9 @@ class Mech(MechCommand):
                     source = os.path.join(utils.main_dir(), source)
                     destination = provision.get('destination')
                     if show:
-                        puts_err(colored.green(" instance:{} provision_type:{} source:{} destination:{}".format(
-                                 instance, provision_type, source, destination)))
+                        puts_err(colored.green(" instance:{} provision_type:{} source:{} "
+                                 "destination:{}".format(instance, provision_type,
+                                                         source, destination)))
                     else:
                         if utils.provision_file(vmrun, source, destination) is None:
                             puts_err(colored.red("Not Provisioned"))
@@ -1109,8 +1133,8 @@ class Mech(MechCommand):
                     if not isinstance(args, list):
                         args = [args]
                     if show:
-                        puts_err(colored.green(" instance:{} provision_type:{} inline:{} path:{} args:{}".format(
-                                 instance, provision_type, inline, path, args)))
+                        puts_err(colored.green(" instance:{} provision_type:{} inline:{} path:{} "
+                                 "args:{}".format(instance, provision_type, inline, path, args)))
                     else:
                         if utils.provision_shell(vmrun, inline, path, args) is None:
                             puts_err(colored.red("Not Provisioned"))
@@ -1121,8 +1145,8 @@ class Mech(MechCommand):
                     puts_err(colored.red("Not Provisioned ({}".format(i)))
                     return
             else:
-                puts_err(colored.green("VM ({}) Provision {} entries".format(instance, provisioned)))
-
+                puts_err(colored.green("VM ({}) Provision {} "
+                         "entries".format(instance, provisioned)))
 
     def reload(self, arguments):
         """

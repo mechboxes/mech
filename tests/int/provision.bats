@@ -31,7 +31,7 @@
   [[ "$output" =~ $regex3 ]]
 
   # there should not be any files before file provisioning
-  run mech ssh -c "ls -al /tmp/file1.txt"
+  run mech ssh -c "ls -al /tmp/file1.txt" first
   regex1="No such file or directory"
   [ "$status" -eq 1 ]
   [[ "$output" =~ $regex1 ]]
