@@ -173,9 +173,7 @@ class MechInstance():
 
 
 class MechCommand(Command):
-    """Class to hold the Mechfile (as python object) and an active
-       instance's configuration.
-    """
+    """Class to hold the Mechfile (as python object)."""
     mechfile = None
 
     def activate_mechfile(self):
@@ -188,30 +186,6 @@ class MechCommand(Command):
         if not self.mechfile:
             self.activate_mechfile()
         return list(self.mechfile)
-
-    def vmx(self):
-        """Get the fully qualified path to the vmx file."""
-        return self.vmx
-
-    def box(self):
-        """Get the box (ex: 'bento/ubuntu-18.04')."""
-        return self.box
-
-    def box_version(self):
-        """Get the box_version (ex: '2020-01-16')."""
-        return self.box_version
-
-    def user(self):
-        """Get the username (ex: 'vagrant')."""
-        return self.user
-
-    def password(self):
-        """Get the password (ex: 'temp123')."""
-        return self.password
-
-    def enable_ip_lookup(self):
-        """Enable ip lookup (defaults to False)."""
-        return self.enable_ip_lookup
 
 
 class MechBox(MechCommand):
@@ -888,7 +862,7 @@ class Mech(MechCommand):
 
         for instance in instances:
             inst = MechInstance(instance)
-            logger.debug('instance:{} self.vmx:{}'.format(instance, inst.vmx))
+            logger.debug('instance:{} inst.vmx:{}'.format(instance, inst.vmx))
 
             # if we have started this instance before, try to unpause
             if inst.vmx:
@@ -1109,7 +1083,7 @@ class Mech(MechCommand):
 
         if inst.created:
             vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
-            lookup = self.enable_ip_lookup
+            lookup = inst.enable_ip_lookup
             ip = vmrun.getGuestIPAddress(lookup=lookup)
             if ip:
                 puts_err(colored.green(ip))
