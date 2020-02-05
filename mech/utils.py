@@ -113,12 +113,13 @@ def confirm(prompt, default='y'):
             return False
 
 
-def save_mechfile(mechfile, name, path):
+def save_mechfile(mechfile, name):
     """Save the Mechfile."""
-    multiple_mechfiles = {name: mechfile}
-    logger.debug("path:{}".format(path))
-    with open(os.path.join(path, 'Mechfile'), 'w+') as fp:
-        json.dump(multiple_mechfiles, fp, sort_keys=True, indent=2, separators=(',', ': '))
+    logger.debug('mechfile:{} name:{}'.format(mechfile, name))
+    mechfiles = {name: mechfile}
+    logger.debug("mechfiles:{}".format(mechfiles))
+    with open(os.path.join(main_dir(), 'Mechfile'), 'w+') as fp:
+        json.dump(mechfiles, fp, sort_keys=True, indent=2, separators=(',', ': '))
     return True
 
 
@@ -314,7 +315,7 @@ def tar_cmd(*args, **kwargs):
     return tar
 
 
-def init_box(name, box, box_version, location=None, force=False, save=True,
+def init_box(name, box=None, box_version=None, location=None, force=False, save=True,
              instance_path=None, requests_kwargs={}, numvcpus=None,
              memsize=None):
     """Initialize the box. This includes uncompressing the files
@@ -529,16 +530,15 @@ def add_box_file(box=None, box_version=None, filename=None, url=None, force=Fals
 
 def init_mechfile(location=None, box=None, name=None, box_version=None, requests_kwargs={}):
     """Initialize the Mechfile."""
-    path = main_dir()
-    logger.debug("name:{} box:{} box_version:{} location:{} path:{}".format(
-        name, box, box_version, location, path))
+    logger.debug("name:{} box:{} box_version:{} location:{}".format(
+        name, box, box_version, location))
     mechfile = build_mechfile(
         location=location,
         box=box,
         name=name,
         box_version=box_version,
         requests_kwargs=requests_kwargs)
-    return save_mechfile(mechfile, name, path)
+    return save_mechfile(mechfile, name)
 
 
 def get_requests_kwargs(arguments):

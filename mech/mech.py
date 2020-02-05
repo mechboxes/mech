@@ -109,14 +109,20 @@ class MechInstance():
             self.created = False
 
     def __repr__(self):
-        """Return a representation of this object."""
-        return ('name:{} created:{} box:{} box_version:{} '
-                'url:{} box_file:{} provision:{} vmx:{} user:{} '
-                'password:{} enable_ip_lookup:{} config:{}'.
-                format(self.name, self.created, self.box,
-                       self.box_version, self.url, self.box_file,
-                       self.provision, self.vmx, self.user, self.password,
-                       self.enable_ip_lookup, self.config))
+        """Return a representation of a Mech instance."""
+        sep = '\n'
+        return ('name:{name}{sep}created:{created}{sep}box:{box}{sep}'
+                'box_version:{box_version}{sep}'
+                'url:{url}{sep}box_file:{box_file}{sep}provision:{provision}{sep}'
+                'vmx:{vmx}{sep}user:{user}{sep}'
+                'password:{password}{sep}enable_ip_lookup:{enable_ip_lookup}'
+                '{sep}config:{config}'.
+                format(name=self.name, created=self.created, box=self.box,
+                       box_version=self.box_version, url=self.url,
+                       box_file=self.box_file, provision=self.provision,
+                       vmx=self.vmx, user=self.user, password=self.password,
+                       enable_ip_lookup=self.enable_ip_lookup, config=self.config,
+                       sep=sep))
 
     def config_ssh(self):
         vmrun = VMrun(self.vmx, user=self.user, password=self.password)
@@ -554,6 +560,7 @@ class Mech(MechCommand):
 
         for instance in instances:
             inst = MechInstance(instance)
+            # TODO: refactor
             instance_path = MechCommand.instance_path(instance)
 
             location = inst.url
@@ -1148,22 +1155,29 @@ class Mech(MechCommand):
 
     def list(self, arguments):
         """
-        Lists all available boxes.
+        Lists all available boxes from Mechfile.
 
         Usage: mech list [options]
 
         Options:
+            -d, --detail                     Print detailed info
             -h, --help                       Print this help
         """
 
+        detail = arguments['--detail']
         self.activate_mechfile()
 
-        print("{}\t{}\t{}\t{}".format(
-            'NAME'.rjust(20),
-            'ADDRESS'.rjust(15),
-            'BOX'.rjust(35),
-            'VERSION'.rjust(12)
-        ))
+        if detail:
+            print('Instance Details')
+            print()
+        else:
+            print("{}\t{}\t{}\t{}".format(
+                'NAME'.rjust(20),
+                'ADDRESS'.rjust(15),
+                'BOX'.rjust(35),
+                'VERSION'.rjust(12)
+            ))
+
         for name in self.mechfile:
             inst = MechInstance(name, self.mechfile)
             if inst.created:
@@ -1179,12 +1193,16 @@ class Mech(MechCommand):
             else:
                 ip = "notcreated"
 
-            print("{}\t{}\t{}\t{}".format(
-                colored.green(name.rjust(20)),
-                ip.rjust(15),
-                inst.box.rjust(35),
-                inst.box_version.rjust(12)
-            ))
+            if detail:
+                print(inst)
+                print()
+            else:
+                print("{}\t{}\t{}\t{}".format(
+                    colored.green(name.rjust(20)),
+                    ip.rjust(15),
+                    inst.box.rjust(35),
+                    inst.box_version.rjust(12)
+                ))
 
     # allow 'mech ls' as alias to 'mech list'
     ls = list
