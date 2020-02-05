@@ -78,10 +78,9 @@ NE5OgEXk2wVfZczCZpigBKbKZHNYcelXtTt/nP3rsCuGcM4h53s=
 class MechInstance():
 
     def __init__(self, name, mechfile=None):
-        """Sets the active instance name and changes to the
-           directory for that instance."""
+        """Class to hold instance (aka virtual machine)."""
         if name == "":
-            raise AttributeError("Must provide a instance name.")
+            raise AttributeError("Must provide a name for the instance.")
         if not mechfile:
             mechfile = utils.load_mechfile()
         logger.debug("loaded mechfile:{}".format(mechfile))
@@ -108,9 +107,6 @@ class MechInstance():
         else:
             self.vmx = None
             self.created = False
-        if os.path.exists(path):
-            # change to the path of the instance
-            os.chdir(path)
 
     def __repr__(self):
         """Return a representation of this object."""
@@ -998,11 +994,6 @@ class Mech(MechCommand):
 
         config_ssh = inst.config_ssh()
         fp = tempfile.NamedTemporaryFile(delete=False)
-
-        # when we activate, we change to the directory where the .vmx file is
-        # since we are trying to copy files, we need to go back to the
-        # directory that we started in
-        os.chdir(utils.main_dir())
 
         try:
             fp.write(utils.config_ssh_string(config_ssh).encode())

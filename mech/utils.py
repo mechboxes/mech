@@ -580,9 +580,6 @@ def provision(instance, vmx, user, password, provision, show):
             provision_type = p.get('type')
             if provision_type == 'file':
                 source = p.get('source')
-                # Note: When we activate the instance, we change down to where the .vmx file
-                # is. For the source to "work", we need to pre-pend the main_dir().
-                source = os.path.join(main_dir(), source)
                 destination = p.get('destination')
                 if show:
                     puts_err(colored.green(" instance:{} provision_type:{} source:{} "
@@ -597,10 +594,6 @@ def provision(instance, vmx, user, password, provision, show):
             elif provision_type == 'shell':
                 inline = p.get('inline')
                 path = p.get('path')
-                if path:
-                    # Note: When we activate the instance, we change down to where the .vmx file
-                    # is. For the source to "work", we need to pre-pend the main_dir().
-                    path = os.path.join(main_dir(), path)
 
                 args = p.get('args')
                 if not isinstance(args, list):
