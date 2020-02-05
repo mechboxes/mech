@@ -80,6 +80,7 @@ class MechCommand(Command):
        instance's configuration.
     """
     mechfile = None
+
     active_name = None
     created = False
     box = None

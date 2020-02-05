@@ -575,50 +575,53 @@ def provision(instance, vmx, user, password, provision, show):
         return
 
     provisioned = 0
-    for i, provision in enumerate(provision):
-        provision_type = provision.get('type')
-        if provision_type == 'file':
-            source = provision.get('source')
-            # Note: When we activate the instance, we change down to where the .vmx file
-            # is. For the source to "work", we need to pre-pend the main_dir().
-            source = os.path.join(main_dir(), source)
-            destination = provision.get('destination')
-            if show:
-                puts_err(colored.green(" instance:{} provision_type:{} source:{} "
-                         "destination:{}".format(instance, provision_type,
-                                                 source, destination)))
-            else:
-                if provision_file(vmrun, source, destination) is None:
-                    puts_err(colored.red("Not Provisioned"))
-                    return
-            provisioned += 1
-
-        elif provision_type == 'shell':
-            inline = provision.get('inline')
-            path = provision.get('path')
-            if path:
+    if provision:
+        for i, p in enumerate(provision):
+            provision_type = p.get('type')
+            if provision_type == 'file':
+                source = p.get('source')
                 # Note: When we activate the instance, we change down to where the .vmx file
                 # is. For the source to "work", we need to pre-pend the main_dir().
-                path = os.path.join(main_dir(), path)
+                source = os.path.join(main_dir(), source)
+                destination = p.get('destination')
+                if show:
+                    puts_err(colored.green(" instance:{} provision_type:{} source:{} "
+                             "destination:{}".format(instance, provision_type,
+                                                     source, destination)))
+                else:
+                    if provision_file(vmrun, source, destination) is None:
+                        puts_err(colored.red("Not Provisioned"))
+                        return
+                provisioned += 1
 
-            args = provision.get('args')
-            if not isinstance(args, list):
-                args = [args]
-            if show:
-                puts_err(colored.green(" instance:{} provision_type:{} inline:{} path:{} "
-                         "args:{}".format(instance, provision_type, inline, path, args)))
+            elif provision_type == 'shell':
+                inline = p.get('inline')
+                path = p.get('path')
+                if path:
+                    # Note: When we activate the instance, we change down to where the .vmx file
+                    # is. For the source to "work", we need to pre-pend the main_dir().
+                    path = os.path.join(main_dir(), path)
+
+                args = p.get('args')
+                if not isinstance(args, list):
+                    args = [args]
+                if show:
+                    puts_err(colored.green(" instance:{} provision_type:{} inline:{} path:{} "
+                             "args:{}".format(instance, provision_type, inline, path, args)))
+                else:
+                    if provision_shell(vmrun, inline, path, args) is None:
+                        puts_err(colored.red("Not Provisioned"))
+                        return
+                provisioned += 1
+
             else:
-                if provision_shell(vmrun, inline, path, args) is None:
-                    puts_err(colored.red("Not Provisioned"))
-                    return
-            provisioned += 1
-
+                puts_err(colored.red("Not Provisioned ({}".format(i)))
+                return
         else:
-            puts_err(colored.red("Not Provisioned ({}".format(i)))
-            return
+            puts_err(colored.green("VM ({}) Provision {} "
+                     "entries".format(instance, provisioned)))
     else:
-        puts_err(colored.green("VM ({}) Provision {} "
-                 "entries".format(instance, provisioned)))
+        puts_err(colored.blue("Nothing to provision"))
 
 
 def provision_file(vm, source, destination):
