@@ -10,3 +10,4 @@
 ./init_from_file.bats
 ./provision.bats
 ./shared_folders.bats
+./add_and_remove_instances.bats

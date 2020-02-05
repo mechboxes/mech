@@ -496,7 +496,7 @@ class Mech(MechCommand):
                 "`Mechfile` already exists in this directory. Remove it "
                 "before running `mech init`."
             )))
-            return
+            sys.exit(1)
 
         puts_err(colored.green("Initializing mech"))
         if utils.init_mechfile(
@@ -511,6 +511,83 @@ class Mech(MechCommand):
             )))
         else:
             puts_err(colored.red("Couldn't initialize mech"))
+
+    def add(self, arguments):
+        """
+        Add instance to the Mechfile.
+
+        Usage: mech add [options] <name> <location>
+
+        Example box: bento/ubuntu-18.04
+
+        Options:
+                --insecure                   Do not validate SSL certificates
+                --cacert FILE                CA certificate for SSL download
+                --capath DIR                 CA certificate directory for SSL download
+                --cert FILE                  A client SSL cert, if needed
+                --box-version VERSION        Constrain version of the added box
+                --checksum CHECKSUM          Checksum for the box
+                --checksum-type TYPE         Checksum type (md5, sha1, sha256)
+                --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
+            -h, --help                       Print this help
+        """
+        name = arguments['<name>']
+        box_version = arguments['--box-version']
+        box = arguments['--box']
+        location = arguments['<location>']
+
+        if not name or name == "":
+            puts_err(colored.red("Need to provide a name for the instance to add to the Mechfile."))
+            sys.exit(1)
+
+        requests_kwargs = utils.get_requests_kwargs(arguments)
+
+        logger.debug('name:{} box:{} box_version:{} location:{}'.format(
+                     name, box, box_version, location))
+
+        puts_err(colored.green("Adding ({}) to the Mechfile.".format(name)))
+
+        if utils.add_to_mechfile(
+                location=location,
+                box=box,
+                name=name,
+                box_version=box_version,
+                requests_kwargs=requests_kwargs):
+            puts_err(colored.green("Added to the Mechfile."))
+        else:
+            puts_err(colored.red("Could not add {} to the Mechfile".format(name)))
+
+    def remove(self, arguments):
+        """
+        Remove instance from the Mechfile.
+
+        Usage: mech remove [options] <name>
+
+        Options:
+            -h, --help                       Print this help
+        """
+        name = arguments['<name>']
+
+        if not name or name == "":
+            puts_err(colored.red("Need to provide a name to be removed from the Mechfile."))
+            sys.exit(1)
+
+        logger.debug('name:{}'.format(name))
+
+        self.activate_mechfile()
+        inst = self.mechfile.get(name, None)
+        if inst:
+            puts_err(colored.green("Removing ({}) from the Mechfile.".format(name)))
+            if utils.remove_mechfile_entry(name=name):
+                puts_err(colored.green("Removed from the Mechfile."))
+            else:
+                puts_err(colored.red("Could not remove {} from the Mechfile".format(name)))
+        else:
+            puts_err(colored.red("There is no instance called ({}) in the Mechfile.".format(name)))
+            sys.exit(1)
+
+    # add alias for 'mech delete'
+    delete = remove
 
     def up(self, arguments):
         """
@@ -1165,6 +1242,7 @@ class Mech(MechCommand):
         """
 
         detail = arguments['--detail']
+
         self.activate_mechfile()
 
         if detail:

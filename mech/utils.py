@@ -113,13 +113,36 @@ def confirm(prompt, default='y'):
             return False
 
 
-def save_mechfile(mechfile, name):
-    """Save the Mechfile."""
-    logger.debug('mechfile:{} name:{}'.format(mechfile, name))
-    mechfiles = {name: mechfile}
-    logger.debug("mechfiles:{}".format(mechfiles))
+def save_mechfile_entry(mechfile_entry, name, mechfile_should_exist=False):
+    """Save the entry to the Mechfile."""
+    logger.debug('mechfile_entry:{} name:{} '
+                 'mechfile_should_exist:{}'.format(mechfile_entry, name,
+                                                   mechfile_should_exist))
+    mechfile = load_mechfile(mechfile_should_exist)
+
+    mechfile[name] = mechfile_entry
+
+    logger.debug("after adding name:{} mechfile:{}".format(name, mechfile))
+    return save_mechfile(mechfile)
+
+
+def remove_mechfile_entry(name, mechfile_should_exist=True):
+    """Removed the entry from the Mechfile."""
+    logger.debug('name:{} mechfile_should_exist:{}'.format(name, mechfile_should_exist))
+    mechfile = load_mechfile(mechfile_should_exist)
+
+    if mechfile.get(name):
+        del mechfile[name]
+
+    logger.debug("after removing name:{} mechfile:{}".format(name, mechfile))
+    return save_mechfile(mechfile)
+
+
+def save_mechfile(mechfile):
+    """Save the mechfile object to a file called 'Mechfile'."""
+    logger.debug('mechfile:{}'.format(mechfile))
     with open(os.path.join(main_dir(), 'Mechfile'), 'w+') as fp:
-        json.dump(mechfiles, fp, sort_keys=True, indent=2, separators=(',', ': '))
+        json.dump(mechfile, fp, sort_keys=True, indent=2, separators=(',', ': '))
     return True
 
 
@@ -191,43 +214,48 @@ def update_vmx(path, numvcpus=None, memsize=None):
     # vmrun.upgradevm()
 
 
-def load_mechfile():
-    """Load the Mechfile from disk."""
-    mechfile_full = os.path.join(main_dir(), 'Mechfile')
-    logger.debug("mechfile_full:{}".format(mechfile_full))
-    if os.path.isfile(mechfile_full):
-        with open(mechfile_full) as fp:
+def load_mechfile(should_exist=True):
+    """Load the Mechfile from disk and return the object."""
+    mechfile_fullpath = os.path.join(main_dir(), 'Mechfile')
+    logger.debug("mechfile_fullpath:{}".format(mechfile_fullpath))
+    if os.path.isfile(mechfile_fullpath):
+        with open(mechfile_fullpath) as fp:
             try:
-                return json.loads(uncomment(fp.read()))
+                mechfile = json.loads(uncomment(fp.read()))
+                logger.debug('mechfile:{}'.format(mechfile))
+                return mechfile
             except ValueError:
                 puts_err(colored.red("Invalid Mechfile." + os.linesep))
     else:
-        puts_err(colored.red(textwrap.fill(
-            "Could not find a Mechfile in the current directory. "
-            "A Mech environment is required to run this command. Run `mech init` "
-            "to create a new Mech environment. Or specify the name of the VM you would "
-            "like to start with `mech up <name>`. A final option is to change to a "
-            "directory with a Mechfile and to try again."
-        )))
-        sys.exit(1)
+        if should_exist:
+            puts_err(colored.red(textwrap.fill(
+                "Could not find a Mechfile in the current directory. "
+                "A Mech environment is required to run this command. Run `mech init` "
+                "to create a new Mech environment. Or specify the name of the VM you would "
+                "like to start with `mech up <name>`. A final option is to change to a "
+                "directory with a Mechfile and to try again."
+            )))
+            sys.exit(1)
+        else:
+            return {}
 
 
-def build_mechfile(location, box=None, name=None, box_version=None, requests_kwargs={}):
+def build_mechfile_entry(location, box=None, name=None, box_version=None, requests_kwargs={}):
     """Build the Mechfile from the inputs."""
     logger.debug("location:{} name:{} box:{} box_version:{}".format(
                  location, name, box, box_version))
-    mechfile = {}
+    mechfile_entry = {}
     if location is None:
-        return mechfile
-    mechfile['name'] = name
+        return mechfile_entry
+    mechfile_entry['name'] = name
     if any(location.startswith(s) for s in ('https://', 'http://', 'ftp://')):
-        mechfile['url'] = location
+        mechfile_entry['url'] = location
         if not name:
             name = 'first'
-        mechfile['box'] = box
+        mechfile_entry['box'] = box
         if box_version:
-            mechfile['box_version'] = box_version
-        return mechfile
+            mechfile_entry['box_version'] = box_version
+        return mechfile_entry
     elif location.startswith('file:') or os.path.isfile(re.sub(r'^file:(?://)?', '', location)):
         location = re.sub(r'^file:(?://)?', '', location)
         logger.debug('location:{}'.format(location))
@@ -236,14 +264,14 @@ def build_mechfile(location, box=None, name=None, box_version=None, requests_kwa
             with open(location) as fp:
                 catalog = json.loads(uncomment(fp.read()))
         except Exception:
-            mechfile['file'] = location
+            mechfile_entry['file'] = location
         if not name:
             name = 'first'
-        mechfile['box'] = box
+        mechfile_entry['box'] = box
         if box_version:
-            mechfile['box_version'] = box_version
-        logger.debug('mechfile:{}'.format(mechfile))
-        return mechfile
+            mechfile_entry['box_version'] = box_version
+        logger.debug('mechfile_entry:{}'.format(mechfile_entry))
+        return mechfile_entry
     else:
         try:
             account, box, v = (location.split('/', 2) + ['', ''])[:3]
@@ -379,7 +407,7 @@ def add_box(name=None, box=None, box_version=None, location=None,
     # build the dict
     logger.debug('name:{} box:{} box_version:{} location:{}'.format(
                  name, box, box_version, location))
-    mechfile = build_mechfile(
+    mechfile_entry = build_mechfile_entry(
         box=box,
         name=name,
         location=location,
@@ -387,7 +415,7 @@ def add_box(name=None, box=None, box_version=None, location=None,
         requests_kwargs=requests_kwargs)
 
     return add_mechfile(
-        mechfile,
+        mechfile_entry,
         name=name,
         box=box,
         location=location,
@@ -397,17 +425,17 @@ def add_box(name=None, box=None, box_version=None, location=None,
         requests_kwargs=requests_kwargs)
 
 
-def add_mechfile(mechfile, name=None, box=None, box_version=None,
+def add_mechfile(mechfile_entry, name=None, box=None, box_version=None,
                  location=None, force=False, save=True, requests_kwargs={}):
-    logger.debug('mechfile:{} name:{} box:{} box_version:{} location:{}'.format(
-                 mechfile, name, box, box_version, location))
+    logger.debug('mechfile_entry:{} name:{} box:{} box_version:{} location:{}'.format(
+                 mechfile_entry, name, box, box_version, location))
 
-    box = mechfile.get('box')
-    name = mechfile.get('name')
-    box_version = mechfile.get('box_version')
+    box = mechfile_entry.get('box')
+    name = mechfile_entry.get('name')
+    box_version = mechfile_entry.get('box_version')
 
-    url = mechfile.get('url')
-    box_file = mechfile.get('file')
+    url = mechfile_entry.get('url')
+    box_file = mechfile_entry.get('file')
 
     if box_file:
         return add_box_file(box=box, box_version=box_version, filename=box_file,
@@ -486,7 +514,7 @@ def add_box_url(name, box, box_version, url, force=False, save=True, requests_kw
 
 
 def add_box_file(box=None, box_version=None, filename=None, url=None, force=False, save=True):
-    """Add a box using a file as the source."""
+    """Add a box using a file as the source. Returns box and box_version."""
     puts_err(colored.blue("Checking box '{}' integrity filename:{}...".format(box, filename)))
 
     if sys.platform == 'win32':
@@ -532,13 +560,28 @@ def init_mechfile(location=None, box=None, name=None, box_version=None, requests
     """Initialize the Mechfile."""
     logger.debug("name:{} box:{} box_version:{} location:{}".format(
         name, box, box_version, location))
-    mechfile = build_mechfile(
+    mechfile_entry = build_mechfile_entry(
         location=location,
         box=box,
         name=name,
         box_version=box_version,
         requests_kwargs=requests_kwargs)
-    return save_mechfile(mechfile, name)
+    logger.debug('mechfile_entry:{}'.format(mechfile_entry))
+    return save_mechfile_entry(mechfile_entry, name, mechfile_should_exist=False)
+
+
+def add_to_mechfile(location=None, box=None, name=None, box_version=None, requests_kwargs={}):
+    """Add entry to the Mechfile."""
+    logger.debug("name:{} box:{} box_version:{} location:{}".format(
+        name, box, box_version, location))
+    this_mech_entry = build_mechfile_entry(
+        location=location,
+        box=box,
+        name=name,
+        box_version=box_version,
+        requests_kwargs=requests_kwargs)
+    logger.debug('this_mech_entry:{}'.format(this_mech_entry))
+    return save_mechfile_entry(this_mech_entry, name, mechfile_should_exist=False)
 
 
 def get_requests_kwargs(arguments):

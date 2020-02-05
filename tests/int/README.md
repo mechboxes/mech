@@ -22,3 +22,4 @@ files from the internet and start up/stop/destroy VMs.
 - `./simple.bats` - simple validations of most basic functionality
 - `./two_ubuntu.bats` - validate two ubuntu instances
 - `./shared_folders.bats` - validate shared folders functionality
+- `./add_and_remove_instances.bats` - validate add/removing instance from Mechfile
