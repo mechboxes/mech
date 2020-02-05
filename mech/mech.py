@@ -75,74 +75,28 @@ NE5OgEXk2wVfZczCZpigBKbKZHNYcelXtTt/nP3rsCuGcM4h53s=
 """
 
 
-class MechCommand(Command):
-    """Class to hold the Mechfile (as python object) and an active
-       instance's configuration.
-    """
-    mechfile = None
+class MechInstance():
 
-    active_name = None
-    created = False
-    box = None
-    box_version = None
-    url = None
-    box_file = None
-    provision = None
-    vmx = None
-    user = None
-    password = None
-    enable_ip_lookup = False
-    config = {}
-
-    def activate_mechfile(self):
-        """Load the Mechfile."""
-        self.mechfile = utils.load_mechfile()
-        logger.debug("loaded mechfile:{}".format(self.mechfile))
-
-    def instances(self):
-        """Returns a list of the instances from the Mechfile."""
-        if not self.mechfile:
-            self.activate_mechfile()
-        return list(self.mechfile)
-
-    @staticmethod
-    def instance_path(name):
-        """Return the path for an instance."""
-        return os.path.join(utils.mech_dir(), name)
-
-    def deactivate(self):
-        """Make it so we do have have an active instance selected."""
-        self.active_name = None
-        self.created = False
-        self.box = None
-        self.box_version = None
-        self.url = None
-        self.box_file = None
-        self.provision = None
-        self.vmx = None
-        self.user = None
-        self.password = None
-        self.enable_ip_lookup = False
-        self.config = {}
-        os.chdir(utils.mech_dir())
-
-    def activate(self, name):
+    def __init__(self, name, mechfile=None):
         """Sets the active instance name and changes to the
            directory for that instance."""
-        if not self.mechfile:
-            self.activate_mechfile()
         if name == "":
-            raise AttributeError("Must activate with name.")
-        if self.mechfile.get(name, None):
-            self.active_name = name
+            raise AttributeError("Must provide a instance name.")
+        if not mechfile:
+            mechfile = utils.load_mechfile()
+        logger.debug("loaded mechfile:{}".format(mechfile))
+        if mechfile.get(name, None):
+            self.name = name
         else:
             puts_err(colored.red("Instance ({}) was not found in the Mechfile".format(name)))
             sys.exit(1)
-        self.box = self.mechfile[name].get('box', None)
-        self.box_version = self.mechfile[name].get('box_version', None)
-        self.url = self.mechfile[name].get('url', None)
-        self.box_file = self.mechfile[name].get('file', None)
-        self.provision = self.mechfile[name].get('provision', None)
+        self.box = mechfile[name].get('box', None)
+        self.box_version = mechfile[name].get('box_version', None)
+        self.url = mechfile[name].get('url', None)
+        self.box_file = mechfile[name].get('file', None)
+        self.provision = mechfile[name].get('provision', None)
+        self.enable_ip_lookup = False
+        self.config = {}
         self.user = DEFAULT_USER
         self.password = DEFAULT_PASSWORD
         path = MechCommand.instance_path(name)
@@ -160,37 +114,13 @@ class MechCommand(Command):
 
     def __repr__(self):
         """Return a representation of this object."""
-        return ('active_name:{} created:{} box:{} box_version:{} '
+        return ('name:{} created:{} box:{} box_version:{} '
                 'url:{} box_file:{} provision:{} vmx:{} user:{} '
                 'password:{} enable_ip_lookup:{} config:{}'.
-                format(self.active_name, self.created, self.box,
+                format(self.name, self.created, self.box,
                        self.box_version, self.url, self.box_file,
                        self.provision, self.vmx, self.user, self.password,
                        self.enable_ip_lookup, self.config))
-
-    def vmx(self):
-        """Get the fully qualified path to the vmx file."""
-        return self.vmx
-
-    def box(self):
-        """Get the box (ex: 'bento/ubuntu-18.04')."""
-        return self.box
-
-    def box_version(self):
-        """Get the box_version (ex: '2020-01-16')."""
-        return self.box_version
-
-    def user(self):
-        """Get the username (ex: 'vagrant')."""
-        return self.user
-
-    def password(self):
-        """Get the password (ex: 'temp123')."""
-        return self.password
-
-    def enable_ip_lookup(self):
-        """Enable ip lookup (defaults to False)."""
-        return self.enable_ip_lookup
 
     def config_ssh(self):
         vmrun = VMrun(self.vmx, user=self.user, password=self.password)
@@ -212,7 +142,7 @@ class MechCommand(Command):
                 f.write(INSECURE_PRIVATE_KEY)
             os.chmod(insecure_private_key, 0o400)
         self.config = {
-            "Host": self.active_name,
+            "Host": self.name,
             "User": self.user,
             "Port": "22",
             "UserKnownHostsFile": "/dev/null",
@@ -238,6 +168,53 @@ class MechCommand(Command):
             "HostName": ip,
         })
         return self.config
+
+
+class MechCommand(Command):
+    """Class to hold the Mechfile (as python object) and an active
+       instance's configuration.
+    """
+    mechfile = None
+
+    def activate_mechfile(self):
+        """Load the Mechfile."""
+        self.mechfile = utils.load_mechfile()
+        logger.debug("loaded mechfile:{}".format(self.mechfile))
+
+    def instances(self):
+        """Returns a list of the instances from the Mechfile."""
+        if not self.mechfile:
+            self.activate_mechfile()
+        return list(self.mechfile)
+
+    @staticmethod
+    def instance_path(name):
+        """Return the path for an instance."""
+        return os.path.join(utils.mech_dir(), name)
+
+    def vmx(self):
+        """Get the fully qualified path to the vmx file."""
+        return self.vmx
+
+    def box(self):
+        """Get the box (ex: 'bento/ubuntu-18.04')."""
+        return self.box
+
+    def box_version(self):
+        """Get the box_version (ex: '2020-01-16')."""
+        return self.box_version
+
+    def user(self):
+        """Get the username (ex: 'vagrant')."""
+        return self.user
+
+    def password(self):
+        """Get the password (ex: 'temp123')."""
+        return self.password
+
+    def enable_ip_lookup(self):
+        """Enable ip lookup (defaults to False)."""
+        return self.enable_ip_lookup
 
 
 class MechBox(MechCommand):
@@ -350,10 +327,10 @@ class MechSnapshot(MechCommand):
         """
         name = arguments['<name>']
 
-        instance_name = arguments['<instance>']
-        self.activate(instance_name)
+        instance = arguments['<instance>']
+        inst = MechInstance(instance)
 
-        vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+        vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
         if vmrun.deleteSnapshot(name) is None:
             puts_err(colored.red("Cannot delete name"))
         else:
@@ -381,8 +358,8 @@ class MechSnapshot(MechCommand):
             instances = self.instances()
 
         for instance in instances:
-            self.activate(instance)
-            vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+            inst = MechInstance(instance)
+            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
             print('Snapshots for instance:{}'.format(instance))
             print(vmrun.listSnapshots())
 
@@ -405,15 +382,15 @@ class MechSnapshot(MechCommand):
             -h, --help                       Print this help
         """
         name = arguments['<name>']
-        instance_name = arguments['<instance>']
+        instance = arguments['<instance>']
 
-        self.activate(instance_name)
-        vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+        inst = MechInstance(instance)
+        vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
         if vmrun.snapshot(name) is None:
             puts_err(colored.red("Warning: Could not take snapshot."))
             sys.exit(1)
         else:
-            puts_err(colored.green("Snapshot ({}) on VM ({}) taken".format(name, instance_name)))
+            puts_err(colored.green("Snapshot ({}) on VM ({}) taken".format(name, instance)))
 
 
 class Mech(MechCommand):
@@ -580,17 +557,17 @@ class Mech(MechCommand):
             instances = self.instances()
 
         for instance in instances:
-            self.activate(instance)
+            inst = MechInstance(instance)
             instance_path = MechCommand.instance_path(instance)
 
-            location = self.url
+            location = inst.url
             if not location:
-                location = self.box_file
+                location = inst.box_file
 
             vmx = utils.init_box(
                 instance,
-                box=self.box,
-                box_version=self.box_version,
+                box=inst.box,
+                box_version=inst.box_version,
                 location=location,
                 instance_path=instance_path,
                 requests_kwargs=requests_kwargs,
@@ -598,10 +575,10 @@ class Mech(MechCommand):
                 numvcpus=numvcpus,
                 memsize=memsize)
             if vmx:
-                self.vmx = vmx
-                self.created = True
+                inst.vmx = vmx
+                inst.created = True
 
-            vmrun = VMrun(vmx, user=self.user, password=self.password)
+            vmrun = VMrun(vmx, user=inst.user, password=inst.password)
             puts_err(colored.blue("Bringing machine ({}) up...".format(instance)))
             started = vmrun.start(gui=gui)
             if started is None:
@@ -609,7 +586,7 @@ class Mech(MechCommand):
             else:
                 time.sleep(3)
                 puts_err(colored.blue("Getting IP address..."))
-                lookup = self.enable_ip_lookup
+                lookup = inst.enable_ip_lookup
                 ip = vmrun.getGuestIPAddress(lookup=lookup)
                 if not disable_shared_folders:
                     puts_err(colored.blue("Sharing current folder..."))
@@ -630,8 +607,8 @@ class Mech(MechCommand):
                         puts_err(colored.yellow("VM ({}) was already started on an "
                                                 "unknown IP address".format(instance)))
                 if not disable_provisioning:
-                    utils.provision(instance, self.vmx, self.user, self.password,
-                                    self.provision, show=False)
+                    utils.provision(instance, inst.vmx, inst.user, inst.password,
+                                    inst.provision, show=False)
 
     # allows "mech start" to alias to "mech up"
     start = up
@@ -657,9 +634,9 @@ class Mech(MechCommand):
         Options:
             -h, --help                       Print this help
         """
-        instance_name = arguments['<instance>']
-        self.activate(instance_name)
-        vmrun = VMrun(self.vmx, self.user, self.password)
+        instance = arguments['<instance>']
+        inst = MechInstance(instance)
+        vmrun = VMrun(inst.vmx, inst.user, inst.password)
         print(vmrun.listProcessesInGuest())
 
     def status(self, arguments):
@@ -681,11 +658,11 @@ class Mech(MechCommand):
             instances = self.instances()
 
         for instance in instances:
-            self.activate(instance)
+            inst = MechInstance(instance)
 
-            vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
 
-            lookup = self.enable_ip_lookup
+            lookup = inst.enable_ip_lookup
             ip = vmrun.getGuestIPAddress(wait=False, quiet=True, lookup=lookup)
             state = vmrun.checkToolsState(quiet=True)
 
@@ -694,7 +671,7 @@ class Mech(MechCommand):
                 ip = "poweroff"
             elif not ip:
                 ip = "unknown"
-            print("%s\t%s\t%s\t(VMware Tools %s)" % (self.active_name, self.box, ip, state))
+            print("%s\t%s\t%s\t(VMware Tools %s)" % (inst.name, inst.box, ip, state))
 
             if ip == "poweroff":
                 print(os.linesep + "The VM is powered off. To restart the VM, "
@@ -728,23 +705,19 @@ class Mech(MechCommand):
             instances = self.instances()
 
         for instance in instances:
-            self.activate(instance)
+            inst = MechInstance(instance)
 
-            if self.active_name:
-                instance_path = MechCommand.instance_path(instance)
+            instance_path = MechCommand.instance_path(instance)
 
             if os.path.exists(instance_path):
                 if force or utils.confirm(
                     "Are you sure you want to delete {} at {}".format(
-                        self.active_name, instance_path), default='n'):
+                        inst.name, instance_path), default='n'):
                     puts_err(colored.green("Deleting ({})...".format(instance)))
-                    vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+                    vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
                     vmrun.stop(mode='hard', quiet=True)
                     time.sleep(3)
                     vmrun.deleteVM()
-
-                    # change out of this directory
-                    self.deactivate()
 
                     if os.path.exists(instance_path):
                         shutil.rmtree(instance_path)
@@ -777,9 +750,9 @@ class Mech(MechCommand):
             instances = self.instances()
 
         for instance in instances:
-            self.activate(instance)
+            inst = MechInstance(instance)
 
-            vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
             if not force and vmrun.installedTools():
                 stopped = vmrun.stop()
             else:
@@ -812,8 +785,8 @@ class Mech(MechCommand):
             instances = self.instances()
 
         for instance in instances:
-            self.activate(instance)
-            vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+            inst = MechInstance(instance)
+            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
             if vmrun.pause() is None:
                 puts_err(colored.red("Not paused", vmrun))
             else:
@@ -843,18 +816,18 @@ class Mech(MechCommand):
             instances = self.instances()
 
         for instance in instances:
-            self.activate(instance)
-            logger.debug('instance:{} self.vmx:{}'.format(instance, self.vmx))
+            inst = MechInstance(instance)
+            logger.debug('instance:{} self.vmx:{}'.format(instance, inst.vmx))
 
             # if we have started this instance before, try to unpause
-            if self.vmx:
+            if inst.vmx:
 
-                vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
 
                 if vmrun.unpause(quiet=True) is not None:
                     time.sleep(1)
                     puts_err(colored.blue("Getting IP address..."))
-                    lookup = self.enable_ip_lookup
+                    lookup = inst.enable_ip_lookup
                     ip = vmrun.getGuestIPAddress(lookup=lookup)
                     if not disable_shared_folders:
                         puts_err(colored.blue("Sharing current folder..."))
@@ -870,14 +843,14 @@ class Mech(MechCommand):
 
                 else:
                     # Otherwise try starting
-                    vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+                    vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
                     started = vmrun.start()
                     if started is None:
                         puts_err(colored.red("VM not started"))
                     else:
                         time.sleep(3)
                         puts_err(colored.blue("Getting IP address..."))
-                        lookup = self.enable_ip_lookup
+                        lookup = inst.enable_ip_lookup
                         ip = vmrun.getGuestIPAddress(lookup=lookup)
                         if not disable_shared_folders:
                             puts_err(colored.blue("Sharing current folder..."))
@@ -919,8 +892,8 @@ class Mech(MechCommand):
             instances = self.instances()
 
         for instance in instances:
-            self.activate(instance)
-            vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+            inst = MechInstance(instance)
+            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
             if vmrun.suspend() is None:
                 puts_err(colored.red("Not suspended", vmrun))
             else:
@@ -945,8 +918,8 @@ class Mech(MechCommand):
             instances = self.instances()
 
         for instance in instances:
-            self.activate(instance)
-            print(utils.config_ssh_string(self.config_ssh()))
+            inst = MechInstance(instance)
+            print(utils.config_ssh_string(inst.config_ssh()))
 
     def ssh(self, arguments):
         """
@@ -963,11 +936,11 @@ class Mech(MechCommand):
         extra = arguments['<extra_ssh_args>']
         command = arguments['--command']
 
-        instance_name = arguments['<instance>']
+        instance = arguments['<instance>']
 
-        self.activate(instance_name)
+        inst = MechInstance(instance)
 
-        config_ssh = self.config_ssh()
+        config_ssh = inst.config_ssh()
         fp = tempfile.NamedTemporaryFile(delete=False)
         try:
             fp.write(utils.config_ssh_string(config_ssh).encode('utf-8'))
@@ -1013,17 +986,17 @@ class Mech(MechCommand):
             puts_err(colored.red("Both src and host are host destinations"))
             sys.exit(1)
         if dst_is_host:
-            instance_name = dst_instance
+            instance = dst_instance
         else:
             dst = dst_instance
         if src_is_host:
-            instance_name = src_instance
+            instance = src_instance
         else:
             src = src_instance
 
-        self.activate(instance_name)
+        inst = MechInstance(instance)
 
-        config_ssh = self.config_ssh()
+        config_ssh = inst.config_ssh()
         fp = tempfile.NamedTemporaryFile(delete=False)
 
         # when we activate, we change to the directory where the .vmx file is
@@ -1064,12 +1037,12 @@ class Mech(MechCommand):
         Options:
             -h, --help                       Print this help
         """
-        instance_name = arguments['<instance>']
+        instance = arguments['<instance>']
 
-        self.activate(instance_name)
+        inst = MechInstance(instance)
 
-        if self.created:
-            vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+        if inst.created:
+            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
             lookup = self.enable_ip_lookup
             ip = vmrun.getGuestIPAddress(lookup=lookup)
             if ip:
@@ -1100,8 +1073,8 @@ class Mech(MechCommand):
             instances = self.instances()
 
         for instance in instances:
-            self.activate(instance)
-            utils.provision(instance, self.vmx, self.user, self.password, self.provision, show)
+            inst = MechInstance(instance)
+            utils.provision(instance, inst.vmx, inst.user, inst.password, inst.provision, show)
 
     def reload(self, arguments):
         """
@@ -1122,9 +1095,9 @@ class Mech(MechCommand):
             instances = self.instances()
 
         for instance in instances:
-            self.activate(instance)
+            inst = MechInstance(instance)
 
-            vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
 
             puts_err(colored.blue("Reloading machine..."))
             started = vmrun.reset()
@@ -1133,7 +1106,7 @@ class Mech(MechCommand):
             else:
                 time.sleep(3)
                 puts_err(colored.blue("Getting IP address..."))
-                lookup = self.enable_ip_lookup
+                lookup = inst.enable_ip_lookup
                 ip = vmrun.getGuestIPAddress(lookup=lookup)
                 if ip:
                     if started:
@@ -1171,9 +1144,9 @@ class Mech(MechCommand):
 
         # FUTURE: implement port forwarding?
         for instance in instances:
-            self.activate(instance)
+            inst = MechInstance(instance)
 
-            vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
             for network in vmrun.listHostNetworks().split('\n'):
                 network = network.split()
                 if len(network) > 2 and network[2] == 'nat':
@@ -1201,10 +1174,10 @@ class Mech(MechCommand):
             'VERSION'.rjust(12)
         ))
         for name in self.mechfile:
-            self.activate(name)
-            if self.created:
-                vmrun = VMrun(self.vmx, user=self.user, password=self.password)
-                lookup = self.enable_ip_lookup
+            inst = MechInstance(name, self.mechfile)
+            if inst.created:
+                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                lookup = inst.enable_ip_lookup
                 ip = vmrun.getGuestIPAddress(wait=False, quiet=True, lookup=lookup)
                 if ip is None:
                     ip = colored.yellow("poweroff")
@@ -1218,8 +1191,8 @@ class Mech(MechCommand):
             print("{}\t{}\t{}\t{}".format(
                 colored.green(name.rjust(20)),
                 ip.rjust(15),
-                self.box.rjust(35),
-                self.box_version.rjust(12)
+                inst.box.rjust(35),
+                inst.box_version.rjust(12)
             ))
 
     # allow 'mech ls' as alias to 'mech list'
