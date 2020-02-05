@@ -98,8 +98,8 @@ class MechInstance():
         self.config = {}
         self.user = DEFAULT_USER
         self.password = DEFAULT_PASSWORD
-        path = MechCommand.instance_path(name)
-        vmx = utils.locate(path, '*.vmx')
+        self.path = os.path.join(utils.mech_dir(), name)
+        vmx = utils.locate(self.path, '*.vmx')
         # Note: If vm has not been started vmx will be None
         if vmx:
             self.vmx = vmx
@@ -188,11 +188,6 @@ class MechCommand(Command):
         if not self.mechfile:
             self.activate_mechfile()
         return list(self.mechfile)
-
-    @staticmethod
-    def instance_path(name):
-        """Return the path for an instance."""
-        return os.path.join(utils.mech_dir(), name)
 
     def vmx(self):
         """Get the fully qualified path to the vmx file."""
@@ -637,8 +632,6 @@ class Mech(MechCommand):
 
         for instance in instances:
             inst = MechInstance(instance)
-            # TODO: refactor
-            instance_path = MechCommand.instance_path(instance)
 
             location = inst.url
             if not location:
@@ -649,7 +642,7 @@ class Mech(MechCommand):
                 box=inst.box,
                 box_version=inst.box_version,
                 location=location,
-                instance_path=instance_path,
+                instance_path=inst.path,
                 requests_kwargs=requests_kwargs,
                 save=save,
                 numvcpus=numvcpus,
@@ -787,22 +780,20 @@ class Mech(MechCommand):
         for instance in instances:
             inst = MechInstance(instance)
 
-            instance_path = MechCommand.instance_path(instance)
-
-            if os.path.exists(instance_path):
+            if os.path.exists(inst.path):
                 if force or utils.confirm(
                     "Are you sure you want to delete {} at {}".format(
-                        inst.name, instance_path), default='n'):
+                        inst.name, inst.path), default='n'):
                     puts_err(colored.green("Deleting ({})...".format(instance)))
                     vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
                     vmrun.stop(mode='hard', quiet=True)
                     time.sleep(3)
                     vmrun.deleteVM()
 
-                    if os.path.exists(instance_path):
-                        shutil.rmtree(instance_path)
+                    if os.path.exists(inst.path):
+                        shutil.rmtree(inst.path)
                     else:
-                        logger.debug("{} was not found.".format(instance_path))
+                        logger.debug("{} was not found.".format(inst.path))
                 else:
                     puts_err(colored.red("Deletion aborted"))
             else:

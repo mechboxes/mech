@@ -68,28 +68,6 @@ def makedirs(name, mode=0o777):
         pass
 
 
-def uncomment(text):
-    """Uncomment a line of text."""
-    def e(m):
-        return '\x00%02x' % ord(m.group(1))
-    e.re = re.compile(r'\\(.)', re.DOTALL | re.MULTILINE)
-
-    def r(m):
-        s = m.group(0)
-        if s.startswith('/'):
-            return ''
-        if s.startswith(','):
-            return s[1:]
-        return s
-    r.re = re.compile(r'//.*?$|/\*.*?\*/|\'.*?\'|".*?"|,\s*?(?:}|])', re.DOTALL | re.MULTILINE)
-
-    def u(m):
-        return '\\%s' % chr(int(m.group(1), 16))
-    u.re = re.compile(r'\x00(..)', re.DOTALL | re.MULTILINE)
-
-    return u.re.sub(u, r.re.sub(r, e.re.sub(e, text)))
-
-
 def confirm(prompt, default='y'):
     """Confirmation prompt."""
     default = default.lower()
@@ -155,7 +133,9 @@ def locate(path, glob):
 
 
 def parse_vmx(path):
-    """Parse the virtual machine configuration (.vmx) file."""
+    """Parse the virtual machine configuration (.vmx) file and return an
+       ordered dictionary.
+    """
     vmx = collections.OrderedDict()
     with open(path) as fp:
         for line in fp:
@@ -209,10 +189,6 @@ def update_vmx(path, numvcpus=None, memsize=None):
                 row = "{} = {}".format(key, value)
                 new_vmx.write(row + os.linesep)
 
-    # puts_err(colored.yellow("Upgrading VM..."))
-    # vmrun = VMrun(path)
-    # vmrun.upgradevm()
-
 
 def load_mechfile(should_exist=True):
     """Load the Mechfile from disk and return the object."""
@@ -221,7 +197,7 @@ def load_mechfile(should_exist=True):
     if os.path.isfile(mechfile_fullpath):
         with open(mechfile_fullpath) as fp:
             try:
-                mechfile = json.loads(uncomment(fp.read()))
+                mechfile = json.loads(fp.read())
                 logger.debug('mechfile:{}'.format(mechfile))
                 return mechfile
             except ValueError:
@@ -262,7 +238,7 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None, reques
         try:
             # see if the location is a json file
             with open(location) as fp:
-                catalog = json.loads(uncomment(fp.read()))
+                catalog = json.loads(fp.read())
         except Exception:
             mechfile_entry['file'] = location
         if not name:
@@ -348,7 +324,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
              memsize=None):
     """Initialize the box. This includes uncompressing the files
        from the box file and updating the vmx file with
-       desired settings.
+       desired settings. Return the full path to the vmx file.
     """
     logger.debug("name:{} box:{} box_version:{} location:{}".format(
                  name, box, box_version, location))
@@ -599,7 +575,13 @@ def get_requests_kwargs(arguments):
 
 
 def provision(instance, vmx, user, password, provision, show):
-    """Provision an instance."""
+    """Provision an instance.
+
+       provision types:
+           file: copies files to instances
+           shell: executes scripts
+
+    """
 
     if instance == '':
         puts_err(colored.red("Need to provide an instance to provision()."))
