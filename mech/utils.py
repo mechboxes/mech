@@ -117,7 +117,9 @@ def remove_mechfile_entry(name, mechfile_should_exist=True):
 
 
 def save_mechfile(mechfile):
-    """Save the mechfile object to a file called 'Mechfile'."""
+    """Save the mechfile object to a file called 'Mechfile'.
+       Return True if save was successful.
+    """
     logger.debug('mechfile:{}'.format(mechfile))
     with open(os.path.join(main_dir(), 'Mechfile'), 'w+') as fp:
         json.dump(mechfile, fp, sort_keys=True, indent=2, separators=(',', ': '))
@@ -706,7 +708,7 @@ def provision_shell(vm, inline, path, args=[]):
 
 def config_ssh_string(config_ssh):
     """Build the ssh-config string."""
-    ssh_config = "Host {}".format(config_ssh['Host']) + os.linesep
+    ssh_config = "Host {}".format(config_ssh.get('Host', '')) + os.linesep
     for k, v in config_ssh.items():
         if k != 'Host':
             ssh_config += "  {} {}".format(k, v) + os.linesep
