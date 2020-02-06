@@ -26,12 +26,18 @@ def test_save_mechfile_empty_config():
 
 
 def test_save_mechfile_simple_config():
-    first_dict = {'first': {
-        'name': 'first',
-        'box': 'bento/ubuntu-18.04',
-        'box_version': '201912.04.0',
-        'url': 'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/201912.04.0/providers/vmware_desktop.box'
-      }
+    first_dict = {
+        'first': {
+            'name':
+            'first',
+            'box':
+            'bento/ubuntu-18.04',
+            'box_version':
+            '201912.04.0',
+            'url':
+            'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/'
+            'versions/201912.04.0/providers/vmware_desktop.box'
+        }
     }
     first_json = '''{
   "first": {
@@ -40,7 +46,7 @@ def test_save_mechfile_simple_config():
     "name": "first",
     "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/201912.04.0/providers/vmware_desktop.box"
   }
-}'''
+}'''  # noqa: 501
     filename = os.path.join(mech.utils.main_dir(), 'Mechfile')
     m = mock_open()
     with patch('builtins.open', m, create=True):
@@ -84,4 +90,4 @@ def test_config_ssh_string_simple():
         "LogLevel": "FATAL",
     }
     ssh_string = mech.utils.config_ssh_string(config)
-    assert ssh_string == 'Host first\n  User foo\n  Port 22\n  UserKnownHostsFile /dev/null\n  StrictHostKeyChecking no\n  PasswordAuthentication no\n  IdentityFile blah\n  IdentitiesOnly yes\n  LogLevel FATAL\n'
+    assert ssh_string == 'Host first\n  User foo\n  Port 22\n  UserKnownHostsFile /dev/null\n  StrictHostKeyChecking no\n  PasswordAuthentication no\n  IdentityFile blah\n  IdentitiesOnly yes\n  LogLevel FATAL\n'  # noqa: E501
