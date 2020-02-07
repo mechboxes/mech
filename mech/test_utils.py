@@ -25,7 +25,20 @@ def test_save_mechfile_empty_config():
     m.return_value.write.assert_called_once_with('{}')
 
 
-def test_save_mechfile_simple_config():
+# TODO: Is there a better way to get data written?
+def _get_data_written(m):
+    written = ''
+    for call in m.mock_calls:
+        tmp = '{}'.format(call)
+        if tmp.startswith('call().write('):
+            line = tmp.replace("call().write('", '')
+            line = line.replace("')", '')
+            line = line.replace("\\n", '\n')
+            written += line
+    return written
+
+
+def test_save_mechfile_one():
     first_dict = {
         'first': {
             'name':
@@ -52,19 +65,54 @@ def test_save_mechfile_simple_config():
     with patch('builtins.open', m, create=True):
         assert mech.utils.save_mechfile(first_dict)
     m.assert_called_once_with(filename, 'w+')
+    assert first_json == _get_data_written(m)
 
-    # print('calls to the file:\n', m.mock_calls, end ='\n\n')
 
-    # TODO: Is there a better way to get data written?
-    written = ''
-    for call in m.mock_calls:
-        tmp = '{}'.format(call)
-        if tmp.startswith('call().write('):
-            line = tmp.replace("call().write('", '')
-            line = line.replace("')", '')
-            line = line.replace("\\n", '\n')
-            written += line
-    assert written == first_json
+def test_save_mechfile_two():
+    two_dict = {
+        'first': {
+            'name':
+            'first',
+            'box':
+            'bento/ubuntu-18.04',
+            'box_version':
+            '201912.04.0',
+            'url':
+            'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/'
+            'versions/201912.04.0/providers/vmware_desktop.box'
+        },
+        'second': {
+            'name':
+            'second',
+            'box':
+            'bento/ubuntu-18.04',
+            'box_version':
+            '201912.04.0',
+            'url':
+            'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/'
+            'versions/201912.04.0/providers/vmware_desktop.box'
+        }
+    }
+    two_json = '''{
+  "first": {
+    "box": "bento/ubuntu-18.04",
+    "box_version": "201912.04.0",
+    "name": "first",
+    "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/201912.04.0/providers/vmware_desktop.box"
+  },
+  "second": {
+    "box": "bento/ubuntu-18.04",
+    "box_version": "201912.04.0",
+    "name": "second",
+    "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/201912.04.0/providers/vmware_desktop.box"
+  }
+}'''  # noqa: 501
+    filename = os.path.join(mech.utils.main_dir(), 'Mechfile')
+    m = mock_open()
+    with patch('builtins.open', m, create=True):
+        assert mech.utils.save_mechfile(two_dict)
+    m.assert_called_once_with(filename, 'w+')
+    assert two_json == _get_data_written(m)
 
 
 def test_tar_cmd():
