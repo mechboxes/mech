@@ -24,7 +24,7 @@ source venv/bin/activate
 python setup.py install
 
 # if doing development
-pip install flake8 pytest pytest_mock mock
+pip install flake8 pytest pytest_mock mock pytest-cov
 
 # also optional
 pip install autopep8
@@ -37,7 +37,13 @@ flake8 --install-hook git
 # see https://github.com/bats-core/bats-core
 brew install bats-core
 
-# for testing/validation, we have some integration tests
+# for testing:
+pytest
+
+# for code coverage
+pytest --cov mech
+
+# for testing/validation, we have also some integration tests
 cd tests/int
 ./simple.bats
 ./two_ubuntu.bats

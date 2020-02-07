@@ -1,6 +1,7 @@
 import os
 
 from unittest.mock import patch, mock_open
+from collections import OrderedDict
 
 import mech.utils
 
@@ -139,3 +140,76 @@ def test_config_ssh_string_simple():
     }
     ssh_string = mech.utils.config_ssh_string(config)
     assert ssh_string == 'Host first\n  User foo\n  Port 22\n  UserKnownHostsFile /dev/null\n  StrictHostKeyChecking no\n  PasswordAuthentication no\n  IdentityFile blah\n  IdentitiesOnly yes\n  LogLevel FATAL\n'  # noqa: E501
+
+
+@patch('mech.utils.load_mechfile', return_value={})
+@patch('mech.utils.save_mechfile', return_value=True)
+def test_save_mechfile_entry_with_empty_mechfile(load_mock, save_mock):
+    entry = {'first': {'name': 'first'}}
+    assert mech.utils.save_mechfile_entry(entry, 'first', True)
+    load_mock.assert_called_once()
+    save_mock.assert_called_once()
+
+
+@patch('mech.utils.load_mechfile', return_value={})
+@patch('mech.utils.save_mechfile', return_value=True)
+def test_save_mechfile_entry_with_blank_name(load_mock, save_mock):
+    entry = {'first': {'name': 'first'}}
+    assert mech.utils.save_mechfile_entry(entry, '', True)
+    load_mock.assert_called_once()
+    save_mock.assert_called_once()
+
+
+@patch('mech.utils.load_mechfile', return_value={})
+@patch('mech.utils.save_mechfile', return_value=True)
+def test_save_mechfile_entry_with_name_as_None(load_mock, save_mock):
+    entry = {'first': {'name': 'first'}}
+    assert mech.utils.save_mechfile_entry(entry, None, True)
+    load_mock.assert_called_once()
+    save_mock.assert_called_once()
+
+
+@patch('mech.utils.load_mechfile', return_value={})
+@patch('mech.utils.save_mechfile', return_value=True)
+def test_save_mechfile_entry_twice(load_mock, save_mock):
+    entry = {'first': {'name': 'first'}}
+    assert mech.utils.save_mechfile_entry(entry, 'first', True)
+    load_mock.assert_called_once()
+    save_mock.assert_called_once()
+    assert mech.utils.save_mechfile_entry(entry, 'first', True)
+
+
+@patch('mech.utils.load_mechfile', return_value={})
+@patch('mech.utils.save_mechfile', return_value=True)
+def test_remove_mechfile_entry_with_empty_mechfile(load_mock, save_mock):
+    assert mech.utils.remove_mechfile_entry('first', True)
+    load_mock.assert_called_once()
+    save_mock.assert_called_once()
+
+
+@patch('mech.utils.load_mechfile', return_value={'first': {'name': 'first'}})
+@patch('mech.utils.save_mechfile', return_value=True)
+def test_remove_mechfile_entry(load_mock, save_mock):
+    assert mech.utils.remove_mechfile_entry('first', True)
+    load_mock.assert_called_once()
+    save_mock.assert_called_once()
+
+
+def test_parse_vmx():
+    partial_vmx = '''.encoding = "UTF-8"
+bios.bootorder  = "hdd,cdrom"
+checkpoint.vmstate     = ""
+
+cleanshutdown = "FALSE"
+config.version = "8"'''
+    expected_vmx = OrderedDict([
+        ('.encoding', '"UTF-8"'),
+        ('bios.bootorder', '"hdd,cdrom"'),
+        ('checkpoint.vmstate', '""'),
+        ('cleanshutdown', '"FALSE"'),
+        ('config.version', '"8"')
+    ])
+    m = mock_open(read_data=partial_vmx)
+    with patch('builtins.open', m):
+        assert mech.utils.parse_vmx(partial_vmx) == expected_vmx
+    m.assert_called()
