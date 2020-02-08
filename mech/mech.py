@@ -87,6 +87,7 @@ class MechInstance():
         if mechfile.get(name, None):
             self.name = name
         else:
+            # TODO: review if we want to change to print stderr
             puts_err(colored.red("Instance ({}) was not found in the Mechfile".format(name)))
             sys.exit(1)
         self.box = mechfile[name].get('box', None)
@@ -1186,14 +1187,16 @@ class Mech(MechCommand):
         for instance in instances:
             inst = MechInstance(instance)
 
+            print('Instance ({}):'. format(instance))
+            nat_found = False
             vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
-            for network in vmrun.listHostNetworks().split('\n'):
-                network = network.split()
+            for line in vmrun.listHostNetworks().split('\n'):
+                network = line.split()
                 if len(network) > 2 and network[2] == 'nat':
                     print(vmrun.listPortForwardings(network[1]))
-                    break
-            else:
-                puts_err(colored.red("Cannot find a nat network"))
+                    nat_found = True
+            if not nat_found:
+                print(colored.red("Cannot find a nat network"), file=sys.stderr)
 
     def list(self, arguments):
         """
