@@ -9,14 +9,15 @@ import mech.vmrun
 
 
 @patch('os.getcwd')
-def test_mech_box_list_empty_mechdir(mock_os_getcwd, capfd):
+def test_mech_box_list_no_mechdir(mock_os_getcwd, capfd):
+    """Test 'mech box list' with no '.mech' directory."""
     mock_os_getcwd.return_value = '/tmp'
     global_arguments = {'--debug': False}
-    m = mech.mech.MechBox(arguments=global_arguments)
+    a_mech = mech.mech.MechBox(arguments=global_arguments)
     with patch('os.walk') as mock_walk:
         # root, dirs, files
         mock_walk.return_value = [('./tmp', [], []), ]
-        m.list({})
+        a_mech.list({})
         mock_walk.assert_called()
         out, _ = capfd.readouterr()
         # ensure a header prints out
@@ -25,13 +26,14 @@ def test_mech_box_list_empty_mechdir(mock_os_getcwd, capfd):
 
 @patch('os.getcwd')
 def test_mech_box_list_empty_boxes_dir(mock_os_getcwd, capfd):
+    """Test 'mech box list' with no directories in '.mech/boxes' driectory."""
     mock_os_getcwd.return_value = '/tmp'
     global_arguments = {'--debug': False}
-    m = mech.mech.MechBox(arguments=global_arguments)
+    a_mech = mech.mech.MechBox(arguments=global_arguments)
     with patch('os.walk') as mock_walk:
         # root, dirs, files
         mock_walk.return_value = [('/tmp', ['boxes', ], []), ]
-        m.list({})
+        a_mech.list({})
         mock_walk.assert_called()
         out, _ = capfd.readouterr()
         # ensure a header prints out
@@ -40,9 +42,10 @@ def test_mech_box_list_empty_boxes_dir(mock_os_getcwd, capfd):
 
 @patch('os.getcwd')
 def test_mech_box_list_one_box(mock_os_getcwd, capfd):
+    """Test 'mech box list' with one box present."""
     mock_os_getcwd.return_value = '/tmp'
     global_arguments = {'--debug': False}
-    m = mech.mech.MechBox(arguments=global_arguments)
+    a_mech = mech.mech.MechBox(arguments=global_arguments)
     with patch('os.walk') as mock_walk:
         # simulate: bento/ubuntu-18.04/201912.04.0/vmware_desktop.box
         mock_walk.return_value = [
@@ -52,7 +55,7 @@ def test_mech_box_list_one_box(mock_os_getcwd, capfd):
             ('/tmp/boxes/bento/ubuntu-18.04', ['201912.04.0'], []),
             ('/tmp/boxes/bento/ubuntu-18.04/201912.04.0', [], ['vmware_desktop.box']),
         ]
-        m.list({})
+        a_mech.list({})
         mock_walk.assert_called()
         out, _ = capfd.readouterr()
         assert re.search(r'ubuntu-18.04', out, re.MULTILINE)

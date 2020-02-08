@@ -1,3 +1,4 @@
+"""Test mech utils."""
 import os
 
 from unittest.mock import patch, mock_open
@@ -8,6 +9,7 @@ import mech.utils
 
 @patch('os.getcwd')
 def test_main_dir(mock_os_getcwd):
+    """Test main_dir()."""
     mock_os_getcwd.return_value = '/tmp'
     main = mech.utils.main_dir()
     mock_os_getcwd.assert_called()
@@ -16,6 +18,7 @@ def test_main_dir(mock_os_getcwd):
 
 @patch('os.getcwd')
 def test_mech_dir(mock_os_getcwd):
+    """Test mech_dir()."""
     mock_os_getcwd.return_value = '/tmp'
     mechdir = mech.utils.mech_dir()
     mock_os_getcwd.assert_called()
@@ -23,18 +26,19 @@ def test_mech_dir(mock_os_getcwd):
 
 
 def test_save_mechfile_empty_config():
+    """Test save_mechfile with empty configuration."""
     filename = os.path.join(mech.utils.main_dir(), 'Mechfile')
-    m = mock_open()
-    with patch('builtins.open', m, create=True):
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
         assert mech.utils.save_mechfile({})
-    m.assert_called_once_with(filename, 'w+')
-    m.return_value.write.assert_called_once_with('{}')
+    a_mock.assert_called_once_with(filename, 'w+')
+    a_mock.return_value.write.assert_called_once_with('{}')
 
 
-# TODO: Is there a better way to get data written?
-def _get_data_written(m):
+def _get_data_written(a_mock):
+    """Helper function to get the data written to a mocked file."""
     written = ''
-    for call in m.mock_calls:
+    for call in a_mock.mock_calls:
         tmp = '{}'.format(call)
         if tmp.startswith('call().write('):
             line = tmp.replace("call().write('", '')
@@ -45,6 +49,7 @@ def _get_data_written(m):
 
 
 def test_save_mechfile_one():
+    """Test save_mechfile with one entry."""
     first_dict = {
         'first': {
             'name':
@@ -67,14 +72,15 @@ def test_save_mechfile_one():
   }
 }'''  # noqa: 501
     filename = os.path.join(mech.utils.main_dir(), 'Mechfile')
-    m = mock_open()
-    with patch('builtins.open', m, create=True):
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
         assert mech.utils.save_mechfile(first_dict)
-    m.assert_called_once_with(filename, 'w+')
-    assert first_json == _get_data_written(m)
+    a_mock.assert_called_once_with(filename, 'w+')
+    assert first_json == _get_data_written(a_mock)
 
 
 def test_save_mechfile_two():
+    """Test save_mechfile with two entries."""
     two_dict = {
         'first': {
             'name':
@@ -114,11 +120,11 @@ def test_save_mechfile_two():
   }
 }'''  # noqa: 501
     filename = os.path.join(mech.utils.main_dir(), 'Mechfile')
-    m = mock_open()
-    with patch('builtins.open', m, create=True):
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
         assert mech.utils.save_mechfile(two_dict)
-    m.assert_called_once_with(filename, 'w+')
-    assert two_json == _get_data_written(m)
+    a_mock.assert_called_once_with(filename, 'w+')
+    assert two_json == _get_data_written(a_mock)
 
 
 def test_tar_cmd():
@@ -127,11 +133,13 @@ def test_tar_cmd():
 
 
 def test_config_ssh_string_empty():
+    """Test config_ssh_string with empty configuration."""
     ssh_string = mech.utils.config_ssh_string({})
     assert ssh_string == "Host \n"
 
 
 def test_config_ssh_string_simple():
+    """Test config_ssh_string with a simple configuration."""
     config = {
         "Host": "first",
         "User": "foo",
@@ -144,12 +152,13 @@ def test_config_ssh_string_simple():
         "LogLevel": "FATAL",
     }
     ssh_string = mech.utils.config_ssh_string(config)
-    assert ssh_string == 'Host first\n  User foo\n  Port 22\n  UserKnownHostsFile /dev/null\n  StrictHostKeyChecking no\n  PasswordAuthentication no\n  IdentityFile blah\n  IdentitiesOnly yes\n  LogLevel FATAL\n'  # noqa: E501
+    assert ssh_string == 'Host first\n  User foo\n  Port 22\n  UserKnownHostsFile /dev/null\n  StrictHostKeyChecking no\n  PasswordAuthentication no\n  IdentityFile blah\n  IdentitiesOnly yes\n  LogLevel FATAL\n'  # noqa: E501  pylint: disable=line-too-long
 
 
 @patch('mech.utils.load_mechfile', return_value={})
 @patch('mech.utils.save_mechfile', return_value=True)
 def test_save_mechfile_entry_with_empty_mechfile(load_mock, save_mock):
+    """Test save_mechfile_entry with no entries in the mechfile."""
     entry = {'first': {'name': 'first'}}
     assert mech.utils.save_mechfile_entry(entry, 'first', True)
     load_mock.assert_called_once()
@@ -159,6 +168,7 @@ def test_save_mechfile_entry_with_empty_mechfile(load_mock, save_mock):
 @patch('mech.utils.load_mechfile', return_value={})
 @patch('mech.utils.save_mechfile', return_value=True)
 def test_save_mechfile_entry_with_blank_name(load_mock, save_mock):
+    """Test save_mechfile_entry with a blank name."""
     entry = {'first': {'name': 'first'}}
     assert mech.utils.save_mechfile_entry(entry, '', True)
     load_mock.assert_called_once()
@@ -167,7 +177,8 @@ def test_save_mechfile_entry_with_blank_name(load_mock, save_mock):
 
 @patch('mech.utils.load_mechfile', return_value={})
 @patch('mech.utils.save_mechfile', return_value=True)
-def test_save_mechfile_entry_with_name_as_None(load_mock, save_mock):
+def test_save_mechfile_entry_with_name_as_none(load_mock, save_mock):
+    """Test save_mechfile_entry with name as None."""
     entry = {'first': {'name': 'first'}}
     assert mech.utils.save_mechfile_entry(entry, None, True)
     load_mock.assert_called_once()
@@ -177,6 +188,7 @@ def test_save_mechfile_entry_with_name_as_None(load_mock, save_mock):
 @patch('mech.utils.load_mechfile', return_value={})
 @patch('mech.utils.save_mechfile', return_value=True)
 def test_save_mechfile_entry_twice(load_mock, save_mock):
+    """Test save_mechfile_entry multiple times."""
     entry = {'first': {'name': 'first'}}
     assert mech.utils.save_mechfile_entry(entry, 'first', True)
     load_mock.assert_called_once()
@@ -187,6 +199,7 @@ def test_save_mechfile_entry_twice(load_mock, save_mock):
 @patch('mech.utils.load_mechfile', return_value={})
 @patch('mech.utils.save_mechfile', return_value=True)
 def test_remove_mechfile_entry_with_empty_mechfile(load_mock, save_mock):
+    """Test remove_mechfile_entry with no entries in the mechfile."""
     assert mech.utils.remove_mechfile_entry('first', True)
     load_mock.assert_called_once()
     save_mock.assert_called_once()
@@ -195,12 +208,14 @@ def test_remove_mechfile_entry_with_empty_mechfile(load_mock, save_mock):
 @patch('mech.utils.load_mechfile', return_value={'first': {'name': 'first'}})
 @patch('mech.utils.save_mechfile', return_value=True)
 def test_remove_mechfile_entry(load_mock, save_mock):
+    """Test remove_mechfile_entry."""
     assert mech.utils.remove_mechfile_entry('first', True)
     load_mock.assert_called_once()
     save_mock.assert_called_once()
 
 
 def test_parse_vmx():
+    """Test parse_vmx."""
     partial_vmx = '''.encoding = "UTF-8"
 bios.bootorder  = "hdd,cdrom"
 checkpoint.vmstate     = ""
@@ -214,7 +229,7 @@ config.version = "8"'''
         ('cleanshutdown', '"FALSE"'),
         ('config.version', '"8"')
     ])
-    m = mock_open(read_data=partial_vmx)
-    with patch('builtins.open', m):
+    a_mock = mock_open(read_data=partial_vmx)
+    with patch('builtins.open', a_mock):
         assert mech.utils.parse_vmx(partial_vmx) == expected_vmx
-    m.assert_called()
+    a_mock.assert_called()
