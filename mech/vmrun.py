@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_fallback_executable():
+    """Get a fallback executable for the command line tool 'vmrun'."""
     if 'PATH' in os.environ:
         for path in os.environ['PATH'].split(os.pathsep):
             vmrun = os.path.join(path, 'vmrun')
@@ -46,6 +47,7 @@ def get_fallback_executable():
 
 
 def get_darwin_executable():
+    """Get the full path for the 'vmrun' command on a mac host."""
     vmrun = '/Applications/VMware Fusion.app/Contents/Library/vmrun'
     if os.path.exists(vmrun):
         return vmrun
@@ -53,6 +55,7 @@ def get_darwin_executable():
 
 
 def get_win32_executable():
+    """Get the full path for the 'vmrun' command on a Windows host."""
     if PY3:
         import winreg
     else:
@@ -105,6 +108,9 @@ def get_provider(vmrun_exe):
 
 
 class VMrun(object):
+    """Interface class for the 'vmrun' command.
+       The 'vmrun' command is used to interact with VMware.
+    """
     if sys.platform == 'darwin':
         default_executable = get_darwin_executable()
     elif sys.platform == 'win32':
@@ -114,6 +120,7 @@ class VMrun(object):
     default_provider = get_provider(default_executable)
 
     def __init__(self, vmx_file=None, user=None, password=None, executable=None, provider=None):
+        """Constructof for the instance. Set some sane defaults."""
         self.vmx_file = vmx_file
         self.user = user
         self.password = password
@@ -121,6 +128,7 @@ class VMrun(object):
         self.provider = provider or self.default_provider
 
     def vmrun(self, cmd, *args, **kwargs):
+        """Execute a 'vmrun' command."""
         quiet = kwargs.pop('quiet', False)
         arguments = kwargs.pop('arguments', ())
 

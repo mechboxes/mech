@@ -24,7 +24,7 @@ source venv/bin/activate
 python setup.py install
 
 # if doing development
-pip install flake8 pytest pytest_mock mock pytest-cov
+pip install flake8 pytest pytest_mock mock pytest-cov pylint
 
 # also optional
 pip install autopep8

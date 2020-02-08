@@ -22,6 +22,8 @@
 # IN THE SOFTWARE.
 #
 
+"""Mech utility functions."""
+
 from __future__ import division, absolute_import
 
 import os
@@ -44,7 +46,7 @@ from clint.textui import progress
 from .compat import raw_input, b2s
 from .vmrun import VMrun
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def main_dir():
@@ -74,42 +76,41 @@ def confirm(prompt, default='y'):
     prompt = prompt + ' ' + choicebox + ' '
 
     while True:
-        input = raw_input(prompt).strip()
-        if input == '':
+        some_input = raw_input(prompt).strip()
+        if some_input == '':
             if default == 'y':
                 return True
             else:
                 return False
 
-        if re.match('y(?:es)?', input, re.IGNORECASE):
+        if re.match('y(?:es)?', some_input, re.IGNORECASE):
             return True
 
-        elif re.match('n(?:o)?', input, re.IGNORECASE):
+        elif re.match('n(?:o)?', some_input, re.IGNORECASE):
             return False
 
 
 def save_mechfile_entry(mechfile_entry, name, mechfile_should_exist=False):
     """Save the entry to the Mechfile."""
-    logger.debug('mechfile_entry:{} name:{} '
-                 'mechfile_should_exist:{}'.format(mechfile_entry, name,
-                                                   mechfile_should_exist))
+    LOGGER.debug('mechfile_entry:%s name:%s mechfile_should_exist:%s',
+                 mechfile_entry, name, mechfile_should_exist)
     mechfile = load_mechfile(mechfile_should_exist)
 
     mechfile[name] = mechfile_entry
 
-    logger.debug("after adding name:{} mechfile:{}".format(name, mechfile))
+    LOGGER.debug("after adding name:%s mechfile:%s", name, mechfile)
     return save_mechfile(mechfile)
 
 
 def remove_mechfile_entry(name, mechfile_should_exist=True):
     """Removed the entry from the Mechfile."""
-    logger.debug('name:{} mechfile_should_exist:{}'.format(name, mechfile_should_exist))
+    LOGGER.debug('name:%s mechfile_should_exist:%s', name, mechfile_should_exist)
     mechfile = load_mechfile(mechfile_should_exist)
 
     if mechfile.get(name):
         del mechfile[name]
 
-    logger.debug("after removing name:{} mechfile:{}".format(name, mechfile))
+    LOGGER.debug("after removing name:%s mechfile:%s", name, mechfile)
     return save_mechfile(mechfile)
 
 
@@ -117,15 +118,15 @@ def save_mechfile(mechfile):
     """Save the mechfile object to a file called 'Mechfile'.
        Return True if save was successful.
     """
-    logger.debug('mechfile:{}'.format(mechfile))
-    with open(os.path.join(main_dir(), 'Mechfile'), 'w+') as fp:
-        json.dump(mechfile, fp, sort_keys=True, indent=2, separators=(',', ': '))
+    LOGGER.debug('mechfile:%s', mechfile)
+    with open(os.path.join(main_dir(), 'Mechfile'), 'w+') as the_file:
+        json.dump(mechfile, the_file, sort_keys=True, indent=2, separators=(',', ': '))
     return True
 
 
 def locate(path, glob):
     """Locate a file in the path provided."""
-    for root, dirnames, filenames in os.walk(path):
+    for root, _, filenames in os.walk(path):
         for filename in filenames:
             if fnmatch.fnmatch(filename, glob):
                 return os.path.abspath(os.path.join(root, filename))
@@ -136,8 +137,8 @@ def parse_vmx(path):
        ordered dictionary.
     """
     vmx = collections.OrderedDict()
-    with open(path) as fp:
-        for line in fp:
+    with open(path) as the_file:
+        for line in the_file:
             line = line.strip().split('=', 1)
             if len(line) > 1:
                 vmx[line[0].rstrip()] = line[1].lstrip()
@@ -192,12 +193,12 @@ def update_vmx(path, numvcpus=None, memsize=None):
 def load_mechfile(should_exist=True):
     """Load the Mechfile from disk and return the object."""
     mechfile_fullpath = os.path.join(main_dir(), 'Mechfile')
-    logger.debug("mechfile_fullpath:{}".format(mechfile_fullpath))
+    LOGGER.debug("mechfile_fullpath:%s", mechfile_fullpath)
     if os.path.isfile(mechfile_fullpath):
-        with open(mechfile_fullpath) as fp:
+        with open(mechfile_fullpath) as the_file:
             try:
-                mechfile = json.loads(fp.read())
-                logger.debug('mechfile:{}'.format(mechfile))
+                mechfile = json.loads(the_file.read())
+                LOGGER.debug('mechfile:%s', mechfile)
                 return mechfile
             except ValueError:
                 puts_err(colored.red("Invalid Mechfile." + os.linesep))
@@ -215,10 +216,11 @@ def load_mechfile(should_exist=True):
             return {}
 
 
-def build_mechfile_entry(location, box=None, name=None, box_version=None, requests_kwargs={}):
+def build_mechfile_entry(location, box=None, name=None, box_version=None, requests_kwargs=None):
     """Build the Mechfile from the inputs."""
-    logger.debug("location:{} name:{} box:{} box_version:{}".format(
-                 location, name, box, box_version))
+    LOGGER.debug("location:%s name:%s box:%s box_version:%s", location, name, box, box_version)
+    if requests_kwargs is None:
+        requests_kwargs = {}
     mechfile_entry = {}
     if location is None:
         return mechfile_entry
@@ -233,53 +235,53 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None, reques
         return mechfile_entry
     elif location.startswith('file:') or os.path.isfile(re.sub(r'^file:(?://)?', '', location)):
         location = re.sub(r'^file:(?://)?', '', location)
-        logger.debug('location:{}'.format(location))
+        LOGGER.debug('location:%s', location)
         try:
             # see if the location is a json file
-            with open(location) as fp:
-                catalog = json.loads(fp.read())
-        except Exception:
+            with open(location) as the_file:
+                catalog = json.loads(the_file.read())
+        except ValueError:  # includes simplejson.decoder.JSONDecodeError
             mechfile_entry['file'] = location
         if not name:
             name = 'first'
         mechfile_entry['box'] = box
         if box_version:
             mechfile_entry['box_version'] = box_version
-        logger.debug('mechfile_entry:{}'.format(mechfile_entry))
+        LOGGER.debug('mechfile_entry:%s', mechfile_entry)
         return mechfile_entry
     else:
         try:
-            account, box, v = (location.split('/', 2) + ['', ''])[:3]
+            account, box, ver = (location.split('/', 2) + ['', ''])[:3]
             if not account or not box:
                 puts_err(colored.red("Provided box name is not valid"))
-            if v:
-                box_version = v
+            if ver:
+                box_version = ver
             puts_err(
                 colored.blue("Loading metadata for box '{}'{}".format(
-                             location, " ({})".format(box_version) if box_version else "")))
+                    location, " ({})".format(box_version) if box_version else "")))
             url = 'https://app.vagrantup.com/{}/boxes/{}'.format(account, box)
-            r = requests.get(url, **requests_kwargs)
-            r.raise_for_status()
-            catalog = r.json()
+            response = requests.get(url, **requests_kwargs)
+            response.raise_for_status()
+            catalog = response.json()
         except (requests.HTTPError, ValueError) as exc:
             puts_err(colored.red("Bad response from HashiCorp's Vagrant Cloud API: %s" % exc))
             sys.exit(1)
         except requests.ConnectionError:
             puts_err(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
             sys.exit(1)
-    logger.debug("catalog:{} name:{} box_version:{}".format(catalog, name, box_version))
+    LOGGER.debug("catalog:%s name:%s box_version:%s", catalog, name, box_version)
     return catalog_to_mechfile(catalog, name=name, box=box, box_version=box_version)
 
 
 def catalog_to_mechfile(catalog, name=None, box=None, box_version=None):
     """Convert the Hashicorp cloud catalog entry to Mechfile entry."""
-    logger.debug('catalog:{} name:{} box:{} box_version:{}'.format(catalog, name, box, box_version))
+    LOGGER.debug('catalog:%s name:%s box:%s box_version:%s', catalog, name, box, box_version)
     mechfile = {}
     versions = catalog.get('versions', [])
-    for v in versions:
-        current_version = v['version']
+    for ver in versions:
+        current_version = ver['version']
         if not box_version or current_version == box_version:
-            for provider in v['providers']:
+            for provider in ver['providers']:
                 if 'vmware' in provider['name']:
                     mechfile['name'] = name
                     mechfile['box'] = catalog['name']
@@ -306,7 +308,7 @@ def tar_cmd(*args, **kwargs):
         return None
     if proc.returncode:
         return None
-    stdoutdata, stderrdata = map(b2s, proc.communicate())
+    stdoutdata, _ = map(b2s, proc.communicate())
     tar = ['tar']
     if kwargs.get('wildcards') and re.search(r'--wildcards\b', stdoutdata):
         tar.append('--wildcards')
@@ -319,14 +321,15 @@ def tar_cmd(*args, **kwargs):
 
 
 def init_box(name, box=None, box_version=None, location=None, force=False, save=True,
-             instance_path=None, requests_kwargs={}, numvcpus=None,
+             instance_path=None, requests_kwargs=None, numvcpus=None,
              memsize=None):
     """Initialize the box. This includes uncompressing the files
        from the box file and updating the vmx file with
        desired settings. Return the full path to the vmx file.
     """
-    logger.debug("name:{} box:{} box_version:{} location:{}".format(
-                 name, box, box_version, location))
+    if requests_kwargs is None:
+        requests_kwargs = {}
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s", name, box, box_version, location)
     if not locate(instance_path, '*.vmx'):
         name_version_box = add_box(
             name=name,
@@ -342,7 +345,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
 
         box_parts = box.split('/')
         box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes',
-                               box_parts[0], box_parts[1], box_version)))
+                                              box_parts[0], box_parts[1], box_version)))
         box_file = locate(box_dir, '*.box')
 
         puts_err(colored.blue("Extracting box '{}'...".format(box_file)))
@@ -377,11 +380,13 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
 
 
 def add_box(name=None, box=None, box_version=None, location=None,
-            force=False, save=True, requests_kwargs={}):
+            force=False, save=True, requests_kwargs=None):
     """Add a box."""
+    if requests_kwargs is None:
+        requests_kwargs = {}
     # build the dict
-    logger.debug('name:{} box:{} box_version:{} location:{}'.format(
-                 name, box, box_version, location))
+    LOGGER.debug('name:%s box:%s box_version:%s location:%s', name,
+                 box, box_version, location)
     mechfile_entry = build_mechfile_entry(
         box=box,
         name=name,
@@ -401,9 +406,12 @@ def add_box(name=None, box=None, box_version=None, location=None,
 
 
 def add_mechfile(mechfile_entry, name=None, box=None, box_version=None,
-                 location=None, force=False, save=True, requests_kwargs={}):
-    logger.debug('mechfile_entry:{} name:{} box:{} box_version:{} location:{}'.format(
-                 mechfile_entry, name, box, box_version, location))
+                 location=None, force=False, save=True, requests_kwargs=None):
+    """Add a mechfile entry."""
+    if requests_kwargs is None:
+        requests_kwargs = {}
+    LOGGER.debug('mechfile_entry:%s name:%s box:%s box_version:%s location:%s',
+                 mechfile_entry, name, box, box_version, location)
 
     box = mechfile_entry.get('box')
     name = mechfile_entry.get('name')
@@ -426,44 +434,46 @@ def add_mechfile(mechfile_entry, name=None, box=None, box_version=None,
                 name, " ({})".format(box_version) if box_version else "")))
 
 
-def add_box_url(name, box, box_version, url, force=False, save=True, requests_kwargs={}):
+def add_box_url(name, box, box_version, url, force=False, save=True, requests_kwargs=None):
     """Add a box using the URL."""
-    logger.debug('name:{} box:{} box_version:{} url:{}'.format(name, box, box_version, url))
+    if requests_kwargs is None:
+        requests_kwargs = {}
+    LOGGER.debug('name:%s box:%s box_version:%s url:%s', name, box, box_version, url)
     boxname = os.path.basename(url)
     box_parts = box.split('/')
     box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes',
-                           box_parts[0], box_parts[1], box_version)))
+                                          box_parts[0], box_parts[1], box_version)))
     exists = os.path.exists(box_dir)
     if not exists or force:
         if exists:
             puts_err(colored.blue("Attempting to download box '{}'...".format(box)))
         else:
             puts_err(colored.blue("Box '{}' could not be found. "
-                     "Attempting to download...".format(box)))
+                                  "Attempting to download...".format(box)))
         try:
             puts_err(colored.blue("URL: {}".format(url)))
-            r = requests.get(url, stream=True, **requests_kwargs)
-            r.raise_for_status()
+            response = requests.get(url, stream=True, **requests_kwargs)
+            response.raise_for_status()
             try:
-                length = int(r.headers['content-length'])
+                length = int(response.headers['content-length'])
                 progress_args = dict(expected_size=length // 1024 + 1)
                 progress_type = progress.bar
             except KeyError:
                 progress_args = dict(every=1024 * 100)
                 progress_type = progress.dots
-            fp = tempfile.NamedTemporaryFile(delete=False)
+            the_file = tempfile.NamedTemporaryFile(delete=False)
             try:
                 for chunk in progress_type(
-                        r.iter_content(
+                        response.iter_content(
                             chunk_size=1024),
                         label="{} ".format(boxname),
                         **progress_args):
                     if chunk:
-                        fp.write(chunk)
-                fp.close()
-                if r.headers.get('content-type') == 'application/json':
+                        the_file.write(chunk)
+                the_file.close()
+                if response.headers.get('content-type') == 'application/json':
                     # Downloaded URL might be a Vagrant catalog if it's json:
-                    catalog = json.load(fp.name)
+                    catalog = json.load(the_file.name)
                     mechfile = catalog_to_mechfile(catalog, name, box, box_version)
                     return add_mechfile(
                         mechfile,
@@ -475,10 +485,10 @@ def add_box_url(name, box, box_version, url, force=False, save=True, requests_kw
                 else:
                     # Otherwise it must be a valid box:
                     return add_box_file(box=box, box_version=box_version,
-                                        filename=fp.name, url=url, force=force,
+                                        filename=the_file.name, url=url, force=force,
                                         save=save)
             finally:
-                os.unlink(fp.name)
+                os.unlink(the_file.name)
         except requests.HTTPError as exc:
             puts_err(colored.red("Bad response: %s" % exc))
             sys.exit(1)
@@ -531,31 +541,33 @@ def add_box_file(box=None, box_version=None, filename=None, url=None, force=Fals
         return box, box_version
 
 
-def init_mechfile(location=None, box=None, name=None, box_version=None, requests_kwargs={}):
+def init_mechfile(location=None, box=None, name=None, box_version=None, requests_kwargs=None):
     """Initialize the Mechfile."""
-    logger.debug("name:{} box:{} box_version:{} location:{}".format(
-        name, box, box_version, location))
+    if requests_kwargs is None:
+        requests_kwargs = {}
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s", name, box, box_version, location)
     mechfile_entry = build_mechfile_entry(
         location=location,
         box=box,
         name=name,
         box_version=box_version,
         requests_kwargs=requests_kwargs)
-    logger.debug('mechfile_entry:{}'.format(mechfile_entry))
+    LOGGER.debug('mechfile_entry:%s', mechfile_entry)
     return save_mechfile_entry(mechfile_entry, name, mechfile_should_exist=False)
 
 
-def add_to_mechfile(location=None, box=None, name=None, box_version=None, requests_kwargs={}):
+def add_to_mechfile(location=None, box=None, name=None, box_version=None, requests_kwargs=None):
     """Add entry to the Mechfile."""
-    logger.debug("name:{} box:{} box_version:{} location:{}".format(
-        name, box, box_version, location))
+    if requests_kwargs is None:
+        requests_kwargs = {}
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s", name, box, box_version, location)
     this_mech_entry = build_mechfile_entry(
         location=location,
         box=box,
         name=name,
         box_version=box_version,
         requests_kwargs=requests_kwargs)
-    logger.debug('this_mech_entry:{}'.format(this_mech_entry))
+    LOGGER.debug('this_mech_entry:%s', this_mech_entry)
     return save_mechfile_entry(this_mech_entry, name, mechfile_should_exist=False)
 
 
@@ -573,7 +585,7 @@ def get_requests_kwargs(arguments):
     return requests_kwargs
 
 
-def provision(instance, vmx, user, password, provision, show):
+def provision(instance, vmx, user, password, provision_config, show):
     """Provision an instance.
 
        provision types:
@@ -599,16 +611,16 @@ def provision(instance, vmx, user, password, provision, show):
         return
 
     provisioned = 0
-    if provision:
-        for i, p in enumerate(provision):
-            provision_type = p.get('type')
+    if provision_config:
+        for i, pro in enumerate(provision_config):
+            provision_type = pro.get('type')
             if provision_type == 'file':
-                source = p.get('source')
-                destination = p.get('destination')
+                source = pro.get('source')
+                destination = pro.get('destination')
                 if show:
                     puts_err(colored.green(" instance:{} provision_type:{} source:{} "
-                             "destination:{}".format(instance, provision_type,
-                                                     source, destination)))
+                                           "destination:{}".format(instance, provision_type,
+                                                                   source, destination)))
                 else:
                     if provision_file(vmrun, source, destination) is None:
                         puts_err(colored.red("Not Provisioned"))
@@ -616,15 +628,16 @@ def provision(instance, vmx, user, password, provision, show):
                 provisioned += 1
 
             elif provision_type == 'shell':
-                inline = p.get('inline')
-                path = p.get('path')
+                inline = pro.get('inline')
+                path = pro.get('path')
 
-                args = p.get('args')
+                args = pro.get('args')
                 if not isinstance(args, list):
                     args = [args]
                 if show:
                     puts_err(colored.green(" instance:{} provision_type:{} inline:{} path:{} "
-                             "args:{}".format(instance, provision_type, inline, path, args)))
+                                           "args:{}".format(instance, provision_type,
+                                                            inline, path, args)))
                 else:
                     if provision_shell(vmrun, inline, path, args) is None:
                         puts_err(colored.red("Not Provisioned"))
@@ -636,40 +649,41 @@ def provision(instance, vmx, user, password, provision, show):
                 return
         else:
             puts_err(colored.green("VM ({}) Provision {} "
-                     "entries".format(instance, provisioned)))
+                                   "entries".format(instance, provisioned)))
     else:
         puts_err(colored.blue("Nothing to provision"))
 
 
-def provision_file(vm, source, destination):
+def provision_file(virtual_machine, source, destination):
     """Provision from file.
        This simply copies a file from host to guest.
     """
     puts_err(colored.blue("Copying ({}) to ({})".format(source, destination)))
-    return vm.copyFileFromHostToGuest(source, destination)
+    return virtual_machine.copyFileFromHostToGuest(source, destination)
 
 
-def provision_shell(vm, inline, path, args=[]):
+def provision_shell(virtual_machine, inline, path, args=None):
     """Provision from shell."""
-    tmp_path = vm.createTempfileInGuest()
-    logger.debug('inline:{} path:{} args:{} tmp_path:{}'.format(
-                 inline, path, args, tmp_path))
+    if args is None:
+        args = []
+    tmp_path = virtual_machine.createTempfileInGuest()
+    LOGGER.debug('inline:%s path:%s args:%s tmp_path:%s', inline, path, args, tmp_path)
     if tmp_path is None:
         return
 
     try:
         if path and os.path.isfile(path):
             puts_err(colored.blue("Configuring script {}...".format(path)))
-            if vm.copyFileFromHostToGuest(path, tmp_path) is None:
+            if virtual_machine.copyFileFromHostToGuest(path, tmp_path) is None:
                 return
         else:
             if path:
                 if any(path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
                     puts_err(colored.blue("Downloading {}...".format(path)))
                     try:
-                        r = requests.get(path)
-                        r.raise_for_status()
-                        inline = r.read()
+                        response = requests.get(path)
+                        response.raise_for_status()
+                        inline = response.read()
                     except requests.HTTPError:
                         return
                     except requests.ConnectionError:
@@ -683,30 +697,30 @@ def provision_shell(vm, inline, path, args=[]):
                 return
 
             puts_err(colored.blue("Configuring script to run inline..."))
-            fp = tempfile.NamedTemporaryFile(delete=False)
+            the_file = tempfile.NamedTemporaryFile(delete=False)
             try:
-                fp.write(str.encode(inline))
-                fp.close()
-                if vm.copyFileFromHostToGuest(fp.name, tmp_path) is None:
+                the_file.write(str.encode(inline))
+                the_file.close()
+                if virtual_machine.copyFileFromHostToGuest(the_file.name, tmp_path) is None:
                     return
             finally:
-                os.unlink(fp.name)
+                os.unlink(the_file.name)
 
         puts_err(colored.blue("Configuring environment..."))
-        if vm.runScriptInGuest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
+        if virtual_machine.runScriptInGuest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
             return
 
         puts_err(colored.blue("Executing program..."))
-        return vm.runProgramInGuest(tmp_path, args)
+        return virtual_machine.runProgramInGuest(tmp_path, args)
 
     finally:
-        vm.deleteFileInGuest(tmp_path, quiet=True)
+        virtual_machine.deleteFileInGuest(tmp_path, quiet=True)
 
 
 def config_ssh_string(config_ssh):
     """Build the ssh-config string."""
     ssh_config = "Host {}".format(config_ssh.get('Host', '')) + os.linesep
-    for k, v in config_ssh.items():
-        if k != 'Host':
-            ssh_config += "  {} {}".format(k, v) + os.linesep
+    for key, value in config_ssh.items():
+        if key != 'Host':
+            ssh_config += "  {} {}".format(key, value) + os.linesep
     return ssh_config
