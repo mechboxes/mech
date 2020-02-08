@@ -47,17 +47,14 @@ from .vmrun import VMrun
 logger = logging.getLogger(__name__)
 
 
-MAIN_DIR = os.path.expanduser(os.getcwd())
-
-
 def main_dir():
     """Return the main directory."""
-    return MAIN_DIR
+    return os.getcwd()
 
 
 def mech_dir():
     """Return the mech directory."""
-    return os.path.join(MAIN_DIR, '.mech')
+    return os.path.join(main_dir(), '.mech')
 
 
 def makedirs(name, mode=0o777):

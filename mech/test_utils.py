@@ -6,15 +6,20 @@ from collections import OrderedDict
 import mech.utils
 
 
-def test_main_dir():
+@patch('os.getcwd')
+def test_main_dir(mock_os_getcwd):
+    mock_os_getcwd.return_value = '/tmp'
     main = mech.utils.main_dir()
-    assert main.startswith('/')
+    mock_os_getcwd.assert_called()
+    assert main == '/tmp'
 
 
-def test_mech_dir():
-    mech_dir = mech.utils.mech_dir()
-    assert mech_dir.startswith('/')
-    assert mech_dir.endswith('/.mech')
+@patch('os.getcwd')
+def test_mech_dir(mock_os_getcwd):
+    mock_os_getcwd.return_value = '/tmp'
+    mechdir = mech.utils.mech_dir()
+    mock_os_getcwd.assert_called()
+    assert mechdir == '/tmp/.mech'
 
 
 def test_save_mechfile_empty_config():
