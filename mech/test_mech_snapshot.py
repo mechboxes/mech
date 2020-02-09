@@ -154,7 +154,7 @@ def test_mech_snapshot_delete_snapshot(mock_os_getcwd, mock_load_mechfile,
         arguments = {'<instance>': 'first', '<name>': 'snap2'}
         mock_delete_snapshot.return_value = None
         a_mech.delete(arguments)
-        out, err = capfd.readouterr()
+        out, _ = capfd.readouterr()
         mock_delete_snapshot.assert_called()
         mock_list_snapshots.assert_called()
         assert re.search(r'Cannot delete', out, re.MULTILINE)

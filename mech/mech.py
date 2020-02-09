@@ -89,8 +89,8 @@ class MechInstance():
         if mechfile.get(name, None):
             self.name = name
         else:
-            print(colored.red("Instance ({}) was not found in the Mechfile".format(name)))
-            sys.exit(1)
+            sys.exit(colored.red("Instance ({}) was not found in the "
+                                 "Mechfile".format(name)))
         self.box = mechfile[name].get('box', None)
         self.box_version = mechfile[name].get('box_version', None)
         self.url = mechfile[name].get('url', None)
@@ -133,13 +133,11 @@ class MechInstance():
         ip_address = vmrun.get_guest_ip_address(wait=False,
                                                 lookup=lookup) if vmrun.installed_tools() else None
         if not ip_address:
-            print(colored.red(textwrap.fill(
-                "This Mech machine is reporting that it is not yet ready for SSH. "
-                "Make sure your machine is created and running and try again. "
-                "Additionally, check the output of `mech status` to verify "
-                "that the machine is in the state that you expect."
-            )))
-            sys.exit(1)
+            sys.exit(colored.red(textwrap.fill(
+                     "This Mech machine is reporting that it is not yet ready for SSH. "
+                     "Make sure your machine is created and running and try again. "
+                     "Additionally, check the output of `mech status` to verify "
+                     "that the machine is in the state that you expect.")))
 
         insecure_private_key = os.path.abspath(os.path.join(
             utils.mech_dir(), "insecure_private_key"))
@@ -970,7 +968,10 @@ class Mech(MechCommand):
 
         for instance in instances:
             inst = MechInstance(instance)
-            print(utils.config_ssh_string(inst.config_ssh()))
+            if inst.created:
+                print(utils.config_ssh_string(inst.config_ssh()))
+            else:
+                print(colored.red("VM ({}) is not created.".format(instance)))
 
     def ssh(self, arguments):  # pylint: disable=no-self-use
         """
