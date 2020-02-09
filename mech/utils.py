@@ -40,7 +40,7 @@ import collections
 from shutil import copyfile
 
 import requests
-from clint.textui import colored, puts_err
+from clint.textui import colored
 from clint.textui import progress
 
 from .compat import raw_input, b2s
@@ -170,7 +170,7 @@ def update_vmx(path, numvcpus=None, memsize=None):
         vmx["ethernet0.present"] = "TRUE"
         vmx["ethernet0.virtualdev"] = "e1000"
         vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
-        puts_err(colored.yellow("Added network interface to vmx file"))
+        print(colored.yellow("Added network interface to vmx file"))
         updated = True
 
     # write out vmx file if memsize or numvcpus was specified
@@ -201,10 +201,10 @@ def load_mechfile(should_exist=True):
                 LOGGER.debug('mechfile:%s', mechfile)
                 return mechfile
             except ValueError:
-                puts_err(colored.red("Invalid Mechfile." + os.linesep))
+                print(colored.red("Invalid Mechfile." + os.linesep))
     else:
         if should_exist:
-            puts_err(colored.red(textwrap.fill(
+            print(colored.red(textwrap.fill(
                 "Could not find a Mechfile in the current directory. "
                 "A Mech environment is required to run this command. Run `mech init` "
                 "to create a new Mech environment. Or specify the name of the VM you would "
@@ -253,10 +253,10 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None, reques
         try:
             account, box, ver = (location.split('/', 2) + ['', ''])[:3]
             if not account or not box:
-                puts_err(colored.red("Provided box name is not valid"))
+                print(colored.red("Provided box name is not valid"))
             if ver:
                 box_version = ver
-            puts_err(
+            print(
                 colored.blue("Loading metadata for box '{}'{}".format(
                     location, " ({})".format(box_version) if box_version else "")))
             url = 'https://app.vagrantup.com/{}/boxes/{}'.format(account, box)
@@ -264,10 +264,10 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None, reques
             response.raise_for_status()
             catalog = response.json()
         except (requests.HTTPError, ValueError) as exc:
-            puts_err(colored.red("Bad response from HashiCorp's Vagrant Cloud API: %s" % exc))
+            print(colored.red("Bad response from HashiCorp's Vagrant Cloud API: %s" % exc))
             sys.exit(1)
         except requests.ConnectionError:
-            puts_err(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
+            print(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
             sys.exit(1)
     LOGGER.debug("catalog:%s name:%s box_version:%s", catalog, name, box_version)
     return catalog_to_mechfile(catalog, name=name, box=box, box_version=box_version)
@@ -288,7 +288,7 @@ def catalog_to_mechfile(catalog, name=None, box=None, box_version=None):
                     mechfile['box_version'] = current_version
                     mechfile['url'] = provider['url']
                     return mechfile
-    puts_err(
+    print(
         colored.red(
             "Couldn't find a VMWare compatible VM for '{}'{}".format(
                 name, " ({})".format(box_version) if box_version else "")))
@@ -340,7 +340,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
             save=save,
             requests_kwargs=requests_kwargs)
         if not name_version_box:
-            puts_err(colored.red("Cannot find a valid box with a VMX file in it"))
+            print(colored.red("Cannot find a valid box with a VMX file in it"))
             sys.exit(1)
 
         box_parts = box.split('/')
@@ -348,7 +348,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
                                               box_parts[0], box_parts[1], box_version)))
         box_file = locate(box_dir, '*.box')
 
-        puts_err(colored.blue("Extracting box '{}'...".format(box_file)))
+        print(colored.blue("Extracting box '{}'...".format(box_file)))
         makedirs(instance_path)
         if sys.platform == 'win32':
             cmd = tar_cmd('-xf', box_file, force_local=True)
@@ -361,7 +361,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
                 startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
             proc = subprocess.Popen(cmd, cwd=instance_path, startupinfo=startupinfo)
             if proc.wait():
-                puts_err(colored.red("Cannot extract box"))
+                print(colored.red("Cannot extract box"))
                 sys.exit(1)
         else:
             tar = tarfile.open(box_file, 'r')
@@ -372,7 +372,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
 
     vmx = locate(instance_path, '*.vmx')
     if not vmx:
-        puts_err(colored.red("Cannot locate a VMX file"))
+        print(colored.red("Cannot locate a VMX file"))
         sys.exit(1)
 
     update_vmx(vmx, numvcpus=numvcpus, memsize=memsize)
@@ -428,7 +428,7 @@ def add_mechfile(mechfile_entry, name=None, box=None, box_version=None,
         return add_box_url(name=name, box=box, box_version=box_version,
                            url=url, force=force, save=save,
                            requests_kwargs=requests_kwargs)
-    puts_err(
+    print(
         colored.red(
             "Could not find a VMWare compatible VM for '{}'{}".format(
                 name, " ({})".format(box_version) if box_version else "")))
@@ -446,12 +446,12 @@ def add_box_url(name, box, box_version, url, force=False, save=True, requests_kw
     exists = os.path.exists(box_dir)
     if not exists or force:
         if exists:
-            puts_err(colored.blue("Attempting to download box '{}'...".format(box)))
+            print(colored.blue("Attempting to download box '{}'...".format(box)))
         else:
-            puts_err(colored.blue("Box '{}' could not be found. "
-                                  "Attempting to download...".format(box)))
+            print(colored.blue("Box '{}' could not be found. "
+                               "Attempting to download...".format(box)))
         try:
-            puts_err(colored.blue("URL: {}".format(url)))
+            print(colored.blue("URL: {}".format(url)))
             response = requests.get(url, stream=True, **requests_kwargs)
             response.raise_for_status()
             try:
@@ -490,17 +490,17 @@ def add_box_url(name, box, box_version, url, force=False, save=True, requests_kw
             finally:
                 os.unlink(the_file.name)
         except requests.HTTPError as exc:
-            puts_err(colored.red("Bad response: %s" % exc))
+            print(colored.red("Bad response: %s" % exc))
             sys.exit(1)
         except requests.ConnectionError:
-            puts_err(colored.red("Couldn't connect to '%s'" % url))
+            print(colored.red("Couldn't connect to '%s'" % url))
             sys.exit(1)
     return name, box_version, box
 
 
 def add_box_file(box=None, box_version=None, filename=None, url=None, force=False, save=True):
     """Add a box using a file as the source. Returns box and box_version."""
-    puts_err(colored.blue("Checking box '{}' integrity filename:{}...".format(box, filename)))
+    print(colored.blue("Checking box '{}' integrity filename:{}...".format(box, filename)))
 
     if sys.platform == 'win32':
         cmd = tar_cmd('-tf', filename, '*.vmx', wildcards=True, fast_read=True, force_local=True)
@@ -522,7 +522,7 @@ def add_box_file(box=None, box_version=None, filename=None, url=None, force=Fals
                 valid_tar = True
                 break
             if i.startswith('/') or i.startswith('..'):
-                puts_err(colored.red(textwrap.fill(
+                print(colored.red(textwrap.fill(
                     "This box is comprised of filenames starting with '/' or '..' "
                     "Exiting for the safety of your files."
                 )))
@@ -595,19 +595,19 @@ def provision(instance, vmx, user, password, provision_config, show):
     """
 
     if instance == '':
-        puts_err(colored.red("Need to provide an instance to provision()."))
+        print(colored.red("Need to provide an instance to provision()."))
         return
 
     if not vmx or not user or not password:
-        puts_err(colored.red("Need provide vmx/user/password to provision()."))
+        print(colored.red("Need provide vmx/user/password to provision()."))
         return
 
-    puts_err(colored.green('Provisioning instance:{}'.format(instance)))
+    print(colored.green('Provisioning instance:{}'.format(instance)))
 
     vmrun = VMrun(vmx, user, password)
     # cannot run provisioning if vmware tools are not installed
     if not vmrun.installed_tools():
-        puts_err(colored.red("Cannot provision if VMware Tools are not installed."))
+        print(colored.red("Cannot provision if VMware Tools are not installed."))
         return
 
     provisioned = 0
@@ -618,12 +618,12 @@ def provision(instance, vmx, user, password, provision_config, show):
                 source = pro.get('source')
                 destination = pro.get('destination')
                 if show:
-                    puts_err(colored.green(" instance:{} provision_type:{} source:{} "
-                                           "destination:{}".format(instance, provision_type,
-                                                                   source, destination)))
+                    print(colored.green(" instance:{} provision_type:{} source:{} "
+                                        "destination:{}".format(instance, provision_type,
+                                                                source, destination)))
                 else:
                     if provision_file(vmrun, source, destination) is None:
-                        puts_err(colored.red("Not Provisioned"))
+                        print(colored.red("Not Provisioned"))
                         return
                 provisioned += 1
 
@@ -635,30 +635,30 @@ def provision(instance, vmx, user, password, provision_config, show):
                 if not isinstance(args, list):
                     args = [args]
                 if show:
-                    puts_err(colored.green(" instance:{} provision_type:{} inline:{} path:{} "
-                                           "args:{}".format(instance, provision_type,
-                                                            inline, path, args)))
+                    print(colored.green(" instance:{} provision_type:{} inline:{} path:{} "
+                                        "args:{}".format(instance, provision_type,
+                                                         inline, path, args)))
                 else:
                     if provision_shell(vmrun, inline, path, args) is None:
-                        puts_err(colored.red("Not Provisioned"))
+                        print(colored.red("Not Provisioned"))
                         return
                 provisioned += 1
 
             else:
-                puts_err(colored.red("Not Provisioned ({}".format(i)))
+                print(colored.red("Not Provisioned ({}".format(i)))
                 return
         else:
-            puts_err(colored.green("VM ({}) Provision {} "
-                                   "entries".format(instance, provisioned)))
+            print(colored.green("VM ({}) Provision {} "
+                                "entries".format(instance, provisioned)))
     else:
-        puts_err(colored.blue("Nothing to provision"))
+        print(colored.blue("Nothing to provision"))
 
 
 def provision_file(virtual_machine, source, destination):
     """Provision from file.
        This simply copies a file from host to guest.
     """
-    puts_err(colored.blue("Copying ({}) to ({})".format(source, destination)))
+    print(colored.blue("Copying ({}) to ({})".format(source, destination)))
     return virtual_machine.copy_file_from_host_to_guest(source, destination)
 
 
@@ -673,13 +673,13 @@ def provision_shell(virtual_machine, inline, path, args=None):
 
     try:
         if path and os.path.isfile(path):
-            puts_err(colored.blue("Configuring script {}...".format(path)))
+            print(colored.blue("Configuring script {}...".format(path)))
             if virtual_machine.copy_file_from_host_to_guest(path, tmp_path) is None:
                 return
         else:
             if path:
                 if any(path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
-                    puts_err(colored.blue("Downloading {}...".format(path)))
+                    print(colored.blue("Downloading {}...".format(path)))
                     try:
                         response = requests.get(path)
                         response.raise_for_status()
@@ -689,14 +689,14 @@ def provision_shell(virtual_machine, inline, path, args=None):
                     except requests.ConnectionError:
                         return
                 else:
-                    puts_err(colored.red("Cannot open {}".format(path)))
+                    print(colored.red("Cannot open {}".format(path)))
                     return
 
             if not inline:
-                puts_err(colored.red("No script to execute"))
+                print(colored.red("No script to execute"))
                 return
 
-            puts_err(colored.blue("Configuring script to run inline..."))
+            print(colored.blue("Configuring script to run inline..."))
             the_file = tempfile.NamedTemporaryFile(delete=False)
             try:
                 the_file.write(str.encode(inline))
@@ -706,11 +706,11 @@ def provision_shell(virtual_machine, inline, path, args=None):
             finally:
                 os.unlink(the_file.name)
 
-        puts_err(colored.blue("Configuring environment..."))
+        print(colored.blue("Configuring environment..."))
         if virtual_machine.run_script_in_guest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
             return
 
-        puts_err(colored.blue("Executing program..."))
+        print(colored.blue("Executing program..."))
         return virtual_machine.run_program_in_guest(tmp_path, args)
 
     finally:

@@ -36,7 +36,7 @@ import textwrap
 import shutil
 import subprocess
 
-from clint.textui import colored, puts_err
+from clint.textui import colored
 
 from . import utils
 from .vmrun import VMrun
@@ -89,7 +89,7 @@ class MechInstance():
         if mechfile.get(name, None):
             self.name = name
         else:
-            puts_err(colored.red("Instance ({}) was not found in the Mechfile".format(name)))
+            print(colored.red("Instance ({}) was not found in the Mechfile".format(name)))
             sys.exit(1)
         self.box = mechfile[name].get('box', None)
         self.box_version = mechfile[name].get('box_version', None)
@@ -133,7 +133,7 @@ class MechInstance():
         ip_address = vmrun.get_guest_ip_address(wait=False,
                                                 lookup=lookup) if vmrun.installed_tools() else None
         if not ip_address:
-            puts_err(colored.red(textwrap.fill(
+            print(colored.red(textwrap.fill(
                 "This Mech machine is reporting that it is not yet ready for SSH. "
                 "Make sure your machine is created and running and try again. "
                 "Additionally, check the output of `mech status` to verify "
@@ -307,9 +307,9 @@ class MechSnapshot(MechCommand):
 
         vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
         if vmrun.delete_snapshot(name) is None:
-            puts_err(colored.red("Cannot delete name"))
+            print(colored.red("Cannot delete name"))
         else:
-            puts_err(colored.green("Snapshot {} deleted".format(name)))
+            print(colored.green("Snapshot {} deleted".format(name)))
 
     # add alias for 'mech snapshot remove'
     remove = delete
@@ -365,10 +365,10 @@ class MechSnapshot(MechCommand):
         inst = MechInstance(instance)
         vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
         if vmrun.snapshot(name) is None:
-            puts_err(colored.red("Warning: Could not take snapshot."))
+            print(colored.red("Warning: Could not take snapshot."))
             sys.exit(1)
         else:
-            puts_err(colored.green("Snapshot ({}) on VM ({}) taken".format(name, instance)))
+            print(colored.green("Snapshot ({}) on VM ({}) taken".format(name, instance)))
 
 
 class Mech(MechCommand):
@@ -467,25 +467,25 @@ class Mech(MechCommand):
         LOGGER.debug('name:%s box:%s box_version:%s location:%s', name, box, box_version, location)
 
         if os.path.exists('Mechfile') and not force:
-            puts_err(colored.red(textwrap.fill(
+            print(colored.red(textwrap.fill(
                 "`Mechfile` already exists in this directory. Remove it "
                 "before running `mech init`."
             )))
             sys.exit(1)
 
-        puts_err(colored.green("Initializing mech"))
+        print(colored.green("Initializing mech"))
         if utils.init_mechfile(
                 location=location,
                 box=box,
                 name=name,
                 box_version=box_version,
                 requests_kwargs=requests_kwargs):
-            puts_err(colored.green(textwrap.fill(
+            print(colored.green(textwrap.fill(
                 "A `Mechfile` has been initialized and placed in this directory. "
                 "You are now ready to `mech up` your first virtual environment!"
             )))
         else:
-            puts_err(colored.red("Couldn't initialize mech"))
+            print(colored.red("Couldn't initialize mech"))
 
     def add(self, arguments):  # pylint: disable=no-self-use
         """
@@ -512,14 +512,14 @@ class Mech(MechCommand):
         location = arguments['<location>']
 
         if not name or name == "":
-            puts_err(colored.red("Need to provide a name for the instance to add to the Mechfile."))
+            print(colored.red("Need to provide a name for the instance to add to the Mechfile."))
             sys.exit(1)
 
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
         LOGGER.debug('name:%s box:%s box_version:%s location:%s', name, box, box_version, location)
 
-        puts_err(colored.green("Adding ({}) to the Mechfile.".format(name)))
+        print(colored.green("Adding ({}) to the Mechfile.".format(name)))
 
         if utils.add_to_mechfile(
                 location=location,
@@ -527,9 +527,9 @@ class Mech(MechCommand):
                 name=name,
                 box_version=box_version,
                 requests_kwargs=requests_kwargs):
-            puts_err(colored.green("Added to the Mechfile."))
+            print(colored.green("Added to the Mechfile."))
         else:
-            puts_err(colored.red("Could not add {} to the Mechfile".format(name)))
+            print(colored.red("Could not add {} to the Mechfile".format(name)))
 
     def remove(self, arguments):
         """
@@ -543,7 +543,7 @@ class Mech(MechCommand):
         name = arguments['<name>']
 
         if not name or name == "":
-            puts_err(colored.red("Need to provide a name to be removed from the Mechfile."))
+            print(colored.red("Need to provide a name to be removed from the Mechfile."))
             sys.exit(1)
 
         LOGGER.debug('name:%s', name)
@@ -551,13 +551,13 @@ class Mech(MechCommand):
         self.activate_mechfile()
         inst = self.mechfile.get(name, None)
         if inst:
-            puts_err(colored.green("Removing ({}) from the Mechfile.".format(name)))
+            print(colored.green("Removing ({}) from the Mechfile.".format(name)))
             if utils.remove_mechfile_entry(name=name):
-                puts_err(colored.green("Removed from the Mechfile."))
+                print(colored.green("Removed from the Mechfile."))
             else:
-                puts_err(colored.red("Could not remove {} from the Mechfile".format(name)))
+                print(colored.red("Could not remove {} from the Mechfile".format(name)))
         else:
-            puts_err(colored.red("There is no instance called ({}) in the Mechfile.".format(name)))
+            print(colored.red("There is no instance called ({}) in the Mechfile.".format(name)))
             sys.exit(1)
 
     # add alias for 'mech delete'
@@ -630,33 +630,33 @@ class Mech(MechCommand):
                 inst.created = True
 
             vmrun = VMrun(vmx, user=inst.user, password=inst.password)
-            puts_err(colored.blue("Bringing machine ({}) up...".format(instance)))
+            print(colored.blue("Bringing machine ({}) up...".format(instance)))
             started = vmrun.start(gui=gui)
             if started is None:
-                puts_err(colored.red("VM not started"))
+                print(colored.red("VM not started"))
             else:
                 time.sleep(3)
-                puts_err(colored.blue("Getting IP address..."))
+                print(colored.blue("Getting IP address..."))
                 lookup = inst.enable_ip_lookup
                 ip_address = vmrun.get_guest_ip_address(lookup=lookup)
                 if not disable_shared_folders:
-                    puts_err(colored.blue("Sharing current folder..."))
+                    print(colored.blue("Sharing current folder..."))
                     vmrun.enable_shared_folders(quiet=False)
                     vmrun.add_shared_folder('mech', utils.main_dir(), quiet=True)
                 if ip_address:
                     if started:
-                        puts_err(colored.green("VM ({})"
-                                               "started on {}".format(instance, ip_address)))
+                        print(colored.green("VM ({})"
+                                            "started on {}".format(instance, ip_address)))
                     else:
-                        puts_err(colored.yellow("VM ({}) was already started "
-                                                "on {}".format(instance, ip_address)))
+                        print(colored.yellow("VM ({}) was already started "
+                                             "on {}".format(instance, ip_address)))
                 else:
                     if started:
-                        puts_err(colored.green("VM ({}) started on an unknown "
-                                               "IP address".format(instance)))
+                        print(colored.green("VM ({}) started on an unknown "
+                                            "IP address".format(instance)))
                     else:
-                        puts_err(colored.yellow("VM ({}) was already started on an "
-                                                "unknown IP address".format(instance)))
+                        print(colored.yellow("VM ({}) was already started on an "
+                                             "unknown IP address".format(instance)))
                 if not disable_provisioning:
                     utils.provision(instance, inst.vmx, inst.user, inst.password,
                                     inst.provision, show=False)
@@ -764,7 +764,7 @@ class Mech(MechCommand):
             if os.path.exists(inst.path):
                 if force or utils.confirm("Are you sure you want to delete {} "
                                           "at {}".format(inst.name, inst.path), default='n'):
-                    puts_err(colored.green("Deleting ({})...".format(instance)))
+                    print(colored.green("Deleting ({})...".format(instance)))
                     vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
                     vmrun.stop(mode='hard', quiet=True)
                     time.sleep(3)
@@ -775,9 +775,9 @@ class Mech(MechCommand):
                     else:
                         LOGGER.debug("%s was not found.", inst.path)
                 else:
-                    puts_err(colored.red("Deletion aborted"))
+                    print(colored.red("Deletion aborted"))
             else:
-                puts_err(colored.red("The box ({}) hasn't been initialized.".format(instance)))
+                print(colored.red("The box ({}) hasn't been initialized.".format(instance)))
 
     def down(self, arguments):
         """
@@ -809,9 +809,9 @@ class Mech(MechCommand):
             else:
                 stopped = vmrun.stop(mode='hard')
             if stopped is None:
-                puts_err(colored.red("Not stopped", vmrun))
+                print(colored.red("Not stopped", vmrun))
             else:
-                puts_err(colored.green("Stopped", vmrun))
+                print(colored.green("Stopped", vmrun))
 
     # alias 'mech stop' and 'mech halt' to 'mech down'
     stop = down
@@ -839,9 +839,9 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
             vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
             if vmrun.pause() is None:
-                puts_err(colored.red("Not paused", vmrun))
+                print(colored.red("Not paused", vmrun))
             else:
-                puts_err(colored.yellow("Paused", vmrun))
+                print(colored.yellow("Paused", vmrun))
 
     def resume(self, arguments):
         """
@@ -877,52 +877,52 @@ class Mech(MechCommand):
 
                 if vmrun.unpause(quiet=True) is not None:
                     time.sleep(1)
-                    puts_err(colored.blue("Getting IP address..."))
+                    print(colored.blue("Getting IP address..."))
                     lookup = inst.enable_ip_lookup
                     ip_address = vmrun.get_guest_ip_address(lookup=lookup)
                     if not disable_shared_folders:
-                        puts_err(colored.blue("Sharing current folder..."))
+                        print(colored.blue("Sharing current folder..."))
                         vmrun.enable_shared_folders(quiet=False)
                         vmrun.add_shared_folder('mech', utils.main_dir(), quiet=True)
                     else:
-                        puts_err(colored.blue("Disabling shared folders..."))
+                        print(colored.blue("Disabling shared folders..."))
                         vmrun.disable_shared_folders(quiet=False)
                     if ip_address:
-                        puts_err(colored.green("VM resumed on {}".format(ip_address)))
+                        print(colored.green("VM resumed on {}".format(ip_address)))
                     else:
-                        puts_err(colored.green("VM resumed on an unknown IP address"))
+                        print(colored.green("VM resumed on an unknown IP address"))
 
                 else:
                     # Otherwise try starting
                     vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
                     started = vmrun.start()
                     if started is None:
-                        puts_err(colored.red("VM not started"))
+                        print(colored.red("VM not started"))
                     else:
                         time.sleep(3)
-                        puts_err(colored.blue("Getting IP address..."))
+                        print(colored.blue("Getting IP address..."))
                         lookup = inst.enable_ip_lookup
                         ip_address = vmrun.get_guest_ip_address(lookup=lookup)
                         if not disable_shared_folders:
-                            puts_err(colored.blue("Sharing current folder..."))
+                            print(colored.blue("Sharing current folder..."))
                             vmrun.enable_shared_folders(quiet=False)
                             vmrun.add_shared_folder('mech', utils.main_dir(), quiet=True)
                         if ip_address:
                             if started:
-                                puts_err(colored.green("VM ({}) started on "
-                                                       "{}".format(instance, ip_address)))
+                                print(colored.green("VM ({}) started on "
+                                                    "{}".format(instance, ip_address)))
                             else:
-                                puts_err(colored.yellow("VM ({}) already was started "
-                                                        "on {}".format(instance, ip_address)))
+                                print(colored.yellow("VM ({}) already was started "
+                                                     "on {}".format(instance, ip_address)))
                         else:
                             if started:
-                                puts_err(colored.green("VM ({}) started on an unknown "
-                                                       "IP address".format(instance)))
+                                print(colored.green("VM ({}) started on an unknown "
+                                                    "IP address".format(instance)))
                             else:
-                                puts_err(colored.yellow("VM ({}) already was started on an "
-                                                        "unknown IP address".format(instance)))
+                                print(colored.yellow("VM ({}) already was started on an "
+                                                     "unknown IP address".format(instance)))
             else:
-                puts_err(colored.red("Need to start VM first"))
+                print(colored.red("Need to start VM first"))
 
     def suspend(self, arguments):
         """
@@ -946,9 +946,9 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
             vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
             if vmrun.suspend() is None:
-                puts_err(colored.red("Not suspended", vmrun))
+                print(colored.red("Not suspended", vmrun))
             else:
-                puts_err(colored.green("Suspended", vmrun))
+                print(colored.green("Suspended", vmrun))
 
     def ssh_config(self, arguments):
         """
@@ -1034,7 +1034,7 @@ class Mech(MechCommand):
         src_instance, src_is_host, src = src.partition(':')
 
         if dst_is_host and src_is_host:
-            puts_err(colored.red("Both src and host are host destinations"))
+            print(colored.red("Both src and host are host destinations"))
             sys.exit(1)
         if dst_is_host:
             instance = dst_instance
@@ -1092,11 +1092,11 @@ class Mech(MechCommand):
             lookup = inst.enable_ip_lookup
             ip_address = vmrun.get_guest_ip_address(lookup=lookup)
             if ip_address:
-                puts_err(colored.green(ip_address))
+                print(colored.green(ip_address))
             else:
-                puts_err(colored.red("Unknown IP address"))
+                print(colored.red("Unknown IP address"))
         else:
-            puts_err(colored.yellow("VM not created"))
+            print(colored.yellow("VM not created"))
 
     # alias 'mech ip_address' to 'mech ip'
     ip_address = ip
@@ -1148,29 +1148,29 @@ class Mech(MechCommand):
 
             vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
 
-            puts_err(colored.blue("Reloading machine..."))
+            print(colored.blue("Reloading machine..."))
             started = vmrun.reset()
             if started is None:
-                puts_err(colored.red("VM not restarted"))
+                print(colored.red("VM not restarted"))
             else:
                 time.sleep(3)
-                puts_err(colored.blue("Getting IP address..."))
+                print(colored.blue("Getting IP address..."))
                 lookup = inst.enable_ip_lookup
                 ip_address = vmrun.get_guest_ip_address(lookup=lookup)
                 if ip_address:
                     if started:
-                        puts_err(colored.green("VM ({}) started "
-                                               "on {}".format(instance, ip_address)))
+                        print(colored.green("VM ({}) started "
+                                            "on {}".format(instance, ip_address)))
                     else:
-                        puts_err(colored.yellow("VM ({}) already was started on "
-                                                "{}".format(instance, ip_address)))
+                        print(colored.yellow("VM ({}) already was started on "
+                                             "{}".format(instance, ip_address)))
                 else:
                     if started:
-                        puts_err(colored.green("VM ({}) started on an unknown IP "
-                                               "address".format(instance)))
+                        print(colored.green("VM ({}) started on an unknown IP "
+                                            "address".format(instance)))
                     else:
-                        puts_err(colored.yellow("VM ({}) already was started "
-                                                "on an unknown IP address".format(instance)))
+                        print(colored.yellow("VM ({}) already was started "
+                                             "on an unknown IP address".format(instance)))
 
     def port(self, arguments):
         """
