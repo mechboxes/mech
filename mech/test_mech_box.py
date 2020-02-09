@@ -26,7 +26,7 @@ def test_mech_box_list_no_mechdir(mock_os_getcwd, capfd):
 
 @patch('os.getcwd')
 def test_mech_box_list_empty_boxes_dir(mock_os_getcwd, capfd):
-    """Test 'mech box list' with no directories in '.mech/boxes' driectory."""
+    """Test 'mech box list' with no directories in '.mech/boxes' directory."""
     mock_os_getcwd.return_value = '/tmp'
     global_arguments = {'--debug': False}
     a_mech = mech.mech.MechBox(arguments=global_arguments)

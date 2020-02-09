@@ -334,9 +334,12 @@ class MechSnapshot(MechCommand):
 
         for instance in instances:
             inst = MechInstance(instance)
-            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
             print('Snapshots for instance:{}'.format(instance))
-            print(vmrun.list_snapshots())
+            if inst.created:
+                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                print(vmrun.list_snapshots())
+            else:
+                print('Instance ({}) is not created.'.format(instance))
 
     # add alias for 'mech snapshot ls'
     ls = list
