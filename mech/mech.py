@@ -130,8 +130,8 @@ class MechInstance():
         """Configure ssh to work. Create a insecure private key file for ssh/scp."""
         vmrun = VMrun(self.vmx, user=self.user, password=self.password)
         lookup = self.enable_ip_lookup
-        ip_address = vmrun.getGuestIPAddress(wait=False,
-                                             lookup=lookup) if vmrun.installedTools() else None
+        ip_address = vmrun.get_guest_ip_address(wait=False,
+                                                lookup=lookup) if vmrun.installed_tools() else None
         if not ip_address:
             puts_err(colored.red(textwrap.fill(
                 "This Mech machine is reporting that it is not yet ready for SSH. "
@@ -306,7 +306,7 @@ class MechSnapshot(MechCommand):
         inst = MechInstance(instance)
 
         vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
-        if vmrun.deleteSnapshot(name) is None:
+        if vmrun.delete_snapshot(name) is None:
             puts_err(colored.red("Cannot delete name"))
         else:
             puts_err(colored.green("Snapshot {} deleted".format(name)))
@@ -336,7 +336,7 @@ class MechSnapshot(MechCommand):
             inst = MechInstance(instance)
             vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
             print('Snapshots for instance:{}'.format(instance))
-            print(vmrun.listSnapshots())
+            print(vmrun.list_snapshots())
 
     # add alias for 'mech snapshot ls'
     ls = list
@@ -635,11 +635,11 @@ class Mech(MechCommand):
                 time.sleep(3)
                 puts_err(colored.blue("Getting IP address..."))
                 lookup = inst.enable_ip_lookup
-                ip_address = vmrun.getGuestIPAddress(lookup=lookup)
+                ip_address = vmrun.get_guest_ip_address(lookup=lookup)
                 if not disable_shared_folders:
                     puts_err(colored.blue("Sharing current folder..."))
-                    vmrun.enableSharedFolders(quiet=False)
-                    vmrun.addSharedFolder('mech', utils.main_dir(), quiet=True)
+                    vmrun.enable_shared_folders(quiet=False)
+                    vmrun.add_shared_folder('mech', utils.main_dir(), quiet=True)
                 if ip_address:
                     if started:
                         puts_err(colored.green("VM ({})"
@@ -685,7 +685,7 @@ class Mech(MechCommand):
         instance = arguments['<instance>']
         inst = MechInstance(instance)
         vmrun = VMrun(inst.vmx, inst.user, inst.password)
-        print(vmrun.listProcessesInGuest())
+        print(vmrun.list_processes_in_guest())
 
     # alias "mech process_status" to "mech ps"
     process_status = ps
@@ -714,8 +714,8 @@ class Mech(MechCommand):
             vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
 
             lookup = inst.enable_ip_lookup
-            ip_address = vmrun.getGuestIPAddress(wait=False, quiet=True, lookup=lookup)
-            state = vmrun.checkToolsState(quiet=True)
+            ip_address = vmrun.get_guest_ip_address(wait=False, quiet=True, lookup=lookup)
+            state = vmrun.check_tools_state(quiet=True)
 
             print("Current machine state:" + os.linesep)
             if ip_address is None:
@@ -765,7 +765,7 @@ class Mech(MechCommand):
                     vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
                     vmrun.stop(mode='hard', quiet=True)
                     time.sleep(3)
-                    vmrun.deleteVM()
+                    vmrun.delete_vm()
 
                     if os.path.exists(inst.path):
                         shutil.rmtree(inst.path)
@@ -801,7 +801,7 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
-            if not force and vmrun.installedTools():
+            if not force and vmrun.installed_tools():
                 stopped = vmrun.stop()
             else:
                 stopped = vmrun.stop(mode='hard')
@@ -876,14 +876,14 @@ class Mech(MechCommand):
                     time.sleep(1)
                     puts_err(colored.blue("Getting IP address..."))
                     lookup = inst.enable_ip_lookup
-                    ip_address = vmrun.getGuestIPAddress(lookup=lookup)
+                    ip_address = vmrun.get_guest_ip_address(lookup=lookup)
                     if not disable_shared_folders:
                         puts_err(colored.blue("Sharing current folder..."))
-                        vmrun.enableSharedFolders(quiet=False)
-                        vmrun.addSharedFolder('mech', utils.main_dir(), quiet=True)
+                        vmrun.enable_shared_folders(quiet=False)
+                        vmrun.add_shared_folder('mech', utils.main_dir(), quiet=True)
                     else:
                         puts_err(colored.blue("Disabling shared folders..."))
-                        vmrun.disableSharedFolders(quiet=False)
+                        vmrun.disable_shared_folders(quiet=False)
                     if ip_address:
                         puts_err(colored.green("VM resumed on {}".format(ip_address)))
                     else:
@@ -899,11 +899,11 @@ class Mech(MechCommand):
                         time.sleep(3)
                         puts_err(colored.blue("Getting IP address..."))
                         lookup = inst.enable_ip_lookup
-                        ip_address = vmrun.getGuestIPAddress(lookup=lookup)
+                        ip_address = vmrun.get_guest_ip_address(lookup=lookup)
                         if not disable_shared_folders:
                             puts_err(colored.blue("Sharing current folder..."))
-                            vmrun.enableSharedFolders(quiet=False)
-                            vmrun.addSharedFolder('mech', utils.main_dir(), quiet=True)
+                            vmrun.enable_shared_folders(quiet=False)
+                            vmrun.add_shared_folder('mech', utils.main_dir(), quiet=True)
                         if ip_address:
                             if started:
                                 puts_err(colored.green("VM ({}) started on "
@@ -1087,7 +1087,7 @@ class Mech(MechCommand):
         if inst.created:
             vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
             lookup = inst.enable_ip_lookup
-            ip_address = vmrun.getGuestIPAddress(lookup=lookup)
+            ip_address = vmrun.get_guest_ip_address(lookup=lookup)
             if ip_address:
                 puts_err(colored.green(ip_address))
             else:
@@ -1153,7 +1153,7 @@ class Mech(MechCommand):
                 time.sleep(3)
                 puts_err(colored.blue("Getting IP address..."))
                 lookup = inst.enable_ip_lookup
-                ip_address = vmrun.getGuestIPAddress(lookup=lookup)
+                ip_address = vmrun.get_guest_ip_address(lookup=lookup)
                 if ip_address:
                     if started:
                         puts_err(colored.green("VM ({}) started "
@@ -1196,10 +1196,10 @@ class Mech(MechCommand):
             print('Instance ({}):'. format(instance))
             nat_found = False
             vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
-            for line in vmrun.listHostNetworks().split('\n'):
+            for line in vmrun.list_host_networks().split('\n'):
                 network = line.split()
                 if len(network) > 2 and network[2] == 'nat':
-                    print(vmrun.listPortForwardings(network[1]))
+                    print(vmrun.list_port_forwardings(network[1]))
                     nat_found = True
             if not nat_found:
                 print(colored.red("Cannot find a nat network"), file=sys.stderr)
@@ -1235,7 +1235,7 @@ class Mech(MechCommand):
             if inst.created:
                 vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
                 lookup = inst.enable_ip_lookup
-                ip_address = vmrun.getGuestIPAddress(wait=False, quiet=True, lookup=lookup)
+                ip_address = vmrun.get_guest_ip_address(wait=False, quiet=True, lookup=lookup)
                 if ip_address is None:
                     ip_address = colored.yellow("poweroff")
                 elif not ip_address:

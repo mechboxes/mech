@@ -606,7 +606,7 @@ def provision(instance, vmx, user, password, provision_config, show):
 
     vmrun = VMrun(vmx, user, password)
     # cannot run provisioning if vmware tools are not installed
-    if not vmrun.installedTools():
+    if not vmrun.installed_tools():
         puts_err(colored.red("Cannot provision if VMware Tools are not installed."))
         return
 
@@ -659,14 +659,14 @@ def provision_file(virtual_machine, source, destination):
        This simply copies a file from host to guest.
     """
     puts_err(colored.blue("Copying ({}) to ({})".format(source, destination)))
-    return virtual_machine.copyFileFromHostToGuest(source, destination)
+    return virtual_machine.copy_file_from_host_to_guest(source, destination)
 
 
 def provision_shell(virtual_machine, inline, path, args=None):
     """Provision from shell."""
     if args is None:
         args = []
-    tmp_path = virtual_machine.createTempfileInGuest()
+    tmp_path = virtual_machine.create_tempfile_in_guest()
     LOGGER.debug('inline:%s path:%s args:%s tmp_path:%s', inline, path, args, tmp_path)
     if tmp_path is None:
         return
@@ -674,7 +674,7 @@ def provision_shell(virtual_machine, inline, path, args=None):
     try:
         if path and os.path.isfile(path):
             puts_err(colored.blue("Configuring script {}...".format(path)))
-            if virtual_machine.copyFileFromHostToGuest(path, tmp_path) is None:
+            if virtual_machine.copy_file_from_host_to_guest(path, tmp_path) is None:
                 return
         else:
             if path:
@@ -701,20 +701,20 @@ def provision_shell(virtual_machine, inline, path, args=None):
             try:
                 the_file.write(str.encode(inline))
                 the_file.close()
-                if virtual_machine.copyFileFromHostToGuest(the_file.name, tmp_path) is None:
+                if virtual_machine.copy_file_from_host_to_guest(the_file.name, tmp_path) is None:
                     return
             finally:
                 os.unlink(the_file.name)
 
         puts_err(colored.blue("Configuring environment..."))
-        if virtual_machine.runScriptInGuest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
+        if virtual_machine.run_script_in_guest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
             return
 
         puts_err(colored.blue("Executing program..."))
-        return virtual_machine.runProgramInGuest(tmp_path, args)
+        return virtual_machine.run_program_in_guest(tmp_path, args)
 
     finally:
-        virtual_machine.deleteFileInGuest(tmp_path, quiet=True)
+        virtual_machine.delete_file_in_guest(tmp_path, quiet=True)
 
 
 def config_ssh_string(config_ssh):

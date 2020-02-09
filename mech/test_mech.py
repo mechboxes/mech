@@ -91,8 +91,8 @@ INDEX  NAME         TYPE         DHCP         SUBNET           MASK
 0      vmnet0       bridged      false        empty            empty
 1      vmnet1       hostOnly     true         172.16.11.0      255.255.255.0
 8      vmnet8       nat          true         192.168.3.0      255.255.255.0"""
-@patch('mech.vmrun.VMrun.listPortForwardings', return_value='Total port forwardings: 0')
-@patch('mech.vmrun.VMrun.listHostNetworks', return_value=HOST_NETWORKS)
+@patch('mech.vmrun.VMrun.list_port_forwardings', return_value='Total port forwardings: 0')
+@patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS)
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
 @patch('mech.utils.locate', return_value=None)
 def test_mech_port_with_nat(mock_locate, mock_load_mechfile, mock_list_host_networks,
@@ -116,8 +116,8 @@ INDEX  NAME         TYPE         DHCP         SUBNET           MASK
 0      vmnet0       bridged      false        empty            empty
 1      vmnet1       hostOnly     true         172.16.11.0      255.255.255.0
 8      vmnet8       nat          true         192.168.3.0      255.255.255.0"""
-@patch('mech.vmrun.VMrun.listPortForwardings', return_value='Total port forwardings: 0')
-@patch('mech.vmrun.VMrun.listHostNetworks', return_value=HOST_NETWORKS)
+@patch('mech.vmrun.VMrun.list_port_forwardings', return_value='Total port forwardings: 0')
+@patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS)
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
 @patch('mech.utils.locate', return_value=None)
 def test_mech_port_with_nat_two_hosts(mock_locate, mock_load_mechfile, mock_list_host_networks,
@@ -140,7 +140,7 @@ HOST_NETWORKS_WITHOUT_NAT = """Total host networks: 2
 INDEX  NAME         TYPE         DHCP         SUBNET           MASK
 0      vmnet0       bridged      false        empty            empty
 1      vmnet1       hostOnly     true         172.16.11.0      255.255.255.0"""
-@patch('mech.vmrun.VMrun.listHostNetworks', return_value=HOST_NETWORKS_WITHOUT_NAT)
+@patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS_WITHOUT_NAT)
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
 @patch('mech.utils.locate', return_value=None)
 def test_mech_port_without_nat(mock_locate, mock_load_mechfile, mock_list_host_networks, capfd):
