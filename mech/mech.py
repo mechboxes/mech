@@ -642,7 +642,6 @@ class Mech(MechCommand):
             if started is None:
                 print(colored.red("VM not started"))
             else:
-                time.sleep(3)
                 print(colored.blue("Getting IP address..."))
                 lookup = inst.enable_ip_lookup
                 ip_address = vmrun.get_guest_ip_address(lookup=lookup)
