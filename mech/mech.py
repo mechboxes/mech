@@ -209,7 +209,11 @@ class MechBox(MechCommand):
         Usage: mech box add [options] <location>
 
         Notes:
-            The location can be a URL, local .box file, or 'bento/ubuntu-18.04'.
+            The location can be a:
+                URL (ex: 'http://example.com/foo.box'),
+                .box file (ex: 'file:/mnt/boxen/foo.box'),
+                .json file (ex: 'file:/tmp/foo.json'), or
+                HashiCorp account/box (ex: 'bento/ubuntu-18.04').
 
         Options:
             -f, --force                      Overwrite an existing box if it exists
@@ -272,6 +276,9 @@ class MechBox(MechCommand):
         path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes', name, box_version))
         if os.path.exists(path):
             shutil.rmtree(path)
+            print("Removed {} {}".format(name, box_version))
+        else:
+            print("No boxes were removed.")
 
     # add alias for 'mech box delete'
     delete = remove
@@ -438,7 +445,12 @@ class Mech(MechCommand):
 
         Usage: mech init [options] <location>
 
-        Example box: bento/ubuntu-18.04
+        Notes:
+            The location can be a:
+                URL (ex: 'http://example.com/foo.box'),
+                .box file (ex: 'file:/mnt/boxen/foo.box'),
+                .json file (ex: 'file:/tmp/foo.json'), or
+                HashiCorp account/box (ex: 'bento/ubuntu-18.04').
 
         Options:
             -f, --force                      Overwrite existing Mechfile
