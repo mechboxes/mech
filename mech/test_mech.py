@@ -683,3 +683,64 @@ def test_mech_remove_no_name():
     }
     with raises(SystemExit, match=r".*Need to provide a name.*"):
         a_mech.remove(arguments)
+
+
+@patch('mech.vmrun.VMrun.list', return_value="Total running VMs: 0")
+def test_mech_global_status(mock_list, capfd):
+    """Test 'mech global-status'."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {}
+    a_mech.global_status(arguments)
+    out, _ = capfd.readouterr()
+    mock_list.assert_called()
+    assert re.search(r'Total running VMs', out, re.MULTILINE)
+
+
+PROCESSES = """Process list: 99
+pid=1, owner=root, cmd=/sbin/init
+pid=2, owner=root, cmd=kthreadd
+pid=3, owner=root, cmd=rcu_gp
+pid=4, owner=root, cmd=rcu_par_gp
+pid=5, owner=root, cmd=kworker/0:0-events
+pid=6, owner=root, cmd=kworker/0:0H-kblockd
+"""
+@patch('mech.vmrun.VMrun.list_processes_in_guest', return_value=PROCESSES)
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
+@patch('os.getcwd')
+def test_mech_ps(mock_getcwd, mock_locate, mock_load_mechfile, mock_list_processes, capfd):
+    """Test 'mech ps'."""
+    mock_getcwd.return_value = '/tmp'
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+    }
+    a_mech.ps(arguments)
+    out, _ = capfd.readouterr()
+    mock_getcwd.assert_called()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_list_processes.assert_called()
+    assert re.search(r'kworker', out, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.locate', return_value='')
+@patch('os.getcwd')
+def test_mech_ps_not_started_vm(mock_getcwd, mock_locate,
+                                mock_load_mechfile, capfd):
+    """Test 'mech ps'."""
+    mock_getcwd.return_value = '/tmp'
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'second',
+    }
+    a_mech.ps(arguments)
+    out, _ = capfd.readouterr()
+    mock_getcwd.assert_called()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'not created', out, re.MULTILINE)

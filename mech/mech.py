@@ -81,7 +81,7 @@ class MechInstance():
 
     def __init__(self, name, mechfile=None):
         """Constructor for the mech instance."""
-        if name == "":
+        if not name or name == "":
             raise AttributeError("Must provide a name for the instance.")
         if not mechfile:
             mechfile = utils.load_mechfile()
@@ -691,10 +691,15 @@ class Mech(MechCommand):
         Options:
             -h, --help                       Print this help
         """
-        instance = arguments['<instance>']
-        inst = MechInstance(instance)
-        vmrun = VMrun(inst.vmx, inst.user, inst.password)
-        print(vmrun.list_processes_in_guest())
+        instance_name = arguments['<instance>']
+
+        inst = MechInstance(instance_name)
+
+        if inst.created:
+            vmrun = VMrun(inst.vmx, inst.user, inst.password)
+            print(vmrun.list_processes_in_guest())
+        else:
+            print("VM {} not created.".format(instance_name))
 
     # alias "mech process_status" to "mech ps"
     process_status = ps
