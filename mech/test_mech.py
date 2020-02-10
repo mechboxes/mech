@@ -169,8 +169,8 @@ def test_mech_up_with_name_not_in_mechfile(mock_locate, mock_load_mechfile):
 @patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
-def test_mech_up(mock_locate, mock_load_mechfile, mock_init_box,
-                 mock_vmrun_start, mock_vmrun_get_ip, capfd):
+def test_mech_up_already_started(mock_locate, mock_load_mechfile, mock_init_box,
+                                 mock_vmrun_start, mock_vmrun_get_ip, capfd):
     """Test 'mech up'."""
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -196,7 +196,41 @@ def test_mech_up(mock_locate, mock_load_mechfile, mock_init_box,
     mock_vmrun_start.assert_called()
     mock_vmrun_get_ip.assert_called()
     out, _ = capfd.readouterr()
-    assert re.search(r'started', out, re.MULTILINE)
+    assert re.search(r'\)started on', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
+@patch('mech.vmrun.VMrun.start', return_value=None)
+@patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
+def test_mech_up_problem(mock_locate, mock_load_mechfile, mock_init_box,
+                         mock_vmrun_start, mock_vmrun_get_ip, capfd):
+    """Test 'mech up' when issue with starting VM"""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '--gui': False,
+        '--disable-shared-folders': True,
+        '--disable-provisioning': True,
+        '--insecure': False,
+        '--cacert': None,
+        '--capath': None,
+        '--cert': None,
+        '--checksum': None,
+        '--checksum-type': None,
+        '--no-cache': None,
+        '--memsize': None,
+        '--numvcpus': None,
+        '<instance>': None,
+    }
+    a_mech.up(arguments)
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_init_box.assert_called()
+    mock_vmrun_start.assert_called()
+    out, _ = capfd.readouterr()
+    assert re.search(r'not started', out, re.MULTILINE)
 
 
 @patch('mech.utils.provision')
