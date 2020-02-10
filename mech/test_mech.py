@@ -102,6 +102,136 @@ def test_mech_list_with_two(mock_locate, mock_load_mechfile, capfd):
     assert re.search(r'second\s+notcreated', out, re.MULTILINE)
 
 
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.locate', return_value=None)
+def test_mech_status_with_two_not_created(mock_locate, mock_load_mechfile, capfd):
+    """Test 'mech status' with two entries, neither created."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': None}
+    a_mech.status(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'first.*has not been created', out, re.MULTILINE)
+    assert re.search(r'second.*has not been created', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.check_tools_state', return_value="running")
+@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_status_powered_on(mock_locate, mock_load_mechfile,
+                                mock_get_ip, mock_check_tools_state, capfd):
+    """Test 'mech status' powered on."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first'}
+    a_mech.status(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_get_ip.assert_called()
+    mock_check_tools_state.assert_called()
+    assert re.search(r'VM is ready', out, re.MULTILINE)
+
+
+@patch('os.path.exists', return_value=True)
+@patch('shutil.rmtree')
+@patch('mech.vmrun.VMrun.delete_vm')
+@patch('mech.vmrun.VMrun.stop', return_value=True)
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_destroy(mock_locate, mock_load_mechfile,
+                      mock_vmrun_stop, mock_vmrun_delete_vm,
+                      mock_rmtree, mock_path_exists, capfd):
+    """Test 'mech destroy' powered on."""
+    mock_rmtree.return_value = True
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+        '--force': True,
+    }
+    a_mech.destroy(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_vmrun_stop.assert_called()
+    mock_vmrun_delete_vm.assert_called()
+    mock_rmtree.assert_called()
+    mock_path_exists.assert_called()
+    assert re.search(r'Deleting', out, re.MULTILINE)
+    assert re.search(r'Deleted', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
+@patch('mech.vmrun.VMrun.stop', return_value=True)
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_stop(mock_locate, mock_load_mechfile,
+                   mock_vmrun_stop, mock_installed_tools,
+                   capfd):
+    """Test 'mech stop' powered on."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+        '--force': None,
+    }
+    a_mech.down(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_vmrun_stop.assert_called()
+    mock_installed_tools.assert_called()
+    assert re.search(r'Stopped', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.pause', return_value=True)
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_pause(mock_locate, mock_load_mechfile,
+                    mock_vmrun_stop, capfd):
+    """Test 'mech stop' powered on."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+        '--force': None,
+    }
+    a_mech.pause(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_vmrun_stop.assert_called()
+    assert re.search(r'Paused', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.1.101')
+@patch('mech.vmrun.VMrun.unpause', return_value=True)
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_resume(mock_locate, mock_load_mechfile,
+                     mock_vmrun_unpause, mock_vmrun_get_ip,
+                     capfd):
+    """Test 'mech resume'."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+        '--disable-shared-folders': True,
+        '--force': True,
+    }
+    a_mech.resume(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_vmrun_unpause.assert_called()
+    mock_vmrun_get_ip.assert_called()
+    assert re.search(r'resumed', out, re.MULTILINE)
+
+
 MECHFILE_BAD_ENTRY = {
     '': {
         'name':

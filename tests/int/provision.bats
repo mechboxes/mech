@@ -10,6 +10,7 @@
 
   # setup
   find . -type d -name .mech -exec rm -rf {} \; 2> /dev/null || true
+  mech destroy -f || true
 
   run mech up --disable-provisioning
   regex1="VM (first) started"

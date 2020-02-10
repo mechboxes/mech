@@ -28,7 +28,6 @@ from __future__ import print_function, absolute_import
 import os
 import re
 import sys
-import time
 import fnmatch
 import logging
 import tempfile
@@ -725,28 +724,31 @@ class Mech(MechCommand):
         for instance in instances:
             inst = MechInstance(instance)
 
-            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+            if inst.created:
+                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
 
-            lookup = inst.enable_ip_lookup
-            ip_address = vmrun.get_guest_ip_address(wait=False, quiet=True, lookup=lookup)
-            state = vmrun.check_tools_state(quiet=True)
+                lookup = inst.enable_ip_lookup
+                ip_address = vmrun.get_guest_ip_address(wait=False, quiet=True, lookup=lookup)
+                state = vmrun.check_tools_state(quiet=True)
 
-            print("Current machine state:" + os.linesep)
-            if ip_address is None:
-                ip_address = "poweroff"
-            elif not ip_address:
-                ip_address = "unknown"
-            print("%s\t%s\t%s\t(VMware Tools %s)" % (inst.name, inst.box, ip_address, state))
+                print("Current machine state:" + os.linesep)
+                if ip_address is None:
+                    ip_address = "poweroff"
+                elif not ip_address:
+                    ip_address = "unknown"
+                print("%s\t%s\t%s\t(VMware Tools %s)" % (inst.name, inst.box, ip_address, state))
 
-            if ip_address == "poweroff":
-                print(os.linesep + "The VM is powered off. To restart the VM, "
-                      "simply run `mech up {}`".format(instance))
-            elif ip_address == "unknown":
-                print(os.linesep + "The VM is on. but it has no IP to connect to,"
-                      "VMware Tools must be installed")
-            elif state in ("installed", "running"):
-                print(os.linesep + "The VM is ready. Connect to it "
-                      "using `mech ssh {}`".format(instance))
+                if ip_address == "poweroff":
+                    print(os.linesep + "The VM is powered off. To restart the VM, "
+                          "simply run `mech up {}`".format(instance))
+                elif ip_address == "unknown":
+                    print(os.linesep + "The VM is on. but it has no IP to connect to,"
+                          "VMware Tools must be installed")
+                elif state in ("installed", "running"):
+                    print(os.linesep + "The VM is ready. Connect to it "
+                          "using `mech ssh {}`".format(instance))
+            else:
+                print("The VM ({}) has not been created.".format(instance))
 
     def destroy(self, arguments):
         """
@@ -778,13 +780,12 @@ class Mech(MechCommand):
                     print(colored.green("Deleting ({})...".format(instance)))
                     vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
                     vmrun.stop(mode='hard', quiet=True)
-                    time.sleep(3)
                     vmrun.delete_vm()
-
                     if os.path.exists(inst.path):
                         shutil.rmtree(inst.path)
                     else:
                         LOGGER.debug("%s was not found.", inst.path)
+                    print("Deleted")
                 else:
                     print(colored.red("Deletion aborted"))
             else:
@@ -814,15 +815,18 @@ class Mech(MechCommand):
         for instance in instances:
             inst = MechInstance(instance)
 
-            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
-            if not force and vmrun.installed_tools():
-                stopped = vmrun.stop()
+            if inst.created:
+                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                if not force and vmrun.installed_tools():
+                    stopped = vmrun.stop()
+                else:
+                    stopped = vmrun.stop(mode='hard')
+                if stopped is None:
+                    print(colored.red("Not stopped", vmrun))
+                else:
+                    print(colored.green("Stopped", vmrun))
             else:
-                stopped = vmrun.stop(mode='hard')
-            if stopped is None:
-                print(colored.red("Not stopped", vmrun))
-            else:
-                print(colored.green("Stopped", vmrun))
+                print(colored.red("VM ({}) not created.".format(instance)))
 
     # alias 'mech stop' and 'mech halt' to 'mech down'
     stop = down
@@ -848,11 +852,15 @@ class Mech(MechCommand):
 
         for instance in instances:
             inst = MechInstance(instance)
-            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
-            if vmrun.pause() is None:
-                print(colored.red("Not paused", vmrun))
+
+            if inst.created:
+                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                if vmrun.pause() is None:
+                    print(colored.red("Not paused", vmrun))
+                else:
+                    print(colored.yellow("Paused", vmrun))
             else:
-                print(colored.yellow("Paused", vmrun))
+                print(colored.red("VM ({}) not created.".format(instance)))
 
     def resume(self, arguments):
         """
@@ -882,12 +890,11 @@ class Mech(MechCommand):
             LOGGER.debug('instance:%s inst.vmx:%s', instance, inst.vmx)
 
             # if we have started this instance before, try to unpause
-            if inst.vmx:
+            if inst.created:
 
                 vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
 
                 if vmrun.unpause(quiet=True) is not None:
-                    time.sleep(1)
                     print(colored.blue("Getting IP address..."))
                     lookup = inst.enable_ip_lookup
                     ip_address = vmrun.get_guest_ip_address(lookup=lookup)
@@ -910,7 +917,6 @@ class Mech(MechCommand):
                     if started is None:
                         print(colored.red("VM not started"))
                     else:
-                        time.sleep(3)
                         print(colored.blue("Getting IP address..."))
                         lookup = inst.enable_ip_lookup
                         ip_address = vmrun.get_guest_ip_address(lookup=lookup)
@@ -1167,7 +1173,6 @@ class Mech(MechCommand):
             if started is None:
                 print(colored.red("VM not restarted"))
             else:
-                time.sleep(3)
                 print(colored.blue("Getting IP address..."))
                 lookup = inst.enable_ip_lookup
                 ip_address = vmrun.get_guest_ip_address(lookup=lookup)
