@@ -522,8 +522,7 @@ class Mech(MechCommand):
         location = arguments['<location>']
 
         if not name or name == "":
-            print(colored.red("Need to provide a name for the instance to add to the Mechfile."))
-            sys.exit(1)
+            sys.exit(colored.red("Need to provide a name for the instance to add to the Mechfile."))
 
         requests_kwargs = utils.get_requests_kwargs(arguments)
 

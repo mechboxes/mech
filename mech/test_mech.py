@@ -376,7 +376,7 @@ versions/aaa/providers/vmware_desktop.box",
 
 @patch('os.path.exists')
 @patch('os.getcwd')
-def test_mech_init_mechfile_exists(mock_os_getcwd, mock_os_path_exists, capfd):
+def test_mech_init_mechfile_exists(mock_os_getcwd, mock_os_path_exists):
     """Test 'mech init' when Mechfile exists'."""
     mock_os_getcwd.return_value = '/tmp'
     mock_os_path_exists.return_value = True
@@ -397,3 +397,99 @@ def test_mech_init_mechfile_exists(mock_os_getcwd, mock_os_path_exists, capfd):
     }
     with raises(SystemExit, match=r".*already exists in this directory.*"):
         a_mech.init(arguments)
+
+
+@patch('os.path.exists')
+@patch('os.getcwd')
+def test_mech_init_with_invalid_location(mock_os_getcwd, mock_os_path_exists):
+    """Test if we do not have a valid location. (must be in form of 'hashiaccount/boxname')."""
+    mock_os_getcwd.return_value = '/tmp'
+    mock_os_path_exists.return_value = False
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '--force': False,
+        '--insecure': False,
+        '--cacert': None,
+        '--capath': None,
+        '--cert': None,
+        '--box-version': None,
+        '--checksum': None,
+        '--checksum-type': None,
+        '--name': None,
+        '--box': None,
+        '<location>': 'bento',
+    }
+    with raises(SystemExit, match=r"Provided box name is not valid"):
+        a_mech.init(arguments)
+
+
+@patch('requests.get')
+@patch('os.getcwd')
+def test_mech_add_mechfile_exists(mock_os_getcwd,
+                                  mock_requests_get, capfd):
+    """Test 'mech add' when Mechfile exists'."""
+    mock_os_getcwd.return_value = '/tmp'
+    catalog = """{
+        "description": "foo",
+        "short_description": "foo",
+        "name": "bento/ubuntu-18.04",
+        "versions": [
+            {
+                "version": "aaa",
+                "status": "active",
+                "description_html": "foo",
+                "description_markdown": "foo",
+                "providers": [
+                    {
+                        "name": "vmware_desktop",
+                        "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
+versions/aaa/providers/vmware_desktop.box",
+                        "checksum": null,
+                        "checksum_type": null
+                    }
+                ]
+            }
+        ]
+    }"""
+    catalog_as_json = json.loads(catalog)
+    mock_requests_get.return_value.status_code = 200
+    mock_requests_get.return_value.json.return_value = catalog_as_json
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '--insecure': False,
+        '--cacert': None,
+        '--capath': None,
+        '--cert': None,
+        '--box-version': None,
+        '--checksum': None,
+        '--checksum-type': None,
+        '<name>': 'second',
+        '--box': None,
+        '<location>': 'bento/ubuntu-18.04',
+    }
+    a_mech.add(arguments)
+    out, _ = capfd.readouterr()
+    mock_os_getcwd.assert_called()
+    assert re.search(r'Loading metadata', out, re.MULTILINE)
+
+
+def test_mech_add_mechfile_exists_no_name():
+    """Test 'mech add' when Mechfile exists but no name provided'."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '--insecure': False,
+        '--cacert': None,
+        '--capath': None,
+        '--cert': None,
+        '--box-version': None,
+        '--checksum': None,
+        '--checksum-type': None,
+        '<name>': None,
+        '--box': None,
+        '<location>': 'bento/ubuntu-18.04',
+    }
+    with raises(SystemExit, match=r".*Need to provide a name.*"):
+        a_mech.add(arguments)
