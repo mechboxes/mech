@@ -493,3 +493,45 @@ def test_mech_add_mechfile_exists_no_name():
     }
     with raises(SystemExit, match=r".*Need to provide a name.*"):
         a_mech.add(arguments)
+
+
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('os.getcwd')
+def test_mech_remove(mock_os_getcwd, mock_load_mechfile, capfd):
+    """Test 'mech remove'."""
+    mock_os_getcwd.return_value = '/tmp'
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<name>': 'first',
+    }
+    a_mech.remove(arguments)
+    out, _ = capfd.readouterr()
+    mock_os_getcwd.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'Removed', out, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('os.getcwd')
+def test_mech_remove_a_nonexisting_entry(mock_os_getcwd, mock_load_mechfile, capfd):
+    """Test 'mech remove'."""
+    mock_os_getcwd.return_value = '/tmp'
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<name>': 'second',
+    }
+    with raises(SystemExit, match=r".*There is no instance.*"):
+        a_mech.remove(arguments)
+
+
+def test_mech_remove_no_name():
+    """Test 'mech remove' no name provided'."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<name>': None,
+    }
+    with raises(SystemExit, match=r".*Need to provide a name.*"):
+        a_mech.remove(arguments)

@@ -552,8 +552,7 @@ class Mech(MechCommand):
         name = arguments['<name>']
 
         if not name or name == "":
-            print(colored.red("Need to provide a name to be removed from the Mechfile."))
-            sys.exit(1)
+            sys.exit(colored.red("Need to provide a name to be removed from the Mechfile."))
 
         LOGGER.debug('name:%s', name)
 
@@ -566,8 +565,7 @@ class Mech(MechCommand):
             else:
                 print(colored.red("Could not remove {} from the Mechfile".format(name)))
         else:
-            print(colored.red("There is no instance called ({}) in the Mechfile.".format(name)))
-            sys.exit(1)
+            sys.exit(colored.red("There is no instance called ({}) in the Mechfile.".format(name)))
 
     # add alias for 'mech delete'
     delete = remove
