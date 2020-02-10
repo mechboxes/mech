@@ -479,11 +479,9 @@ class Mech(MechCommand):
         LOGGER.debug('name:%s box:%s box_version:%s location:%s', name, box, box_version, location)
 
         if os.path.exists('Mechfile') and not force:
-            print(colored.red(textwrap.fill(
-                "`Mechfile` already exists in this directory. Remove it "
-                "before running `mech init`."
-            )))
-            sys.exit(1)
+            sys.exit(colored.red(textwrap.fill(
+                     "`Mechfile` already exists in this directory. Remove it "
+                     "before running `mech init`.")))
 
         print(colored.green("Initializing mech"))
         if utils.init_mechfile(

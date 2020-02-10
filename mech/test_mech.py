@@ -1,6 +1,7 @@
 """Test the mech cli. """
 import subprocess
 import re
+import json
 
 from unittest.mock import patch, mock_open
 from pytest import raises
@@ -317,3 +318,82 @@ def test_mech_port_without_nat(mock_locate, mock_load_mechfile, mock_list_host_n
     mock_load_mechfile.assert_called()
     mock_list_host_networks.assert_called()
     assert re.search(r'Cannot find a nat network', err, re.MULTILINE)
+
+
+@patch('requests.get')
+@patch('os.path.exists')
+@patch('os.getcwd')
+def test_mech_init(mock_os_getcwd, mock_os_path_exists,
+                   mock_requests_get, capfd):
+    """Test 'mech init' from Hashicorp'."""
+    mock_os_getcwd.return_value = '/tmp'
+    mock_os_path_exists.return_value = False
+    global_arguments = {'--debug': False}
+    catalog = """{
+        "description": "foo",
+        "short_description": "foo",
+        "name": "bento/ubuntu-18.04",
+        "versions": [
+            {
+                "version": "aaa",
+                "status": "active",
+                "description_html": "foo",
+                "description_markdown": "foo",
+                "providers": [
+                    {
+                        "name": "vmware_desktop",
+                        "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
+versions/aaa/providers/vmware_desktop.box",
+                        "checksum": null,
+                        "checksum_type": null
+                    }
+                ]
+            }
+        ]
+    }"""
+    catalog_as_json = json.loads(catalog)
+    mock_requests_get.return_value.status_code = 200
+    mock_requests_get.return_value.json.return_value = catalog_as_json
+
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '--force': False,
+        '--insecure': False,
+        '--cacert': None,
+        '--capath': None,
+        '--cert': None,
+        '--box-version': None,
+        '--checksum': None,
+        '--checksum-type': None,
+        '--name': None,
+        '--box': None,
+        '<location>': 'bento/ubuntu-18.04',
+    }
+    a_mech.init(arguments)
+    out, _ = capfd.readouterr()
+    assert re.search(r'Loading metadata', out, re.MULTILINE)
+
+
+@patch('os.path.exists')
+@patch('os.getcwd')
+def test_mech_init_mechfile_exists(mock_os_getcwd, mock_os_path_exists, capfd):
+    """Test 'mech init' when Mechfile exists'."""
+    mock_os_getcwd.return_value = '/tmp'
+    mock_os_path_exists.return_value = True
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '--force': False,
+        '--insecure': False,
+        '--cacert': None,
+        '--capath': None,
+        '--cert': None,
+        '--box-version': None,
+        '--checksum': None,
+        '--checksum-type': None,
+        '--name': None,
+        '--box': None,
+        '<location>': 'bento/ubuntu-18.04',
+    }
+    with raises(SystemExit, match=r".*already exists in this directory.*"):
+        a_mech.init(arguments)
