@@ -225,18 +225,20 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None, reques
 
     if location is None:
         return mechfile_entry
-    if not name:
-        name = 'first'
 
     mechfile_entry['name'] = name
     mechfile_entry['box'] = box
     mechfile_entry['box_version'] = box_version
 
     if any(location.startswith(s) for s in ('https://', 'http://', 'ftp://')):
+        if not name:
+            name = 'first'
         mechfile_entry['url'] = location
         return mechfile_entry
 
     elif location.startswith('file:') or os.path.isfile(re.sub(r'^file:(?://)?', '', location)):
+        if not name:
+            name = 'first'
         location = re.sub(r'^file:(?://)?', '', location)
         LOGGER.debug('location:%s', location)
         mechfile_entry['file'] = location
@@ -257,7 +259,7 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None, reques
         try:
             account, box, ver = (location.split('/', 2) + ['', ''])[:3]
             if not account or not box:
-                print(colored.red("Provided box name is not valid"))
+                sys.exit(colored.red("Provided box name is not valid"))
             if ver:
                 box_version = ver
             print(
@@ -291,11 +293,7 @@ def catalog_to_mechfile(catalog, name=None, box=None, box_version=None):
                     mechfile['box_version'] = current_version
                     mechfile['url'] = provider['url']
                     return mechfile
-    print(
-        colored.red(
-            "Couldn't find a VMWare compatible VM for '{}'{}".format(
-                name, " ({})".format(box_version) if box_version else "")))
-    sys.exit(1)
+    sys.exit(colored.red("Couldn't find a VMWare compatible VM using catalog:{}".format(catalog)))
 
 
 def tar_cmd(*args, **kwargs):

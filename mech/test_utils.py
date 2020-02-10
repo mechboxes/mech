@@ -1,5 +1,6 @@
 """Test mech utils."""
 import os
+import json
 
 from unittest.mock import patch, mock_open
 from collections import OrderedDict
@@ -246,7 +247,7 @@ def test_build_mechfile_entry_https_location():
     assert mech.utils.build_mechfile_entry(location='https://foo') == {
         'box': None,
         'box_version': None,
-        'name': 'first',
+        'name': None,
         'url': 'https://foo'
     }
 
@@ -256,7 +257,7 @@ def test_build_mechfile_entry_http_location():
     assert mech.utils.build_mechfile_entry(location='http://foo') == {
         'box': None,
         'box_version': None,
-        'name': 'first',
+        'name': None,
         'url':
         'http://foo'
     }
@@ -267,7 +268,7 @@ def test_build_mechfile_entry_ftp_location():
     assert mech.utils.build_mechfile_entry(location='ftp://foo') == {
         'box': None,
         'box_version': None,
-        'name': 'first',
+        'name': None,
         'url': 'ftp://foo'
     }
 
@@ -333,3 +334,50 @@ def test_build_mechfile_entry_file_location_but_file_not_found():
         mock_file.side_effect = SystemExit()
         with raises(SystemExit):
             mech.utils.build_mechfile_entry(location='file:/tmp/one.box')
+
+
+@patch('requests.get')
+def test_build_mechfile_entry_file_location_external_good(mock_requests_get):
+    """Test if location talks to Hashicorp."""
+    catalog = """{
+        "description": "foo",
+        "short_description": "foo",
+        "name": "bento/ubuntu-18.04",
+        "versions": [
+            {
+                "version": "aaa",
+                "status": "active",
+                "description_html": "foo",
+                "description_markdown": "foo",
+                "providers": [
+                    {
+                        "name": "vmware_desktop",
+                        "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
+versions/aaa/providers/vmware_desktop.box",
+                        "checksum": null,
+                        "checksum_type": null
+                    }
+                ]
+            }
+        ]
+    }"""
+    catalog_as_json = json.loads(catalog)
+    expected = {
+        'box': 'bento/ubuntu-18.04',
+        'box_version': 'aaa',
+        'name': None,
+        'url':
+        'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
+versions/aaa/providers/vmware_desktop.box'
+    }
+    mock_requests_get.return_value.status_code = 200
+    mock_requests_get.return_value.json.return_value = catalog_as_json
+    actual = mech.utils.build_mechfile_entry(location='bento/ubuntu-18.04')
+    mock_requests_get.assert_called()
+    assert expected == actual
+
+
+def test_build_mechfile_entry_file_location_external_bad_location():
+    """Test if we do not have a valid location. (must be in form of 'hashiaccount/boxname')."""
+    with raises(SystemExit, match=r"Provided box name is not valid"):
+        mech.utils.build_mechfile_entry(location='bento')
