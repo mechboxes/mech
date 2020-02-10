@@ -204,6 +204,23 @@ def test_mech_snapshot_list_not_created(mock_locate, mock_load_mechfile, capfd):
     assert re.search(r'not created', out, re.MULTILINE)
 
 
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.locate', return_value=None)
+def test_mech_snapshot_save_not_created(mock_locate, mock_load_mechfile, capfd):
+    """Test 'mech snapshot save' when vm is not created."""
+    global_arguments = {'--debug': False}
+    arguments = {
+        '<instance>': 'first',
+    }
+    a_mech = mech.mech.MechSnapshot(arguments=global_arguments)
+    arguments = {'<instance>': 'first', '<name>': 'snap1'}
+    a_mech.save(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'not created', out, re.MULTILINE)
+
+
 @patch('mech.vmrun.VMrun.snapshot', return_value='Snapshot (snap1) on VM (first) taken')
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
@@ -238,6 +255,3 @@ def test_mech_snapshot_save_failure(mock_locate, mock_load_mechfile,
     arguments = {'<instance>': 'first', '<name>': 'snap1'}
     with raises(SystemExit, match=r"Warning: Could not take snapshot."):
         a_mech.save(arguments)
-        mock_locate.assert_called()
-        mock_load_mechfile.assert_called()
-        mock_snapshot.assert_called()

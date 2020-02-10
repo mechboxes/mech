@@ -59,3 +59,35 @@ def test_mech_box_list_one_box(mock_os_getcwd, capfd):
         mock_walk.assert_called()
         out, _ = capfd.readouterr()
         assert re.search(r'ubuntu-18.04', out, re.MULTILINE)
+#
+# TODO: work on this after adding other unit tests
+# @patch('os.getcwd')
+# def test_mech_box_add_one(mock_os_getcwd, capfd):
+#     """Test 'mech box add'."""
+#     mock_os_getcwd.return_value = '/tmp'
+#     global_arguments = {'--debug': False}
+#     a_mech = mech.mech.MechBox(arguments=global_arguments)
+#     with patch('os.walk') as mock_walk:
+#         # simulate: bento/ubuntu-18.04/201912.04.0/vmware_desktop.box
+#         mock_walk.return_value = [
+#             ('/tmp', ['boxes'], []),
+#             ('/tmp/boxes', ['bento'], []),
+#             ('/tmp/boxes/bento', ['ubuntu-18.04'], []),
+#             ('/tmp/boxes/bento/ubuntu-18.04', ['201912.04.0'], []),
+#             ('/tmp/boxes/bento/ubuntu-18.04/201912.04.0', [], ['vmware_desktop.box']),
+#         ]
+#         arguments = {
+#             '--force': False,
+#             '--insecure': False,
+#             '--cacert': None,
+#             '--capath': None,
+#             '--cert': None,
+#             '--box-version': None,
+#             '--checksum': None,
+#             '--checksum-type': None,
+#             '<location>': 'bento/ubuntu-19.10',
+#         }
+#         a_mech.add(arguments)
+#         mock_walk.assert_called()
+#         out, _ = capfd.readouterr()
+#         assert re.search(r'Checking box', out, re.MULTILINE)

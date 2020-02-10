@@ -228,7 +228,7 @@ class MechBox(MechCommand):
 
         force = arguments['--force']
         requests_kwargs = utils.get_requests_kwargs(arguments)
-        utils.add_box(name=None, box=location, box_version=box_version,
+        utils.add_box(name=None, box=None, location=location, box_version=box_version,
                       force=force, requests_kwargs=requests_kwargs)
 
     def list(self, arguments):  # pylint: disable=no-self-use

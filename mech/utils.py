@@ -222,33 +222,37 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None, reques
     if requests_kwargs is None:
         requests_kwargs = {}
     mechfile_entry = {}
+
     if location is None:
         return mechfile_entry
+    if not name:
+        name = 'first'
+
     mechfile_entry['name'] = name
+    mechfile_entry['box'] = box
+    mechfile_entry['box_version'] = box_version
+
     if any(location.startswith(s) for s in ('https://', 'http://', 'ftp://')):
         mechfile_entry['url'] = location
-        if not name:
-            name = 'first'
-        mechfile_entry['box'] = box
-        if box_version:
-            mechfile_entry['box_version'] = box_version
         return mechfile_entry
+
     elif location.startswith('file:') or os.path.isfile(re.sub(r'^file:(?://)?', '', location)):
         location = re.sub(r'^file:(?://)?', '', location)
         LOGGER.debug('location:%s', location)
+        mechfile_entry['file'] = location
         try:
-            # see if the location is a json file
+            # see if the location/file is a json file
             with open(location) as the_file:
+                # if an exception is not thrown, then set values and continue
+                # to the end of the function
                 catalog = json.loads(the_file.read())
         except ValueError:  # includes simplejson.decoder.JSONDecodeError
-            mechfile_entry['file'] = location
-        if not name:
-            name = 'first'
-        mechfile_entry['box'] = box
-        if box_version:
-            mechfile_entry['box_version'] = box_version
-        LOGGER.debug('mechfile_entry:%s', mechfile_entry)
-        return mechfile_entry
+            # this means the location/file is probably a .box file
+            LOGGER.debug('mechfile_entry:%s', mechfile_entry)
+            return mechfile_entry
+        except IOError:
+            # cannot open file
+            sys.exit('Error: Cannot open file:({})'.format(location))
     else:
         try:
             account, box, ver = (location.split('/', 2) + ['', ''])[:3]
@@ -264,11 +268,10 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None, reques
             response.raise_for_status()
             catalog = response.json()
         except (requests.HTTPError, ValueError) as exc:
-            print(colored.red("Bad response from HashiCorp's Vagrant Cloud API: %s" % exc))
-            sys.exit(1)
+            sys.exit(colored.red("Bad response from HashiCorp's Vagrant Cloud API: %s" % exc))
         except requests.ConnectionError:
-            print(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
-            sys.exit(1)
+            sys.exit(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
+
     LOGGER.debug("catalog:%s name:%s box_version:%s", catalog, name, box_version)
     return catalog_to_mechfile(catalog, name=name, box=box, box_version=box_version)
 

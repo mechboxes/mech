@@ -48,6 +48,20 @@ def test_mech_list_with_one(mock_locate, mock_load_mechfile, capfd):
     assert re.search(r'first\s+notcreated', out, re.MULTILINE)
 
 
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.locate', return_value=None)
+def test_mech_list_with_one_and_debug(mock_locate, mock_load_mechfile, capfd):
+    """Test 'mech list' with one entry."""
+    global_arguments = {'--debug': True}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    list_arguments = {'--detail': True}
+    a_mech.list(list_arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'created:False', out, re.MULTILINE)
+
+
 MECHFILE_TWO_ENTRIES = {
     'first': {
         'name':
@@ -121,8 +135,6 @@ def test_mech_up_without_name(mock_locate, mock_load_mechfile):
     }
     with raises(AttributeError, match=r"Must provide a name for the instance."):
         a_mech.up(arguments)
-        mock_locate.assert_called()
-        mock_load_mechfile.assert_called()
 
 
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
@@ -149,8 +161,6 @@ def test_mech_up_with_name_not_in_mechfile(mock_locate, mock_load_mechfile):
     }
     with raises(SystemExit, match=r" was not found in the Mechfile"):
         a_mech.up(arguments)
-        mock_locate.assert_called()
-        mock_load_mechfile.assert_called()
 
 
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
@@ -184,9 +194,6 @@ def test_mech_ssh_config_not_started(mock_getcwd, mock_locate, mock_load_mechfil
     }
     with raises(SystemExit, match=r".*not yet ready for SSH.*"):
         a_mech.ssh_config(arguments)
-        mock_locate.assert_called()
-        mock_load_mechfile.assert_called()
-        mock_get_guest_ip_address.assert_called()
 
 
 @patch('os.chmod')
@@ -237,6 +244,26 @@ def test_mech_port_with_nat(mock_locate, mock_load_mechfile, mock_list_host_netw
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
     port_arguments = {'<instance>': None}
+    a_mech.port(port_arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_list_host_networks.assert_called()
+    mock_list_port_forwardings.assert_called()
+    assert re.search(r'Total port forwardings: 0', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.list_port_forwardings', return_value='Total port forwardings: 0')
+@patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS)
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.locate', return_value=None)
+def test_mech_port_with_nat_and_instance(mock_locate, mock_load_mechfile, mock_list_host_networks,
+                                         mock_list_port_forwardings, capfd):
+    """Test 'mech port first' with nat networking."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    port_arguments = {}
+    port_arguments = {'<instance>': 'first'}
     a_mech.port(port_arguments)
     out, _ = capfd.readouterr()
     mock_locate.assert_called()

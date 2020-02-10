@@ -3,6 +3,7 @@ import os
 
 from unittest.mock import patch, mock_open
 from collections import OrderedDict
+from pytest import raises
 
 import mech.utils
 
@@ -233,3 +234,102 @@ config.version = "8"'''
     with patch('builtins.open', a_mock):
         assert mech.utils.parse_vmx(partial_vmx) == expected_vmx
     a_mock.assert_called()
+
+
+def test_build_mechfile_entry_no_location():
+    """Test if None is used for location."""
+    assert mech.utils.build_mechfile_entry(location=None) == {}
+
+
+def test_build_mechfile_entry_https_location():
+    """Test if location starts with 'https://'."""
+    assert mech.utils.build_mechfile_entry(location='https://foo') == {
+        'box': None,
+        'box_version': None,
+        'name': 'first',
+        'url': 'https://foo'
+    }
+
+
+def test_build_mechfile_entry_http_location():
+    """Test if location starts with 'http://'."""
+    assert mech.utils.build_mechfile_entry(location='http://foo') == {
+        'box': None,
+        'box_version': None,
+        'name': 'first',
+        'url':
+        'http://foo'
+    }
+
+
+def test_build_mechfile_entry_ftp_location():
+    """Test if location starts with 'ftp://'."""
+    assert mech.utils.build_mechfile_entry(location='ftp://foo') == {
+        'box': None,
+        'box_version': None,
+        'name': 'first',
+        'url': 'ftp://foo'
+    }
+
+
+def test_build_mechfile_entry_ftp_location_with_other_values():
+    """Test if mechfile_entry is filled out."""
+    expected = {
+        'box': 'bbb',
+        'box_version': 'ccc',
+        'name': 'aaa',
+        'url': 'ftp://foo'
+    }
+    assert mech.utils.build_mechfile_entry(location='ftp://foo', name='aaa',
+                                           box='bbb', box_version='ccc') == expected
+
+
+def test_build_mechfile_entry_file_location_json():
+    """Test if location starts with 'file:' and contains valid json."""
+
+    # Note: Download/format json like this:
+    # curl --header 'Accept:application/json' \
+    #    'https://app.vagrantup.com/bento/boxes/ubuntu-18.04' | python3 -m json.tool
+    json_data = """{
+        "description": "foo",
+        "short_description": "foo",
+        "name": "bento/ubuntu-18.04",
+        "versions": [
+            {
+                "version": "202002.04.0",
+                "status": "active",
+                "description_html": "foo",
+                "description_markdown": "foo",
+                "providers": [
+                    {
+                        "name": "vmware_desktop",
+                        "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
+versions/202002.04.0/providers/vmware_desktop.box",
+                        "checksum": null,
+                        "checksum_type": null
+                    }
+                ]
+            }
+        ]
+    }"""
+    expected = {
+        'box': 'bento/ubuntu-18.04',
+        'box_version': '202002.04.0',
+        'name': 'first',
+        'url':
+        'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
+versions/202002.04.0/providers/vmware_desktop.box'
+    }
+    a_mock = mock_open(read_data=json_data)
+    with patch('builtins.open', a_mock):
+        actual = mech.utils.build_mechfile_entry(location='file:/tmp/one.json')
+        assert expected == actual
+    a_mock.assert_called()
+
+
+def test_build_mechfile_entry_file_location_but_file_not_found():
+    """Test if location starts with 'file:' and file does not exist."""
+    with patch('builtins.open', mock_open()) as mock_file:
+        mock_file.side_effect = SystemExit()
+        with raises(SystemExit):
+            mech.utils.build_mechfile_entry(location='file:/tmp/one.box')
