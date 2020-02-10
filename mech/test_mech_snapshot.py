@@ -2,6 +2,7 @@
 import re
 
 from unittest.mock import patch
+from pytest import raises
 
 import mech.command
 import mech.mech
@@ -163,7 +164,7 @@ def test_mech_snapshot_delete_snapshot(mock_os_getcwd, mock_load_mechfile,
         # Note: delete_snapshots return None if could not delete, or '' if it could
         mock_delete_snapshot.return_value = ''
         a_mech.delete(arguments)
-        out, err = capfd.readouterr()
+        out, _ = capfd.readouterr()
         mock_delete_snapshot.assert_called()
         assert re.search(r' deleted', out, re.MULTILINE)
 
@@ -174,3 +175,69 @@ def test_mech_snapshot_delete_snapshot(mock_os_getcwd, mock_load_mechfile,
         mock_list_snapshots.assert_called()
         mock_delete_snapshot.assert_called()
         assert re.search(r'Total snapshots: 0', out, re.MULTILINE)
+
+
+MECHFILE_ONE_ENTRY = {
+    'first': {
+        'name':
+        'first',
+        'box':
+        'bento/ubuntu-18.04',
+        'box_version':
+        '201912.04.0'
+    }
+}
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.locate', return_value=None)
+def test_mech_snapshot_list_not_created(mock_locate, mock_load_mechfile, capfd):
+    """Test 'mech snapshot list' when vm is not created."""
+    global_arguments = {'--debug': False}
+    arguments = {
+        '<instance>': 'first',
+    }
+    a_mech = mech.mech.MechSnapshot(arguments=global_arguments)
+    arguments = {'<instance>': 'first'}
+    a_mech.list(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'not created', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.snapshot', return_value='Snapshot (snap1) on VM (first) taken')
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_snapshot_save_success(mock_locate, mock_load_mechfile,
+                                    mock_snapshot, capfd):
+    """Test 'mech snapshot save' successful."""
+    global_arguments = {'--debug': False}
+    arguments = {
+        '<instance>': 'first',
+    }
+    a_mech = mech.mech.MechSnapshot(arguments=global_arguments)
+    arguments = {'<instance>': 'first', '<name>': 'snap1'}
+    a_mech.save(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_snapshot.assert_called()
+    assert re.search(r' taken', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.snapshot', return_value=None)
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_snapshot_save_failure(mock_locate, mock_load_mechfile,
+                                    mock_snapshot):
+    """Test 'mech snapshot save' failure."""
+    global_arguments = {'--debug': False}
+    arguments = {
+        '<instance>': 'first',
+    }
+    a_mech = mech.mech.MechSnapshot(arguments=global_arguments)
+    arguments = {'<instance>': 'first', '<name>': 'snap1'}
+    with raises(SystemExit, match=r"Warning: Could not take snapshot."):
+        a_mech.save(arguments)
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_snapshot.assert_called()
