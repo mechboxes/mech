@@ -237,7 +237,7 @@ config.version = "8"'''
     a_mock.assert_called()
 
 
-@patch('mech.utils.parse_vmx', return_value={})
+@patch('mech.utils.parse_vmx')
 def test_update_vmx_empty(mock_parse_vmx, capfd):
     """Test update_vmx."""
     expected_vmx = """ethernet0.addresstype = generated
@@ -250,6 +250,7 @@ ethernet0.present = TRUE
 ethernet0.virtualdev = e1000
 ethernet0.wakeonpcktrcv = FALSE
 """
+    mock_parse_vmx.return_value = {}
     a_mock = mock_open()
     with patch('builtins.open', a_mock, create=True):
         mech.utils.update_vmx('/tmp/first/one.vmx')
@@ -260,9 +261,10 @@ ethernet0.wakeonpcktrcv = FALSE
         assert re.search(r'Added network interface to vmx file', out, re.MULTILINE)
 
 
-@patch('mech.utils.parse_vmx', return_value={'ethernet0.present': 'true'})
+@patch('mech.utils.parse_vmx')
 def test_update_vmx_with_a_network_entry(mock_parse_vmx, capfd):
     """Test update_vmx."""
+    mock_parse_vmx.return_value = {'ethernet0.present': 'true'}
     a_mock = mock_open()
     with patch('builtins.open', a_mock, create=True):
         mech.utils.update_vmx('/tmp/first/one.vmx')
@@ -271,9 +273,10 @@ def test_update_vmx_with_a_network_entry(mock_parse_vmx, capfd):
         assert out == ''
 
 
-@patch('mech.utils.parse_vmx', return_value={'ethernet0.present': 'true'})
+@patch('mech.utils.parse_vmx')
 def test_update_vmx_with_cpu_and_memory(mock_parse_vmx, capfd):
     """Test update_vmx."""
+    mock_parse_vmx.return_value = {'ethernet0.present': 'true'}
     expected_vmx = '''ethernet0.present = true
 numvcpus = "3"
 memsize = "1025"
@@ -388,3 +391,200 @@ def test_build_mechfile_entry_file_location_external_bad_location():
     """Test if we do not have a valid location. (must be in form of 'hashiaccount/boxname')."""
     with raises(SystemExit, match=r"Provided box name is not valid"):
         mech.utils.build_mechfile_entry(location='bento')
+
+
+def test_provision_no_instance():
+    """Test provisioning."""
+    with raises(SystemExit, match=r"Need to provide an instance to provision"):
+        mech.utils.provision(instance=None, vmx=None, user=None, password=None,
+                             provision_config=None, show=None)
+
+
+def test_provision_no_vmx():
+    """Test provisioning."""
+    with raises(SystemExit, match=r"Need to provide vmx.*"):
+        mech.utils.provision(instance='first', vmx=None, user=None, password=None,
+                             provision_config=None, show=None)
+
+
+@patch('mech.vmrun.VMrun.installed_tools')
+def test_provision_no_vmare_tools(mock_installed_tools):
+    """Test provisioning."""
+    mock_installed_tools.return_value = None
+    with raises(SystemExit, match=r"Cannot provision if VMware Tools are not installed"):
+        mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx',
+                             user='vagrant', password='vagrant', provision_config=None,
+                             show=None)
+
+
+@patch('mech.utils.provision_file')
+@patch('mech.vmrun.VMrun.installed_tools')
+def test_provision_file_no_provisioning(mock_installed_tools, mock_provision_file, capfd):
+    """Test provisioning."""
+    mock_installed_tools.return_value = "running"
+    mock_provision_file.return_value = None
+    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx', user='vagrant',
+                         password='vagrant', provision_config=[], show=None)
+    out, _ = capfd.readouterr()
+    assert re.search(r'Nothing to provision', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.copy_file_from_host_to_guest')
+@patch('mech.vmrun.VMrun.installed_tools')
+def test_provision_file(mock_installed_tools, mock_copy_file, capfd):
+    """Test provisioning."""
+    mock_installed_tools.return_value = "running"
+    mock_copy_file.return_value = True
+    config = [
+        {
+            "type": "file",
+            "source": "file1.txt",
+            "destination": "/tmp/file1.txt",
+        },
+    ]
+    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx', user='vagrant',
+                         password='vagrant', provision_config=config, show=None)
+    out, _ = capfd.readouterr()
+    assert re.search(r'Copying ', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.copy_file_from_host_to_guest')
+@patch('mech.vmrun.VMrun.installed_tools')
+def test_provision_file_could_not_copy_file_to_guest(mock_installed_tools,
+                                                     mock_copy_file, capfd):
+    """Test provisioning."""
+    mock_installed_tools.return_value = "running"
+    mock_copy_file.return_value = None
+    config = [
+        {
+            "type": "file",
+            "source": "file1.txt",
+            "destination": "/tmp/file1.txt",
+        },
+    ]
+    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx', user='vagrant',
+                         password='vagrant', provision_config=config, show=None)
+    out, _ = capfd.readouterr()
+    assert re.search(r'Not Provisioned', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.installed_tools')
+def test_provision_file_show(mock_installed_tools, capfd):
+    """Test provisioning."""
+    mock_installed_tools.return_value = "running"
+    config = [
+        {
+            "type": "file",
+            "source": "file1.txt",
+            "destination": "/tmp/file1.txt",
+        },
+    ]
+    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx',
+                         user='vagrant', password='vagrant',
+                         provision_config=config, show=True)
+    out, _ = capfd.readouterr()
+    assert re.search(r'instance:', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.delete_file_in_guest', return_value=True)
+@patch('mech.vmrun.VMrun.run_program_in_guest', return_value=True)
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value=True)
+@patch('os.path.isfile', return_value=True)
+@patch('mech.vmrun.VMrun.create_tempfile_in_guest', return_value='/tmp/foo')
+@patch('mech.vmrun.VMrun.copy_file_from_host_to_guest', return_value=True)
+@patch('mech.vmrun.VMrun.installed_tools', return_value="running")
+def test_provision_shell(mock_installed_tools, mock_copy_file,
+                         mock_create_tempfile, mock_isfile,
+                         mock_run_script_in_guest, mock_run_program_in_guest,
+                         mock_delete_file_in_guest, capfd):
+    """Test provisioning."""
+    config = [
+        {
+            "type": "shell",
+            "path": "file1.sh",
+            "args": [
+                "a=1",
+                "b=true",
+            ],
+        },
+        {
+            "type": "shell",
+            "inline": "echo hello from inline"
+        },
+    ]
+    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx',
+                         user='vagrant', password='vagrant',
+                         provision_config=config, show=None)
+    out, _ = capfd.readouterr()
+    mock_installed_tools.assert_called()
+    mock_copy_file.assert_called()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_run_script_in_guest.assert_called()
+    mock_run_program_in_guest.assert_called()
+    mock_delete_file_in_guest.assert_called()
+    assert re.search(r'Configuring script', out, re.MULTILINE)
+    assert re.search(r'Configuring environment', out, re.MULTILINE)
+    assert re.search(r'Configuring script to run inline', out, re.MULTILINE)
+    assert re.search(r'Executing program', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.installed_tools', return_value="running")
+def test_provision_shell_show_only(mock_installed_tools, capfd):
+    """Test provisioning."""
+    config = [
+        {
+            "type": "shell",
+            "path": "file1.sh",
+            "args": [
+                "a=1",
+                "b=true",
+            ],
+        },
+    ]
+    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx',
+                         user='vagrant', password='vagrant',
+                         provision_config=config, show=True)
+    out, _ = capfd.readouterr()
+    mock_installed_tools.assert_called()
+    assert re.search(r' instance:', out, re.MULTILINE)
+
+
+@patch('mech.utils.provision_shell', return_value=None)
+@patch('mech.vmrun.VMrun.installed_tools', return_value="running")
+def test_provision_shell_with_issue(mock_installed_tools, mock_provision_shell,
+                                    capfd):
+    """Test provisioning."""
+    config = [
+        {
+            "type": "shell",
+            "path": "file1.sh",
+            "args": [
+                "a=1",
+                "b=true",
+            ],
+        },
+    ]
+    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx',
+                         user='vagrant', password='vagrant',
+                         provision_config=config, show=None)
+    out, _ = capfd.readouterr()
+    mock_installed_tools.assert_called()
+    mock_provision_shell.assert_called()
+    assert re.search(r'Not Provisioned', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.installed_tools', return_value="running")
+def test_provision_with_unknown_type(mock_installed_tools, capfd):
+    """Test provisioning."""
+    config = [
+        {
+            "type": "foo",
+        },
+    ]
+    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx',
+                         user='vagrant', password='vagrant',
+                         provision_config=config, show=None)
+    out, _ = capfd.readouterr()
+    mock_installed_tools.assert_called()
+    assert re.search(r'Not Provisioned', out, re.MULTILINE)

@@ -595,21 +595,18 @@ def provision(instance, vmx, user, password, provision_config, show):
 
     """
 
-    if instance == '':
-        print(colored.red("Need to provide an instance to provision()."))
-        return
+    if not instance or instance == '':
+        sys.exit(colored.red("Need to provide an instance to provision()."))
 
     if not vmx or not user or not password:
-        print(colored.red("Need provide vmx/user/password to provision()."))
-        return
+        sys.exit(colored.red("Need to provide vmx/user/password to provision()."))
 
     print(colored.green('Provisioning instance:{}'.format(instance)))
 
     vmrun = VMrun(vmx, user, password)
     # cannot run provisioning if vmware tools are not installed
     if not vmrun.installed_tools():
-        print(colored.red("Cannot provision if VMware Tools are not installed."))
-        return
+        sys.exit(colored.red("Cannot provision if VMware Tools are not installed."))
 
     provisioned = 0
     if provision_config:
@@ -619,7 +616,7 @@ def provision(instance, vmx, user, password, provision_config, show):
                 source = pro.get('source')
                 destination = pro.get('destination')
                 if show:
-                    print(colored.green(" instance:{} provision_type:{} source:{} "
+                    print(colored.green("instance:{} provision_type:{} source:{} "
                                         "destination:{}".format(instance, provision_type,
                                                                 source, destination)))
                 else:
@@ -670,12 +667,14 @@ def provision_shell(virtual_machine, inline, path, args=None):
     tmp_path = virtual_machine.create_tempfile_in_guest()
     LOGGER.debug('inline:%s path:%s args:%s tmp_path:%s', inline, path, args, tmp_path)
     if tmp_path is None:
+        print(colored.red("Warning: Could not create tempfile in guest."))
         return
 
     try:
         if path and os.path.isfile(path):
             print(colored.blue("Configuring script {}...".format(path)))
             if virtual_machine.copy_file_from_host_to_guest(path, tmp_path) is None:
+                print(colored.red("Warning: Could not copy file to guest."))
                 return
         else:
             if path:
@@ -709,6 +708,7 @@ def provision_shell(virtual_machine, inline, path, args=None):
 
         print(colored.blue("Configuring environment..."))
         if virtual_machine.run_script_in_guest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
+            print(colored.red("Warning: Could not configure script in the environment."))
             return
 
         print(colored.blue("Executing program..."))
