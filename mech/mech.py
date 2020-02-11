@@ -961,11 +961,15 @@ class Mech(MechCommand):
 
         for instance in instances:
             inst = MechInstance(instance)
-            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
-            if vmrun.suspend() is None:
-                print(colored.red("Not suspended", vmrun))
+
+            if inst.created:
+                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                if vmrun.suspend() is None:
+                    print(colored.red("Not suspended", vmrun))
+                else:
+                    print(colored.green("Suspended", vmrun))
             else:
-                print(colored.green("Suspended", vmrun))
+                print("VM has not been created.")
 
     def ssh_config(self, arguments):
         """
@@ -1011,31 +1015,34 @@ class Mech(MechCommand):
 
         inst = MechInstance(instance)
 
-        config_ssh = inst.config_ssh()
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
-        try:
-            temp_file.write(utils.config_ssh_string(config_ssh).encode('utf-8'))
-            temp_file.close()
+        if inst.created:
+            config_ssh = inst.config_ssh()
+            temp_file = tempfile.NamedTemporaryFile(delete=False)
+            try:
+                temp_file.write(utils.config_ssh_string(config_ssh).encode('utf-8'))
+                temp_file.close()
 
-            cmds = ['ssh']
-            if not plain:
-                cmds.extend(('-F', temp_file.name))
-            if extra:
-                cmds.extend(extra)
-            if not plain:
-                cmds.append(config_ssh['Host'])
-            if command:
-                cmds.extend(('--', command))
+                cmds = ['ssh']
+                if not plain:
+                    cmds.extend(('-F', temp_file.name))
+                if extra:
+                    cmds.extend(extra)
+                if not plain:
+                    cmds.append(config_ssh['Host'])
+                if command:
+                    cmds.extend(('--', command))
 
-            LOGGER.debug(
-                " ".join(
-                    "'{}'".format(
-                        c.replace(
-                            "'",
-                            "\\'")) if ' ' in c else c for c in cmds))
-            return subprocess.call(cmds)
-        finally:
-            os.unlink(temp_file.name)
+                LOGGER.debug(
+                    " ".join(
+                        "'{}'".format(
+                            c.replace(
+                                "'",
+                                "\\'")) if ' ' in c else c for c in cmds))
+                return subprocess.call(cmds)
+            finally:
+                os.unlink(temp_file.name)
+        else:
+            print("VM not created.")
 
     def scp(self, arguments):  # pylint: disable=no-self-use
         """

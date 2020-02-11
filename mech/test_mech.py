@@ -188,6 +188,69 @@ def test_mech_stop(mock_locate, mock_load_mechfile,
     assert re.search(r'Stopped', out, re.MULTILINE)
 
 
+@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.145")
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_ip(mock_locate, mock_load_mechfile,
+                 mock_get_ip, capfd):
+    """Test 'mech ip' powered on."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+    }
+    a_mech.ip(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_get_ip.assert_called()
+    assert re.search(r'192.168', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.suspend', return_value=True)
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_suspend(mock_locate, mock_load_mechfile,
+                      mock_vmrun_suspend, capfd):
+    """Test 'mech suspend' powered on."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+    }
+    a_mech.suspend(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_vmrun_suspend.assert_called()
+    assert re.search(r'Suspended', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
+@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.130")
+@patch('subprocess.call', return_value='00:03:30 up 2 min,  load average: 0.00, 0.00, 0.00')
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_ssh(mock_locate, mock_load_mechfile,
+                  mock_subprocess_call, mock_get_ip, mock_installed_tools):
+    """Test 'mech ssh'"""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+        '--plain': None,
+        '--command': 'uptime',
+        '<extra_ssh_args>': None,
+    }
+    a_mech.ssh(arguments)
+    # Note: Could not figure out how to capture output from subprocess.call.
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_subprocess_call.assert_called()
+    mock_installed_tools.assert_called()
+    mock_get_ip.assert_called()
+
+
 @patch('mech.vmrun.VMrun.pause', return_value=True)
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
