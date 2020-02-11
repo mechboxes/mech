@@ -1,0 +1,4 @@
+[DESIGN]
+
+# Maximum number of arguments for function / method.
+max-args=9
