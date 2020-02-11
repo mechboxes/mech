@@ -1,5 +1,6 @@
 """Test mech utils."""
 import os
+import re
 
 from unittest.mock import patch, mock_open
 from collections import OrderedDict
@@ -234,6 +235,57 @@ config.version = "8"'''
     with patch('builtins.open', a_mock):
         assert mech.utils.parse_vmx(partial_vmx) == expected_vmx
     a_mock.assert_called()
+
+
+@patch('mech.utils.parse_vmx', return_value={})
+def test_update_vmx_empty(mock_parse_vmx, capfd):
+    """Test update_vmx."""
+    expected_vmx = """ethernet0.addresstype = generated
+ethernet0.bsdname = en0
+ethernet0.connectiontype = nat
+ethernet0.displayname = Ethernet
+ethernet0.linkstatepropagation.enable = FALSE
+ethernet0.pcislotnumber = 32
+ethernet0.present = TRUE
+ethernet0.virtualdev = e1000
+ethernet0.wakeonpcktrcv = FALSE
+"""
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.update_vmx('/tmp/first/one.vmx')
+        a_mock.assert_called()
+        got = _get_data_written(a_mock)
+        assert expected_vmx == got
+        out, _ = capfd.readouterr()
+        assert re.search(r'Added network interface to vmx file', out, re.MULTILINE)
+
+
+@patch('mech.utils.parse_vmx', return_value={'ethernet0.present': 'true'})
+def test_update_vmx_with_a_network_entry(mock_parse_vmx, capfd):
+    """Test update_vmx."""
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.update_vmx('/tmp/first/one.vmx')
+        assert not a_mock.called, 'should not have written anything to the vmx file'
+        out, _ = capfd.readouterr()
+        assert out == ''
+
+
+@patch('mech.utils.parse_vmx', return_value={'ethernet0.present': 'true'})
+def test_update_vmx_with_cpu_and_memory(mock_parse_vmx, capfd):
+    """Test update_vmx."""
+    expected_vmx = '''ethernet0.present = true
+numvcpus = "3"
+memsize = "1025"
+'''
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.update_vmx('/tmp/first/one.vmx', numvcpus=3, memsize=1025)
+        a_mock.assert_called()
+        got = _get_data_written(a_mock)
+        assert expected_vmx == got
+        out, _ = capfd.readouterr()
+        assert out == ''
 
 
 def test_build_mechfile_entry_no_location():
