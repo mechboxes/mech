@@ -483,18 +483,15 @@ class Mech(MechCommand):
                 "before running `mech init`.")))
 
         print(colored.green("Initializing mech"))
-        if utils.init_mechfile(
-                location=location,
-                box=box,
-                name=name,
-                box_version=box_version,
-                requests_kwargs=requests_kwargs):
-            print(colored.green(textwrap.fill(
-                "A `Mechfile` has been initialized and placed in this directory. "
-                "You are now ready to `mech up` your first virtual environment!"
-            )))
-        else:
-            print(colored.red("Couldn't initialize mech"))
+        utils.init_mechfile(
+            location=location,
+            box=box,
+            name=name,
+            box_version=box_version,
+            requests_kwargs=requests_kwargs)
+        print(colored.green(textwrap.fill(
+            "A `Mechfile` has been initialized and placed in this directory. "
+            "You are now ready to `mech up` your first virtual environment!")))
 
     def add(self, arguments):  # pylint: disable=no-self-use
         """
@@ -529,15 +526,13 @@ class Mech(MechCommand):
 
         print(colored.green("Adding ({}) to the Mechfile.".format(name)))
 
-        if utils.add_to_mechfile(
-                location=location,
-                box=box,
-                name=name,
-                box_version=box_version,
-                requests_kwargs=requests_kwargs):
-            print(colored.green("Added to the Mechfile."))
-        else:
-            print(colored.red("Could not add {} to the Mechfile".format(name)))
+        utils.add_to_mechfile(
+            location=location,
+            box=box,
+            name=name,
+            box_version=box_version,
+            requests_kwargs=requests_kwargs)
+        print(colored.green("Added to the Mechfile."))
 
     def remove(self, arguments):
         """
@@ -559,10 +554,8 @@ class Mech(MechCommand):
         inst = self.mechfile.get(name, None)
         if inst:
             print(colored.green("Removing ({}) from the Mechfile.".format(name)))
-            if utils.remove_mechfile_entry(name=name):
-                print(colored.green("Removed from the Mechfile."))
-            else:
-                print(colored.red("Could not remove {} from the Mechfile".format(name)))
+            utils.remove_mechfile_entry(name=name)
+            print(colored.green("Removed from the Mechfile."))
         else:
             sys.exit(colored.red("There is no instance called ({}) in the Mechfile.".format(name)))
 
@@ -1177,30 +1170,33 @@ class Mech(MechCommand):
         for instance in instances:
             inst = MechInstance(instance)
 
-            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+            if inst.created:
+                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
 
-            print(colored.blue("Reloading machine..."))
-            started = vmrun.reset()
-            if started is None:
-                print(colored.red("VM not restarted"))
-            else:
-                print(colored.blue("Getting IP address..."))
-                lookup = inst.enable_ip_lookup
-                ip_address = vmrun.get_guest_ip_address(lookup=lookup)
-                if ip_address:
-                    if started:
-                        print(colored.green("VM ({}) started "
-                                            "on {}".format(instance, ip_address)))
-                    else:
-                        print(colored.yellow("VM ({}) already was started on "
-                                             "{}".format(instance, ip_address)))
+                print(colored.blue("Reloading machine..."))
+                started = vmrun.reset()
+                if started is None:
+                    print(colored.red("VM not restarted"))
                 else:
-                    if started:
-                        print(colored.green("VM ({}) started on an unknown IP "
-                                            "address".format(instance)))
+                    print(colored.blue("Getting IP address..."))
+                    lookup = inst.enable_ip_lookup
+                    ip_address = vmrun.get_guest_ip_address(lookup=lookup)
+                    if ip_address:
+                        if started:
+                            print(colored.green("VM ({}) started "
+                                                "on {}".format(instance, ip_address)))
+                        else:
+                            print(colored.yellow("VM ({}) already was started on "
+                                                 "{}".format(instance, ip_address)))
                     else:
-                        print(colored.yellow("VM ({}) already was started "
-                                             "on an unknown IP address".format(instance)))
+                        if started:
+                            print(colored.green("VM ({}) started on an unknown IP "
+                                                "address".format(instance)))
+                        else:
+                            print(colored.yellow("VM ({}) already was started "
+                                                 "on an unknown IP address".format(instance)))
+            else:
+                print("VM not created.")
 
     def port(self, arguments):
         """

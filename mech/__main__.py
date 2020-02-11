@@ -25,15 +25,15 @@
 
 from __future__ import absolute_import
 
+import sys
+
+from . import VERSION
+from .mech import Mech
+
 
 def main():
     """Main function."""
     try:
-        import sys
-
-        from . import VERSION
-        from .mech import Mech
-
         arguments = Mech.docopt(Mech.__doc__, argv=sys.argv[1:], version=VERSION)
         return Mech(arguments)()
     except KeyboardInterrupt:

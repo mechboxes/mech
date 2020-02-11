@@ -58,8 +58,8 @@ def test_mech_list_with_one_and_debug(mock_locate, mock_load_mechfile, capfd,
 
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_list_with_two(mock_locate, mock_load_mechfile, capfd,
-                            mechfile_two_entries):
+def test_mech_list_with_two_not_created(mock_locate, mock_load_mechfile, capfd,
+                                        mechfile_two_entries):
     """Test 'mech list' with two entries."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
@@ -71,6 +71,25 @@ def test_mech_list_with_two(mock_locate, mock_load_mechfile, capfd,
     mock_load_mechfile.assert_called()
     assert re.search(r'first\s+notcreated', out, re.MULTILINE)
     assert re.search(r'second\s+notcreated', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_list_powered_on(mock_locate, mock_load_mechfile,
+                              mock_get_ip, capfd,
+                              mechfile_two_entries):
+    """Test 'mech list' powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first', '--detail': None}
+    a_mech.list(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_get_ip.assert_called()
+    assert re.search(r'192.168.', out, re.MULTILINE)
 
 
 @patch('mech.utils.load_mechfile')
@@ -146,10 +165,10 @@ def test_mech_destroy(mock_locate, mock_load_mechfile,
 @patch('mech.vmrun.VMrun.stop', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
-def test_mech_stop(mock_locate, mock_load_mechfile,
+def test_mech_down(mock_locate, mock_load_mechfile,
                    mock_vmrun_stop, mock_installed_tools,
                    capfd, mechfile_two_entries):
-    """Test 'mech stop' powered on."""
+    """Test 'mech down' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -336,8 +355,8 @@ def test_mech_ssh(mock_locate, mock_load_mechfile,
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_pause(mock_locate, mock_load_mechfile,
-                    mock_vmrun_stop, capfd, mechfile_two_entries):
-    """Test 'mech stop' powered on."""
+                    mock_vmrun_pause, capfd, mechfile_two_entries):
+    """Test 'mech pause' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -349,8 +368,31 @@ def test_mech_pause(mock_locate, mock_load_mechfile,
     out, _ = capfd.readouterr()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_vmrun_stop.assert_called()
+    mock_vmrun_pause.assert_called()
     assert re.search(r'Paused', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.1.101')
+@patch('mech.vmrun.VMrun.reset', return_value=True)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_reload(mock_locate, mock_load_mechfile,
+                     mock_vmrun_reset, mock_get_ip,
+                     capfd, mechfile_two_entries):
+    """Test 'mech reload' powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+    }
+    a_mech.reload(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_vmrun_reset.assert_called()
+    mock_get_ip.assert_called()
+    assert re.search(r'started', out, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.1.101')

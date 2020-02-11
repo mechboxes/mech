@@ -43,9 +43,9 @@ def cmd_usage(doc):
 docopt_extras_ref = docopt.extras
 
 
-def docopt_extras(help, version, options, doc):
+def docopt_extras(the_help, version, options, doc):
     """Show the "Extra" help info."""
-    return docopt_extras_ref(help, version, options, cmd_usage(doc))
+    return docopt_extras_ref(the_help, version, options, cmd_usage(doc))
 
 
 def DocoptExit____init__(self, message=''):

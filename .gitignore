@@ -1,4 +1,5 @@
 .DS_Store
+cov_html/
 .coverage
 *.pyc
 .idea/
