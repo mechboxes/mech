@@ -25,20 +25,12 @@ def test_help():
     assert return_value == 0
 
 
-MECHFILE_ONE_ENTRY = {
-    'first': {
-        'name':
-        'first',
-        'box':
-        'bento/ubuntu-18.04',
-        'box_version':
-        '201912.04.0'
-    }
-}
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_list_with_one(mock_locate, mock_load_mechfile, capfd):
+def test_mech_list_with_one(mock_locate, mock_load_mechfile, capfd,
+                            mechfile_one_entry):
     """Test 'mech list' with one entry."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     list_arguments = {'--detail': False}
@@ -49,10 +41,12 @@ def test_mech_list_with_one(mock_locate, mock_load_mechfile, capfd):
     assert re.search(r'first\s+notcreated', out, re.MULTILINE)
 
 
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_list_with_one_and_debug(mock_locate, mock_load_mechfile, capfd):
+def test_mech_list_with_one_and_debug(mock_locate, mock_load_mechfile, capfd,
+                                      mechfile_one_entry):
     """Test 'mech list' with one entry."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': True}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     list_arguments = {'--detail': True}
@@ -63,34 +57,12 @@ def test_mech_list_with_one_and_debug(mock_locate, mock_load_mechfile, capfd):
     assert re.search(r'created:False', out, re.MULTILINE)
 
 
-MECHFILE_TWO_ENTRIES = {
-    'first': {
-        'name':
-        'first',
-        'box':
-        'bento/ubuntu-18.04',
-        'box_version':
-        '201912.04.0',
-        'url':
-        'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/'
-        'versions/201912.04.0/providers/vmware_desktop.box'
-    },
-    'second': {
-        'name':
-        'second',
-        'box':
-        'bento/ubuntu-18.04',
-        'box_version':
-        '201912.04.0',
-        'url':
-        'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/'
-        'versions/201912.04.0/providers/vmware_desktop.box'
-    }
-}
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_list_with_two(mock_locate, mock_load_mechfile, capfd):
+def test_mech_list_with_two(mock_locate, mock_load_mechfile, capfd,
+                            mechfile_two_entries):
     """Test 'mech list' with two entries."""
+    mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     list_arguments = {'--detail': False}
@@ -102,10 +74,12 @@ def test_mech_list_with_two(mock_locate, mock_load_mechfile, capfd):
     assert re.search(r'second\s+notcreated', out, re.MULTILINE)
 
 
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_status_with_two_not_created(mock_locate, mock_load_mechfile, capfd):
+def test_mech_status_with_two_not_created(mock_locate, mock_load_mechfile, capfd,
+                                          mechfile_two_entries):
     """Test 'mech status' with two entries, neither created."""
+    mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {'<instance>': None}
@@ -119,11 +93,13 @@ def test_mech_status_with_two_not_created(mock_locate, mock_load_mechfile, capfd
 
 @patch('mech.vmrun.VMrun.check_tools_state', return_value="running")
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_status_powered_on(mock_locate, mock_load_mechfile,
-                                mock_get_ip, mock_check_tools_state, capfd):
+                                mock_get_ip, mock_check_tools_state, capfd,
+                                mechfile_two_entries):
     """Test 'mech status' powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {'<instance>': 'first'}
@@ -140,12 +116,14 @@ def test_mech_status_powered_on(mock_locate, mock_load_mechfile,
 @patch('shutil.rmtree')
 @patch('mech.vmrun.VMrun.delete_vm')
 @patch('mech.vmrun.VMrun.stop', return_value=True)
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_destroy(mock_locate, mock_load_mechfile,
                       mock_vmrun_stop, mock_vmrun_delete_vm,
-                      mock_rmtree, mock_path_exists, capfd):
+                      mock_rmtree, mock_path_exists, capfd,
+                      mechfile_two_entries):
     """Test 'mech destroy' powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
     mock_rmtree.return_value = True
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -167,12 +145,13 @@ def test_mech_destroy(mock_locate, mock_load_mechfile,
 
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.vmrun.VMrun.stop', return_value=True)
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_stop(mock_locate, mock_load_mechfile,
                    mock_vmrun_stop, mock_installed_tools,
-                   capfd):
+                   capfd, mechfile_two_entries):
     """Test 'mech stop' powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
@@ -189,11 +168,12 @@ def test_mech_stop(mock_locate, mock_load_mechfile,
 
 
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.145")
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_ip(mock_locate, mock_load_mechfile,
-                 mock_get_ip, capfd):
+                 mock_get_ip, capfd, mechfile_two_entries):
     """Test 'mech ip' powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
@@ -307,11 +287,12 @@ def test_mech_provision_shell(mock_locate, mock_load_mechfile,
 
 
 @patch('mech.vmrun.VMrun.suspend', return_value=True)
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_suspend(mock_locate, mock_load_mechfile,
-                      mock_vmrun_suspend, capfd):
+                      mock_vmrun_suspend, capfd, mechfile_two_entries):
     """Test 'mech suspend' powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
@@ -328,11 +309,13 @@ def test_mech_suspend(mock_locate, mock_load_mechfile,
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.130")
 @patch('subprocess.call', return_value='00:03:30 up 2 min,  load average: 0.00, 0.00, 0.00')
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_ssh(mock_locate, mock_load_mechfile,
-                  mock_subprocess_call, mock_get_ip, mock_installed_tools):
+                  mock_subprocess_call, mock_get_ip, mock_installed_tools,
+                  mechfile_two_entries):
     """Test 'mech ssh'"""
+    mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
@@ -351,11 +334,12 @@ def test_mech_ssh(mock_locate, mock_load_mechfile,
 
 
 @patch('mech.vmrun.VMrun.pause', return_value=True)
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_pause(mock_locate, mock_load_mechfile,
-                    mock_vmrun_stop, capfd):
+                    mock_vmrun_stop, capfd, mechfile_two_entries):
     """Test 'mech stop' powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
@@ -372,12 +356,13 @@ def test_mech_pause(mock_locate, mock_load_mechfile,
 
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.1.101')
 @patch('mech.vmrun.VMrun.unpause', return_value=True)
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_resume(mock_locate, mock_load_mechfile,
                      mock_vmrun_unpause, mock_vmrun_get_ip,
-                     capfd):
+                     capfd, mechfile_two_entries):
     """Test 'mech resume'."""
+    mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
@@ -430,10 +415,12 @@ def test_mech_up_without_name(mock_locate, mock_load_mechfile):
         a_mech.up(arguments)
 
 
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_up_with_name_not_in_mechfile(mock_locate, mock_load_mechfile):
+def test_mech_up_with_name_not_in_mechfile(mock_locate, mock_load_mechfile,
+                                           mechfile_one_entry):
     """Test 'mech up' with a name that is not in the Mechfile."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
@@ -459,11 +446,13 @@ def test_mech_up_with_name_not_in_mechfile(mock_locate, mock_load_mechfile):
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value=True)
 @patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 def test_mech_up_already_started(mock_locate, mock_load_mechfile, mock_init_box,
-                                 mock_vmrun_start, mock_vmrun_get_ip, capfd):
+                                 mock_vmrun_start, mock_vmrun_get_ip, capfd,
+                                 mechfile_one_entry):
     """Test 'mech up'."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
@@ -494,11 +483,13 @@ def test_mech_up_already_started(mock_locate, mock_load_mechfile, mock_init_box,
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value=None)
 @patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 def test_mech_up_problem(mock_locate, mock_load_mechfile, mock_init_box,
-                         mock_vmrun_start, mock_vmrun_get_ip, capfd):
+                         mock_vmrun_start, mock_vmrun_get_ip, capfd,
+                         mechfile_one_entry):
     """Test 'mech up' when issue with starting VM"""
+    mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
@@ -529,12 +520,13 @@ def test_mech_up_problem(mock_locate, mock_load_mechfile, mock_init_box,
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value=True)
 @patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile, mock_init_box,
                                    mock_vmrun_start, mock_vmrun_get_ip,
-                                   mock_provision, capfd):
+                                   mock_provision, capfd, mechfile_one_entry):
     """Test 'mech up'."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
@@ -568,13 +560,15 @@ def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile, mock_init_bo
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value=True)
 @patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 def test_mech_up_wth_shared_folders(mock_locate, mock_load_mechfile, mock_init_box,
                                     mock_vmrun_start, mock_vmrun_get_ip,
                                     mock_vmrun_enable_shared_folders,
-                                    mock_vmrun_add_shared_folder, capfd):
+                                    mock_vmrun_add_shared_folder, capfd,
+                                    mechfile_one_entry):
     """Test 'mech up'."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
@@ -604,10 +598,12 @@ def test_mech_up_wth_shared_folders(mock_locate, mock_load_mechfile, mock_init_b
     assert re.search(r'started', out, re.MULTILINE)
 
 
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_ssh_config_not_created(mock_locate, mock_load_mechfile, capfd):
+def test_mech_ssh_config_not_created(mock_locate, mock_load_mechfile, capfd,
+                                     mechfile_one_entry):
     """Test 'mech ssh-config' when vm is not created."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
@@ -621,12 +617,13 @@ def test_mech_ssh_config_not_created(mock_locate, mock_load_mechfile, capfd):
 
 
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=None)
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 @patch('os.getcwd')
 def test_mech_ssh_config_not_started(mock_getcwd, mock_locate, mock_load_mechfile,
-                                     mock_get_guest_ip_address):
+                                     mock_get_guest_ip_address, mechfile_one_entry):
     """Test 'mech ssh-config' when vm is created but not started."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     mock_getcwd.return_value = '/tmp'
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -640,13 +637,14 @@ def test_mech_ssh_config_not_started(mock_getcwd, mock_locate, mock_load_mechfil
 @patch('os.chmod')
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.2.120')
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 @patch('os.getcwd')
 def test_mech_ssh_config(mock_getcwd, mock_locate,  # pylint: disable=too-many-arguments
                          mock_load_mechfile, mock_get_guest_ip_address,
-                         mock_installed_tools, mock_chmod, capfd):
+                         mock_installed_tools, mock_chmod, capfd, mechfile_one_entry):
     """Test 'mech ssh-config'."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     mock_getcwd.return_value = '/tmp'
     mock_chmod.return_value = 0
     global_arguments = {'--debug': False}
@@ -676,11 +674,13 @@ INDEX  NAME         TYPE         DHCP         SUBNET           MASK
 8      vmnet8       nat          true         192.168.3.0      255.255.255.0"""
 @patch('mech.vmrun.VMrun.list_port_forwardings', return_value='Total port forwardings: 0')
 @patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS)
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
 def test_mech_port_with_nat(mock_locate, mock_load_mechfile, mock_list_host_networks,
-                            mock_list_port_forwardings, capfd):
+                            mock_list_port_forwardings, capfd,
+                            mechfile_one_entry):
     """Test 'mech port' with nat networking."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
@@ -696,11 +696,12 @@ def test_mech_port_with_nat(mock_locate, mock_load_mechfile, mock_list_host_netw
 
 @patch('mech.vmrun.VMrun.list_port_forwardings', return_value='Total port forwardings: 0')
 @patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS)
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
 def test_mech_port_with_nat_and_instance(mock_locate, mock_load_mechfile, mock_list_host_networks,
-                                         mock_list_port_forwardings, capfd):
+                                         mock_list_port_forwardings, capfd, mechfile_one_entry):
     """Test 'mech port first' with nat networking."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
@@ -721,11 +722,12 @@ INDEX  NAME         TYPE         DHCP         SUBNET           MASK
 8      vmnet8       nat          true         192.168.3.0      255.255.255.0"""
 @patch('mech.vmrun.VMrun.list_port_forwardings', return_value='Total port forwardings: 0')
 @patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS)
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
 def test_mech_port_with_nat_two_hosts(mock_locate, mock_load_mechfile, mock_list_host_networks,
-                                      mock_list_port_forwardings, capfd):
+                                      mock_list_port_forwardings, capfd, mechfile_two_entries):
     """Test 'mech port' with nat networking and two instances."""
+    mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
@@ -744,10 +746,12 @@ INDEX  NAME         TYPE         DHCP         SUBNET           MASK
 0      vmnet0       bridged      false        empty            empty
 1      vmnet1       hostOnly     true         172.16.11.0      255.255.255.0"""
 @patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS_WITHOUT_NAT)
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_port_without_nat(mock_locate, mock_load_mechfile, mock_list_host_networks, capfd):
+def test_mech_port_without_nat(mock_locate, mock_load_mechfile, mock_list_host_networks,
+                               capfd, mechfile_one_entry):
     """Test 'mech port' without nat."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
@@ -935,10 +939,12 @@ def test_mech_add_mechfile_exists_no_name():
         a_mech.add(arguments)
 
 
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('os.getcwd')
-def test_mech_remove(mock_os_getcwd, mock_load_mechfile, capfd):
+def test_mech_remove(mock_os_getcwd, mock_load_mechfile, capfd,
+                     mechfile_one_entry):
     """Test 'mech remove'."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     mock_os_getcwd.return_value = '/tmp'
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -952,10 +958,12 @@ def test_mech_remove(mock_os_getcwd, mock_load_mechfile, capfd):
     assert re.search(r'Removed', out, re.MULTILINE)
 
 
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_ONE_ENTRY)
+@patch('mech.utils.load_mechfile')
 @patch('os.getcwd')
-def test_mech_remove_a_nonexisting_entry(mock_os_getcwd, mock_load_mechfile, capfd):
+def test_mech_remove_a_nonexisting_entry(mock_os_getcwd, mock_load_mechfile,
+                                         capfd, mechfile_one_entry):
     """Test 'mech remove'."""
+    mock_load_mechfile.return_value = mechfile_one_entry
     mock_os_getcwd.return_value = '/tmp'
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -998,11 +1006,13 @@ pid=5, owner=root, cmd=kworker/0:0-events
 pid=6, owner=root, cmd=kworker/0:0H-kblockd
 """
 @patch('mech.vmrun.VMrun.list_processes_in_guest', return_value=PROCESSES)
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 @patch('os.getcwd')
-def test_mech_ps(mock_getcwd, mock_locate, mock_load_mechfile, mock_list_processes, capfd):
+def test_mech_ps(mock_getcwd, mock_locate, mock_load_mechfile, mock_list_processes, capfd,
+                 mechfile_two_entries):
     """Test 'mech ps'."""
+    mock_load_mechfile.return_value = mechfile_two_entries
     mock_getcwd.return_value = '/tmp'
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -1018,12 +1028,14 @@ def test_mech_ps(mock_getcwd, mock_locate, mock_load_mechfile, mock_list_process
     assert re.search(r'kworker', out, re.MULTILINE)
 
 
-@patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='')
 @patch('os.getcwd')
 def test_mech_ps_not_started_vm(mock_getcwd, mock_locate,
-                                mock_load_mechfile, capfd):
+                                mock_load_mechfile, capfd,
+                                mechfile_two_entries):
     """Test 'mech ps'."""
+    mock_load_mechfile.return_value = mechfile_two_entries
     mock_getcwd.return_value = '/tmp'
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
