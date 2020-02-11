@@ -220,7 +220,6 @@ def test_mech_snapshot_save_success(mock_locate, mock_load_mechfile,
     assert re.search(r' taken', out, re.MULTILINE)
 
 
-#@patch('mech.vmrun.VMrun.snapshot', return_value=None)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate')
 def test_mech_snapshot_save_failure(mock_locate, mock_load_mechfile,

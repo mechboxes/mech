@@ -133,10 +133,10 @@ class MechInstance():
                                                 lookup=lookup) if vmrun.installed_tools() else None
         if not ip_address:
             sys.exit(colored.red(textwrap.fill(
-                     "This Mech machine is reporting that it is not yet ready for SSH. "
-                     "Make sure your machine is created and running and try again. "
-                     "Additionally, check the output of `mech status` to verify "
-                     "that the machine is in the state that you expect.")))
+                "This Mech machine is reporting that it is not yet ready for SSH. "
+                "Make sure your machine is created and running and try again. "
+                "Additionally, check the output of `mech status` to verify "
+                "that the machine is in the state that you expect.")))
 
         insecure_private_key = os.path.abspath(os.path.join(
             utils.mech_dir(), "insecure_private_key"))
@@ -234,7 +234,7 @@ class MechBox(MechCommand):
         utils.add_box(name=None, box=None, location=location, box_version=box_version,
                       force=force, requests_kwargs=requests_kwargs)
 
-    def list(self, arguments):  # pylint: disable=no-self-use
+    def list(self, arguments):  # pylint: disable=no-self-use,unused-argument
         """
         List all available boxes in the catalog.
 
@@ -479,8 +479,8 @@ class Mech(MechCommand):
 
         if os.path.exists('Mechfile') and not force:
             sys.exit(colored.red(textwrap.fill(
-                     "`Mechfile` already exists in this directory. Remove it "
-                     "before running `mech init`.")))
+                "`Mechfile` already exists in this directory. Remove it "
+                "before running `mech init`.")))
 
         print(colored.green("Initializing mech"))
         if utils.init_mechfile(
@@ -669,7 +669,7 @@ class Mech(MechCommand):
     # allows "mech start" to alias to "mech up"
     start = up
 
-    def global_status(self, arguments):  # pylint: disable=no-self-use
+    def global_status(self, arguments):  # pylint: disable=no-self-use,unused-argument
         """
         Outputs info about all VMs running on this computer.
 

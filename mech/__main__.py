@@ -21,21 +21,19 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+"""Main entry for 'mech' command."""
 
 from __future__ import absolute_import
 
 
 def main():
+    """Main function."""
     try:
-        import os
         import sys
 
         from . import VERSION
         from .mech import Mech
-        from .utils import makedirs
 
-        MECH_DIR = os.path.expanduser(os.getcwd() + '/.mech')
-        makedirs(MECH_DIR)
         arguments = Mech.docopt(Mech.__doc__, argv=sys.argv[1:], version=VERSION)
         return Mech(arguments)()
     except KeyboardInterrupt:

@@ -1,6 +1,5 @@
 """Test mech utils."""
 import os
-import json
 
 from unittest.mock import patch, mock_open
 from collections import OrderedDict
@@ -285,43 +284,21 @@ def test_build_mechfile_entry_ftp_location_with_other_values():
                                            box='bbb', box_version='ccc') == expected
 
 
-def test_build_mechfile_entry_file_location_json():
+def test_build_mechfile_entry_file_location_json(catalog):
     """Test if location starts with 'file:' and contains valid json."""
 
     # Note: Download/format json like this:
     # curl --header 'Accept:application/json' \
     #    'https://app.vagrantup.com/bento/boxes/ubuntu-18.04' | python3 -m json.tool
-    json_data = """{
-        "description": "foo",
-        "short_description": "foo",
-        "name": "bento/ubuntu-18.04",
-        "versions": [
-            {
-                "version": "202002.04.0",
-                "status": "active",
-                "description_html": "foo",
-                "description_markdown": "foo",
-                "providers": [
-                    {
-                        "name": "vmware_desktop",
-                        "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
-versions/202002.04.0/providers/vmware_desktop.box",
-                        "checksum": null,
-                        "checksum_type": null
-                    }
-                ]
-            }
-        ]
-    }"""
     expected = {
         'box': 'bento/ubuntu-18.04',
-        'box_version': '202002.04.0',
+        'box_version': 'aaa',
         'name': 'first',
         'url':
         'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
-versions/202002.04.0/providers/vmware_desktop.box'
+versions/aaa/providers/vmware_desktop.box'
     }
-    a_mock = mock_open(read_data=json_data)
+    a_mock = mock_open(read_data=catalog)
     with patch('builtins.open', a_mock):
         actual = mech.utils.build_mechfile_entry(location='file:/tmp/one.json')
         assert expected == actual
@@ -337,31 +314,9 @@ def test_build_mechfile_entry_file_location_but_file_not_found():
 
 
 @patch('requests.get')
-def test_build_mechfile_entry_file_location_external_good(mock_requests_get):
+def test_build_mechfile_entry_file_location_external_good(mock_requests_get,
+                                                          catalog_as_json):
     """Test if location talks to Hashicorp."""
-    catalog = """{
-        "description": "foo",
-        "short_description": "foo",
-        "name": "bento/ubuntu-18.04",
-        "versions": [
-            {
-                "version": "aaa",
-                "status": "active",
-                "description_html": "foo",
-                "description_markdown": "foo",
-                "providers": [
-                    {
-                        "name": "vmware_desktop",
-                        "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
-versions/aaa/providers/vmware_desktop.box",
-                        "checksum": null,
-                        "checksum_type": null
-                    }
-                ]
-            }
-        ]
-    }"""
-    catalog_as_json = json.loads(catalog)
     expected = {
         'box': 'bento/ubuntu-18.04',
         'box_version': 'aaa',
