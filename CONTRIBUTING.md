@@ -46,6 +46,9 @@ pytest --cov mech
 # to see what lines are not covered
 pytest --cov-report term-missing --cov mech
 
+# to see the slowest tests
+pytest --durations=0
+
 # for testing/validation, we have also some integration tests
 cd tests/int
 ./simple.bats
