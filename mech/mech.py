@@ -1150,7 +1150,11 @@ class Mech(MechCommand):
 
         for instance in instances:
             inst = MechInstance(instance)
-            utils.provision(instance, inst.vmx, inst.user, inst.password, inst.provision, show)
+
+            if inst.created:
+                utils.provision(instance, inst.vmx, inst.user, inst.password, inst.provision, show)
+            else:
+                print("VM not created.")
 
     def reload(self, arguments):
         """

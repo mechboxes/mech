@@ -207,6 +207,105 @@ def test_mech_ip(mock_locate, mock_load_mechfile,
     assert re.search(r'192.168', out, re.MULTILINE)
 
 
+MECHFILE_WITH_PROVISIONING = {
+    "first": {
+        "box": "mrlesmithjr/alpine311",
+        "box_version": "1578437753",
+        "name": "first",
+        "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/\
+versions/1578437753/providers/vmware_desktop.box",
+        "provision": [
+            {
+                "type": "file",
+                "source": "file1.txt",
+                "destination": "/tmp/file1.txt"
+            },
+            {
+                "type": "file",
+                "source": "file2.txt",
+                "destination": "/tmp/file2.txt"
+            }
+        ]
+    },
+    "second": {
+        "box": "mrlesmithjr/alpine311",
+        "box_version": "1578437753",
+        "name": "second",
+        "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/\
+versions/1578437753/providers/vmware_desktop.box",
+        "provision": [
+            {
+                "type": "shell",
+                "path": "file1.sh",
+                "args": [
+                    "a=1",
+                    "b=true"
+                ]
+            },
+            {
+                "type": "shell",
+                "path": "file2.sh",
+                "args": []
+            },
+            {
+                "type": "shell",
+                "inline": "echo hello from inline"
+            }
+        ]
+    },
+    "third": {
+        "box": "mrlesmithjr/alpine311",
+        "box_version": "1578437753",
+        "name": "third",
+        "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/\
+    versions/1578437753/providers/vmware_desktop.box",
+        "provision": []
+    }
+}
+@patch('mech.utils.provision_file', return_value=True)
+@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_WITH_PROVISIONING)
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_provision_file(mock_locate, mock_load_mechfile,
+                             mock_installed_tools, mock_provision_file, capfd):
+    """Test 'mech provision' (using file provisioning)."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+        '--show-only': None,
+    }
+    a_mech.provision(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_installed_tools.assert_called()
+    mock_provision_file.assert_called()
+    assert re.search(r' Provision ', out, re.MULTILINE)
+
+
+@patch('mech.utils.provision_shell', return_value=True)
+@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_WITH_PROVISIONING)
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_provision_shell(mock_locate, mock_load_mechfile,
+                              mock_installed_tools, mock_provision_shell, capfd):
+    """Test 'mech provision' (using shell provisioning)."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'second',
+        '--show-only': None,
+    }
+    a_mech.provision(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_installed_tools.assert_called()
+    mock_provision_shell.assert_called()
+    assert re.search(r' Provision ', out, re.MULTILINE)
+
+
 @patch('mech.vmrun.VMrun.suspend', return_value=True)
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_TWO_ENTRIES)
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
