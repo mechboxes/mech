@@ -49,10 +49,17 @@ pytest --cov mech
 # to see what lines are not covered
 pytest --cov-report term-missing --cov mech
 
-# to see the slowest tests
+# or to get a nice html output
+pytest --cov-report html:cov_html --cov=mech
+# then open cov_html/index.html
+# or if you want all coverage html report
+pytest --cov-report html:cov_html --cov=mech -m"int or not int"
+
+# to see the slowest unit tests
 pytest --durations=0
 
 # for testing/validation, we have also some integration tests
+# NOTE: Can take 5+ minutes.
 # cd tests/int (see "all" file)
 # You can run the int tests by themselves directly if you change
 # into the tests/int directory.
