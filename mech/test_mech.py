@@ -538,7 +538,7 @@ def test_mech_ssh(mock_locate, mock_load_mechfile,
         '<instance>': 'first',
         '--plain': None,
         '--command': 'uptime',
-        '<extra_ssh_args>': 'blah',
+        '<extra-ssh-args>': 'blah',
     }
     filename = os.path.join(mech.utils.mech_dir(), 'insecure_private_key')
     a_mock = mock_open()
@@ -566,7 +566,7 @@ def test_mech_ssh_not_created(mock_locate, mock_load_mechfile,
         '<instance>': 'first',
         '--plain': None,
         '--command': 'uptime',
-        '<extra_ssh_args>': None,
+        '<extra-ssh-args>': None,
     }
     a_mech.ssh(arguments)
     # Note: Could not figure out how to capture output from subprocess.call.

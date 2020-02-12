@@ -1000,7 +1000,7 @@ class Mech(MechCommand):
         """
         Connects to machine via SSH.
 
-        Usage: mech ssh [options] <instance> [-- <extra_ssh_args>...]
+        Usage: mech ssh [options] <instance> [-- <extra-ssh-args>...]
 
         Options:
             -c, --command COMMAND            Execute an SSH command directly
@@ -1008,7 +1008,7 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         plain = arguments['--plain']
-        extra = arguments['<extra_ssh_args>']
+        extra = arguments['<extra-ssh-args>']
         command = arguments['--command']
 
         instance = arguments['<instance>']
@@ -1048,7 +1048,7 @@ class Mech(MechCommand):
         """
         Copies files to and from the machine via SCP.
 
-        Usage: mech scp [options] <src> <dst> [-- <extra_ssh_args>...]
+        Usage: mech scp [options] <src> <dst> [-- <extra-ssh-args>...]
 
         Options:
             -h, --help                       Print this help
