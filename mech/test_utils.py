@@ -2,7 +2,7 @@
 import os
 import re
 
-from unittest.mock import patch, mock_open
+from unittest.mock import patch, mock_open, MagicMock
 from collections import OrderedDict
 from pytest import raises
 
@@ -117,8 +117,21 @@ def test_save_mechfile_two(helpers):
 
 
 def test_tar_cmd():
-    """Note: not really a unit test per se, as it calls out."""
+    """Test tar cmd.
+       Note: not really a unit test per se, as it calls out.
+    """
     assert ["tar"] == mech.utils.tar_cmd()
+
+
+def test_tar_cmd_when_tar_not_found():
+    """Test tar cmd."""
+    a_mock = MagicMock()
+    a_mock.return_value = None
+    a_mock.returncode = None
+    a_mock.side_effect = OSError()
+    with patch('subprocess.Popen', a_mock):
+        tar = mech.utils.tar_cmd()
+        assert tar is None
 
 
 def test_config_ssh_string_empty():
