@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 #
-# shared_folders.bats - run shared_folders tests
+# add_and_remove_instances.bats - add and remove instance tests
 #
 # Note: must be run from this directory
-# like this: ./shared_folders.bats
+# like this: ./add_and_remove_instances.bats
 
 @test "add and remove instances tests" {
   if ! [ -d  add_and_remove_instances ]; then

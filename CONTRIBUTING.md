@@ -20,6 +20,9 @@ virtualenv -p python3 venv
 # Activate the python virtual environment
 source venv/bin/activate
 
+# consider installing/using direnv (there is a .envrc in this repo)
+# may need to run "direnv allow"
+
 # install mech from this code
 python setup.py install
 
@@ -37,7 +40,7 @@ flake8 --install-hook git
 # see https://github.com/bats-core/bats-core
 brew install bats-core
 
-# for testing:
+# for running unit tests:
 pytest
 
 # for code coverage
@@ -50,10 +53,12 @@ pytest --cov-report term-missing --cov mech
 pytest --durations=0
 
 # for testing/validation, we have also some integration tests
-cd tests/int
-./simple.bats
-./two_ubuntu.bats
+# cd tests/int (see "all" file)
+# You can run the int tests by themselves directly if you change
+# into the tests/int directory.
+# Or, you can run them from the main project directory like this:
+pytest -m"int"
 
-# consider installing/using direnv (there is a .envrc in this repo)
-# may need to run "direnv allow"
+# Or, just one run int test like this (with verbose and show local variables):
+pytest -m"int" -k"provision" -v -l
 ```
