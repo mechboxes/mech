@@ -930,7 +930,7 @@ class Mech(MechCommand):
                                 print(colored.yellow("VM ({}) already was started on an "
                                                      "unknown IP address".format(instance)))
             else:
-                print(colored.red("Need to start VM first"))
+                print(colored.red("VM not created"))
 
     def suspend(self, arguments):
         """
@@ -1044,7 +1044,7 @@ class Mech(MechCommand):
         Options:
             -h, --help                       Print this help
         """
-        extra = arguments['<extra_ssh_args>']
+        extra = arguments['<extra-ssh-args>']
         src = arguments['<src>']
         dst = arguments['<dst>']
 
@@ -1052,8 +1052,7 @@ class Mech(MechCommand):
         src_instance, src_is_host, src = src.partition(':')
 
         if dst_is_host and src_is_host:
-            print(colored.red("Both src and host are host destinations"))
-            sys.exit(1)
+            sys.exit(colored.red("Both src and dst are host destinations"))
         if dst_is_host:
             instance = dst_instance
         else:
@@ -1065,32 +1064,35 @@ class Mech(MechCommand):
 
         inst = MechInstance(instance)
 
-        config_ssh = inst.config_ssh()
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
+        if inst.created:
+            config_ssh = inst.config_ssh()
+            temp_file = tempfile.NamedTemporaryFile(delete=False)
 
-        try:
-            temp_file.write(utils.config_ssh_string(config_ssh).encode())
-            temp_file.close()
+            try:
+                temp_file.write(utils.config_ssh_string(config_ssh).encode())
+                temp_file.close()
 
-            cmds = ['scp']
-            cmds.extend(('-F', temp_file.name))
-            if extra:
-                cmds.extend(extra)
+                cmds = ['scp']
+                cmds.extend(('-F', temp_file.name))
+                if extra:
+                    cmds.extend(extra)
 
-            host = config_ssh['Host']
-            dst = '{}:{}'.format(host, dst) if dst_is_host else dst
-            src = '{}:{}'.format(host, src) if src_is_host else src
-            cmds.extend((src, dst))
+                host = config_ssh['Host']
+                dst = '{}:{}'.format(host, dst) if dst_is_host else dst
+                src = '{}:{}'.format(host, src) if src_is_host else src
+                cmds.extend((src, dst))
 
-            LOGGER.debug(
-                " ".join(
-                    "'{}'".format(
-                        c.replace(
-                            "'",
-                            "\\'")) if ' ' in c else c for c in cmds))
-            return subprocess.call(cmds)
-        finally:
-            os.unlink(temp_file.name)
+                LOGGER.debug(
+                    " ".join(
+                        "'{}'".format(
+                            c.replace(
+                                "'",
+                                "\\'")) if ' ' in c else c for c in cmds))
+                return subprocess.call(cmds)
+            finally:
+                os.unlink(temp_file.name)
+        else:
+            print(colored.red('VM not created.'))
 
     def ip(self, arguments):  # pylint: disable=invalid-name,no-self-use
         """
