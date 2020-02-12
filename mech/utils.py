@@ -145,7 +145,7 @@ def parse_vmx(path):
     return vmx
 
 
-def update_vmx(path, numvcpus=None, memsize=None):
+def update_vmx(path, numvcpus=None, memsize=None, no_nat=False):
     """Update the virtual machine configuration (.vmx)
        file with desired settings.
     """
@@ -163,7 +163,8 @@ def update_vmx(path, numvcpus=None, memsize=None):
     if not has_network:
         vmx["ethernet0.addresstype"] = "generated"
         vmx["ethernet0.bsdname"] = "en0"
-        vmx["ethernet0.connectiontype"] = "nat"
+        if not no_nat:
+            vmx["ethernet0.connectiontype"] = "nat"
         vmx["ethernet0.displayname"] = "Ethernet"
         vmx["ethernet0.linkstatepropagation.enable"] = "FALSE"
         vmx["ethernet0.pcislotnumber"] = "32"
@@ -323,7 +324,7 @@ def tar_cmd(*args, **kwargs):
 
 def init_box(name, box=None, box_version=None, location=None, force=False, save=True,
              instance_path=None, requests_kwargs=None, numvcpus=None,
-             memsize=None):
+             memsize=None, no_nat=False):
     """Initialize the box. This includes uncompressing the files
        from the box file and updating the vmx file with
        desired settings. Return the full path to the vmx file.
@@ -376,7 +377,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
         print(colored.red("Cannot locate a VMX file"))
         sys.exit(1)
 
-    update_vmx(vmx, numvcpus=numvcpus, memsize=memsize)
+    update_vmx(vmx, numvcpus=numvcpus, memsize=memsize, no_nat=no_nat)
     return vmx
 
 

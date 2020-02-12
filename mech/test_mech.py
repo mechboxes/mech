@@ -823,6 +823,7 @@ def test_mech_up_without_name(mock_load_mechfile):
         '--no-cache': None,
         '--memsize': None,
         '--numvcpus': None,
+        '--no-nat': None,
         '<instance>': '',
     }
     with raises(AttributeError, match=r"Must provide a name for the instance."):
@@ -850,6 +851,7 @@ def test_mech_up_with_name_not_in_mechfile(mock_load_mechfile,
         '--no-cache': None,
         '--memsize': None,
         '--numvcpus': None,
+        '--no-nat': None,
         '<instance>': 'notfirst',
     }
     with raises(SystemExit, match=r" was not found in the Mechfile"):
@@ -881,6 +883,7 @@ def test_mech_up_already_started(mock_locate, mock_load_mechfile, mock_init_box,
         '--no-cache': None,
         '--memsize': None,
         '--numvcpus': None,
+        '--no-nat': None,
         '<instance>': None,
     }
     a_mech.up(arguments)
@@ -919,6 +922,7 @@ def test_mech_up_already_started_but_could_not_get_ip(mock_locate, mock_load_mec
         '--no-cache': None,
         '--memsize': None,
         '--numvcpus': None,
+        '--no-nat': None,
         '<instance>': None,
     }
     a_mech.up(arguments)
@@ -956,6 +960,7 @@ def test_mech_up_already_started_but_on_unknnown_ip(mock_locate, mock_load_mechf
         '--no-cache': None,
         '--memsize': None,
         '--numvcpus': None,
+        '--no-nat': None,
         '<instance>': None,
     }
     a_mech.up(arguments)
@@ -992,6 +997,7 @@ def test_mech_up_problem(mock_locate, mock_load_mechfile, mock_init_box,
         '--no-cache': None,
         '--memsize': None,
         '--numvcpus': None,
+        '--no-nat': None,
         '<instance>': None,
     }
     a_mech.up(arguments)
@@ -1029,6 +1035,7 @@ def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile, mock_init_bo
         '--no-cache': None,
         '--memsize': None,
         '--numvcpus': None,
+        '--no-nat': None,
         '<instance>': None,
     }
     a_mech.up(arguments)
@@ -1071,6 +1078,7 @@ def test_mech_up_wth_shared_folders(mock_locate, mock_load_mechfile, mock_init_b
         '--no-cache': None,
         '--memsize': None,
         '--numvcpus': None,
+        '--no-nat': None,
         '<instance>': None,
     }
     a_mech.up(arguments)

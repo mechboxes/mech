@@ -210,8 +210,8 @@ class MechBox(MechCommand):
         Notes:
             The location can be a:
                 URL (ex: 'http://example.com/foo.box'),
-                .box file (ex: 'file:/mnt/boxen/foo.box'),
-                .json file (ex: 'file:/tmp/foo.json'), or
+                box file (ex: 'file:/mnt/boxen/foo.box'),
+                json file (ex: 'file:/tmp/foo.json'), or
                 HashiCorp account/box (ex: 'bento/ubuntu-18.04').
 
         Options:
@@ -447,8 +447,8 @@ class Mech(MechCommand):
         Notes:
             The location can be a:
                 URL (ex: 'http://example.com/foo.box'),
-                .box file (ex: 'file:/mnt/boxen/foo.box'),
-                .json file (ex: 'file:/tmp/foo.json'), or
+                box file (ex: 'file:/mnt/boxen/foo.box'),
+                json file (ex: 'file:/tmp/foo.json'), or
                 HashiCorp account/box (ex: 'bento/ubuntu-18.04').
 
         Options:
@@ -568,7 +568,12 @@ class Mech(MechCommand):
 
         Usage: mech up [options] [<instance>]
 
-        Note: If no instance is specified, all instances will be started.
+        Notes:
+           - If no instance is specified, all instances will be started.
+           - The options (memsize, numvcpus, and no-nat) will only be applied
+             upon first run of the 'up' command.
+           - The 'no-nat' option will only be applied if there is no network
+             interface supplied in the box file.
 
         Options:
                 --gui                        Start GUI
@@ -583,6 +588,7 @@ class Mech(MechCommand):
                 --no-cache                   Do not save the downloaded box
                 --memsize 1024               Specify the size of memory for VM
                 --numvcpus 1                 Specify the number of vcpus for VM
+                --no-nat                     Do not use NAT network (i.e., bridged)
             -h, --help                       Print this help
         """
         gui = arguments['--gui']
@@ -591,14 +597,16 @@ class Mech(MechCommand):
         save = not arguments['--no-cache']
         requests_kwargs = utils.get_requests_kwargs(arguments)
 
-        numvcpus = arguments['--numvcpus']
         memsize = arguments['--memsize']
+        numvcpus = arguments['--numvcpus']
+        no_nat = arguments['--no-nat']
 
         instance_name = arguments['<instance>']
 
         LOGGER.debug('gui:%s disable_shared_folders:%s disable_provisioning:%s '
-                     'save:%s numvcpus:%s memsize:%s', gui, disable_shared_folders,
-                     disable_provisioning, save, numvcpus, memsize)
+                     'save:%s numvcpus:%s memsize:%s no_nat:%s', gui,
+                     disable_shared_folders, disable_provisioning, save,
+                     numvcpus, memsize, no_nat)
 
         if instance_name:
             # single instance
@@ -623,7 +631,8 @@ class Mech(MechCommand):
                 requests_kwargs=requests_kwargs,
                 save=save,
                 numvcpus=numvcpus,
-                memsize=memsize)
+                memsize=memsize,
+                no_nat=no_nat)
             if vmx:
                 inst.vmx = vmx
                 inst.created = True
