@@ -776,13 +776,11 @@ class Mech(MechCommand):
                     vmrun.delete_vm()
                     if os.path.exists(inst.path):
                         shutil.rmtree(inst.path)
-                    else:
-                        LOGGER.debug("%s was not found.", inst.path)
                     print("Deleted")
                 else:
-                    print(colored.red("Deletion aborted"))
+                    print(colored.red("Delete aborted."))
             else:
-                print(colored.red("The box ({}) hasn't been initialized.".format(instance)))
+                print(colored.red("VM ({}) not created.".format(instance)))
 
     def down(self, arguments):
         """

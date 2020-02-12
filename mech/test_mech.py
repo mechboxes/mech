@@ -92,6 +92,25 @@ def test_mech_list_powered_on(mock_locate, mock_load_mechfile,
     assert re.search(r'192.168.', out, re.MULTILINE)
 
 
+@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=None)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_list_powered_off(mock_locate, mock_load_mechfile,
+                               mock_get_ip, capfd,
+                               mechfile_two_entries):
+    """Test 'mech list' powered off."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first', '--detail': None}
+    a_mech.list(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_get_ip.assert_called()
+    assert re.search(r'poweroff', out, re.MULTILINE)
+
+
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
 def test_mech_status_with_two_not_created(mock_locate, mock_load_mechfile, capfd,
@@ -161,6 +180,25 @@ def test_mech_destroy(mock_locate, mock_load_mechfile,
     assert re.search(r'Deleted', out, re.MULTILINE)
 
 
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_destroy_not_created(mock_locate, mock_load_mechfile,
+                                  capfd, mechfile_two_entries):
+    """Test 'mech destroy' not created."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': None,
+        '--force': True,
+    }
+    a_mech.destroy(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'not created', out, re.MULTILINE)
+
+
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.vmrun.VMrun.stop', return_value=True)
 @patch('mech.utils.load_mechfile')
@@ -185,6 +223,25 @@ def test_mech_down(mock_locate, mock_load_mechfile,
     assert re.search(r'Stopped', out, re.MULTILINE)
 
 
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_down_not_created(mock_locate, mock_load_mechfile,
+                               capfd, mechfile_two_entries):
+    """Test 'mech down' not created."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': None,
+        '--force': None,
+    }
+    a_mech.down(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r' not created', out, re.MULTILINE)
+
+
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.145")
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
@@ -203,6 +260,44 @@ def test_mech_ip(mock_locate, mock_load_mechfile,
     mock_load_mechfile.assert_called()
     mock_get_ip.assert_called()
     assert re.search(r'192.168', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=None)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_ip_unknown(mock_locate, mock_load_mechfile,
+                         mock_get_ip, capfd, mechfile_two_entries):
+    """Test 'mech ip' but cannot get ip address."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+    }
+    a_mech.ip(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_get_ip.assert_called()
+    assert re.search(r'Unknown', out, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_ip_not_created(mock_locate, mock_load_mechfile,
+                             capfd, mechfile_two_entries):
+    """Test 'mech ip' not created."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+    }
+    a_mech.ip(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'VM not created', out, re.MULTILINE)
 
 
 MECHFILE_WITH_PROVISIONING = {
@@ -282,6 +377,23 @@ def test_mech_provision_file(mock_locate, mock_load_mechfile,
     assert re.search(r' Provision ', out, re.MULTILINE)
 
 
+@patch('mech.utils.load_mechfile', return_value=MECHFILE_WITH_PROVISIONING)
+@patch('mech.utils.locate', return_value=None)
+def test_mech_provision_not_started(mock_locate, mock_load_mechfile, capfd):
+    """Test 'mech provision' (using file provisioning)."""
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': None,
+        '--show-only': None,
+    }
+    a_mech.provision(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'VM not created', out, re.MULTILINE)
+
+
 @patch('mech.utils.provision_shell', return_value=True)
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_WITH_PROVISIONING)
@@ -324,6 +436,24 @@ def test_mech_suspend(mock_locate, mock_load_mechfile,
     assert re.search(r'Suspended', out, re.MULTILINE)
 
 
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_suspend_not_created(mock_locate, mock_load_mechfile,
+                                  capfd, mechfile_two_entries):
+    """Test 'mech suspend' not created."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': None,
+    }
+    a_mech.suspend(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'VM has not been created', out, re.MULTILINE)
+
+
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.130")
 @patch('subprocess.call', return_value='00:03:30 up 2 min,  load average: 0.00, 0.00, 0.00')
@@ -340,7 +470,7 @@ def test_mech_ssh(mock_locate, mock_load_mechfile,
         '<instance>': 'first',
         '--plain': None,
         '--command': 'uptime',
-        '<extra_ssh_args>': None,
+        '<extra_ssh_args>': 'blah',
     }
     a_mech.ssh(arguments)
     # Note: Could not figure out how to capture output from subprocess.call.
@@ -349,6 +479,28 @@ def test_mech_ssh(mock_locate, mock_load_mechfile,
     mock_subprocess_call.assert_called()
     mock_installed_tools.assert_called()
     mock_get_ip.assert_called()
+
+
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_ssh_not_created(mock_locate, mock_load_mechfile,
+                              mechfile_two_entries, capfd):
+    """Test 'mech ssh'"""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+        '--plain': None,
+        '--command': 'uptime',
+        '<extra_ssh_args>': None,
+    }
+    a_mech.ssh(arguments)
+    # Note: Could not figure out how to capture output from subprocess.call.
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    out, _ = capfd.readouterr()
+    assert re.search(r'VM not created', out, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.pause', return_value=True)
@@ -372,6 +524,25 @@ def test_mech_pause(mock_locate, mock_load_mechfile,
     assert re.search(r'Paused', out, re.MULTILINE)
 
 
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_pause_not_created(mock_locate, mock_load_mechfile,
+                                capfd, mechfile_two_entries):
+    """Test 'mech pause' powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': None,
+        '--force': None,
+    }
+    a_mech.pause(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r' not created', out, re.MULTILINE)
+
+
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.1.101')
 @patch('mech.vmrun.VMrun.reset', return_value=True)
 @patch('mech.utils.load_mechfile')
@@ -393,6 +564,24 @@ def test_mech_reload(mock_locate, mock_load_mechfile,
     mock_vmrun_reset.assert_called()
     mock_get_ip.assert_called()
     assert re.search(r'started', out, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_reload_not_created(mock_locate, mock_load_mechfile,
+                                 capfd, mechfile_two_entries):
+    """Test 'mech reload' not created."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': None,
+    }
+    a_mech.reload(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'VM not created', out, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.1.101')
@@ -646,7 +835,7 @@ def test_mech_ssh_config_not_created(mock_locate, mock_load_mechfile, capfd,
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
-        '<instance>': 'first',
+        '<instance>': None,
     }
     a_mech.ssh_config(arguments)
     out, _ = capfd.readouterr()
