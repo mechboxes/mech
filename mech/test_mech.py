@@ -1,4 +1,5 @@
 """Test the mech cli. """
+import os
 import subprocess
 import re
 
@@ -454,6 +455,7 @@ def test_mech_suspend_not_created(mock_locate, mock_load_mechfile,
     assert re.search(r'VM has not been created', out, re.MULTILINE)
 
 
+@patch('os.chmod', return_value=True)
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.130")
 @patch('subprocess.call', return_value='00:03:30 up 2 min,  load average: 0.00, 0.00, 0.00')
@@ -461,7 +463,7 @@ def test_mech_suspend_not_created(mock_locate, mock_load_mechfile,
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_ssh(mock_locate, mock_load_mechfile,
                   mock_subprocess_call, mock_get_ip, mock_installed_tools,
-                  mechfile_two_entries):
+                  mock_chmod, mechfile_two_entries):
     """Test 'mech ssh'"""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
@@ -472,13 +474,18 @@ def test_mech_ssh(mock_locate, mock_load_mechfile,
         '--command': 'uptime',
         '<extra_ssh_args>': 'blah',
     }
-    a_mech.ssh(arguments)
-    # Note: Could not figure out how to capture output from subprocess.call.
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_subprocess_call.assert_called()
-    mock_installed_tools.assert_called()
-    mock_get_ip.assert_called()
+    filename = os.path.join(mech.utils.mech_dir(), 'insecure_private_key')
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        a_mech.ssh(arguments)
+        # Note: Could not figure out how to capture output from subprocess.call.
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_subprocess_call.assert_called()
+        mock_installed_tools.assert_called()
+        mock_get_ip.assert_called()
+        mock_chmod.assert_called()
+        a_mock.assert_called_once_with(filename, 'w')
 
 
 @patch('mech.utils.load_mechfile')

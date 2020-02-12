@@ -37,20 +37,7 @@ def test_save_mechfile_empty_config():
     a_mock.return_value.write.assert_called_once_with('{}')
 
 
-def _get_data_written(a_mock):
-    """Helper function to get the data written to a mocked file."""
-    written = ''
-    for call in a_mock.mock_calls:
-        tmp = '{}'.format(call)
-        if tmp.startswith('call().write('):
-            line = tmp.replace("call().write('", '')
-            line = line.replace("')", '')
-            line = line.replace("\\n", '\n')
-            written += line
-    return written
-
-
-def test_save_mechfile_one():
+def test_save_mechfile_one(helpers):
     """Test save_mechfile with one entry."""
     first_dict = {
         'first': {
@@ -78,10 +65,10 @@ def test_save_mechfile_one():
     with patch('builtins.open', a_mock, create=True):
         assert mech.utils.save_mechfile(first_dict)
     a_mock.assert_called_once_with(filename, 'w+')
-    assert first_json == _get_data_written(a_mock)
+    assert first_json == helpers.get_mock_data_written(a_mock)
 
 
-def test_save_mechfile_two():
+def test_save_mechfile_two(helpers):
     """Test save_mechfile with two entries."""
     two_dict = {
         'first': {
@@ -126,7 +113,7 @@ def test_save_mechfile_two():
     with patch('builtins.open', a_mock, create=True):
         assert mech.utils.save_mechfile(two_dict)
     a_mock.assert_called_once_with(filename, 'w+')
-    assert two_json == _get_data_written(a_mock)
+    assert two_json == helpers.get_mock_data_written(a_mock)
 
 
 def test_tar_cmd():
@@ -238,7 +225,7 @@ config.version = "8"'''
 
 
 @patch('mech.utils.parse_vmx')
-def test_update_vmx_empty(mock_parse_vmx, capfd):
+def test_update_vmx_empty(mock_parse_vmx, helpers, capfd):
     """Test update_vmx."""
     expected_vmx = """ethernet0.addresstype = generated
 ethernet0.bsdname = en0
@@ -255,7 +242,7 @@ ethernet0.wakeonpcktrcv = FALSE
     with patch('builtins.open', a_mock, create=True):
         mech.utils.update_vmx('/tmp/first/one.vmx')
         a_mock.assert_called()
-        got = _get_data_written(a_mock)
+        got = helpers.get_mock_data_written(a_mock)
         assert expected_vmx == got
         out, _ = capfd.readouterr()
         assert re.search(r'Added network interface to vmx file', out, re.MULTILINE)
@@ -274,7 +261,7 @@ def test_update_vmx_with_a_network_entry(mock_parse_vmx, capfd):
 
 
 @patch('mech.utils.parse_vmx')
-def test_update_vmx_with_cpu_and_memory(mock_parse_vmx, capfd):
+def test_update_vmx_with_cpu_and_memory(mock_parse_vmx, helpers, capfd):
     """Test update_vmx."""
     mock_parse_vmx.return_value = {'ethernet0.present': 'true'}
     expected_vmx = '''ethernet0.present = true
@@ -285,7 +272,7 @@ memsize = "1025"
     with patch('builtins.open', a_mock, create=True):
         mech.utils.update_vmx('/tmp/first/one.vmx', numvcpus=3, memsize=1025)
         a_mock.assert_called()
-        got = _get_data_written(a_mock)
+        got = helpers.get_mock_data_written(a_mock)
         assert expected_vmx == got
         out, _ = capfd.readouterr()
         assert out == ''

@@ -122,3 +122,23 @@ def mech_init_arguments():
         '--box': None,
         '<location>': None,
     }
+
+
+class Helpers:
+    @staticmethod
+    def get_mock_data_written(a_mock):
+        """Helper function to get the data written to a mocked file."""
+        written = ''
+        for call in a_mock.mock_calls:
+            tmp = '{}'.format(call)
+            if tmp.startswith('call().write('):
+                line = tmp.replace("call().write('", '')
+                line = line.replace("')", '')
+                line = line.replace("\\n", '\n')
+                written += line
+        return written
+
+
+@pytest.fixture
+def helpers():
+    return Helpers
