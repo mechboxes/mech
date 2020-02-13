@@ -122,3 +122,29 @@ If you do not specify how many vcpus or memory, then the values
 in the .box file will be used. To override, use appropriate settings:
 
 `mech up --numvcpus 2 --memsize 1024`
+
+
+# Want zsh completion for commands/options (aka "tab completion")?
+1. add these lines to ~/.zshrc
+
+```bash
+# folder of all of your autocomplete functions
+fpath=($HOME/.zsh-completions $fpath)
+# enable autocomplete function
+autoload -U compinit
+compinit
+```
+
+2. Copy script to something in fpath (Note: Run `echo $fpath` to show value.)
+
+```bash
+cp _mech ~/.zsh-completions/
+```
+
+3. Reload zsh
+
+```bash
+exec zsh
+```
+
+4. Try it out by typing `mech <tab>`. It should show the options available.

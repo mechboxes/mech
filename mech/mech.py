@@ -215,14 +215,14 @@ class MechBox(MechCommand):
                 HashiCorp account/box (ex: 'bento/ubuntu-18.04').
 
         Options:
-            -f, --force                      Overwrite an existing box if it exists
-                --insecure                   Do not validate SSL certificates
+                --box-version VERSION        Constrain version of the added box
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
                 --cert FILE                  A client SSL cert, if needed
-                --box-version VERSION        Constrain version of the added box
                 --checksum CHECKSUM          Checksum for the box
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
+                --insecure                   Do not validate SSL certificates
+            -f, --force                      Overwrite an existing box if it exists
             -h, --help                       Print this help
         """
 
@@ -387,26 +387,26 @@ class Mech(MechCommand):
         --debug                          Show debug messages.
 
     Common commands:
-        (list|ls)         lists all available boxes
-        init              initializes a new Mech environment by creating a Mechfile
-        destroy           stops and deletes all traces of the instances
-        (up|start)        starts instances (aka virtual machines)
-        (down|stop|halt)  stops the instances
-        suspend           suspends the instances
-        pause             pauses the instances
-        ssh               connects to an instance via SSH
-        ssh-config        outputs OpenSSH valid configuration to connect to the instances
-        scp               copies files to/from the machine via SCP
-        ip                outputs ip of an instance
         box               manages boxes: add, list remove, etc.
+        destroy           stops and deletes all traces of the instances
+        (down|stop|halt)  stops the instances
         global-status     outputs status of all virutal machines on this host
-        status            outputs status of the instances
-        ps                list running processes for an instance
+        init              initializes a new Mech environment by creating a Mechfile
+        ip                outputs ip of an instance
+        (list|ls)         lists all available boxes
+        pause             pauses the instances
+        port              displays information about guest port mappings
         provision         provisions the Mech machine
+        ps                list running processes for an instance
         reload            restarts Mech machine, loads new Mechfile configuration
         resume            resume a paused/suspended Mech machine
+        scp               copies files to/from the machine via SCP
         snapshot          manages snapshots: save, list, remove, etc.
-        port              displays information about guest port mappings
+        ssh               connects to an instance via SSH
+        ssh-config        outputs OpenSSH valid configuration to connect to the instances
+        status            outputs status of the instances
+        suspend           suspends the instances
+        (up|start)        starts instances (aka virtual machines)
 
     For help on any individual command run `mech <command> -h`
 
@@ -452,17 +452,17 @@ class Mech(MechCommand):
                 HashiCorp account/box (ex: 'bento/ubuntu-18.04').
 
         Options:
-            -f, --force                      Overwrite existing Mechfile
-                --insecure                   Do not validate SSL certificates
+                --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
+                --box-version VERSION        Constrain version of the added box
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
                 --cert FILE                  A client SSL cert, if needed
-                --box-version VERSION        Constrain version of the added box
                 --checksum CHECKSUM          Checksum for the box
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
-                --name INSTANCE              Name of the instance (myinst1)
-                --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
+            -f, --force                      Overwrite existing Mechfile
             -h, --help                       Print this help
+                --insecure                   Do not validate SSL certificates
+                --name INSTANCE              Name of the instance (myinst1)
         """
         name = arguments['--name']
         box_version = arguments['--box-version']
@@ -502,14 +502,14 @@ class Mech(MechCommand):
         Example box: bento/ubuntu-18.04
 
         Options:
-                --insecure                   Do not validate SSL certificates
+                --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
+                --box-version VERSION        Constrain version of the added box
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
                 --cert FILE                  A client SSL cert, if needed
-                --box-version VERSION        Constrain version of the added box
                 --checksum CHECKSUM          Checksum for the box
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
-                --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
+                --insecure                   Do not validate SSL certificates
             -h, --help                       Print this help
         """
         name = arguments['<name>']
@@ -576,19 +576,19 @@ class Mech(MechCommand):
              interface supplied in the box file.
 
         Options:
-                --gui                        Start GUI
-                --disable-shared-folders     Do not share folders with VM
-                --disable-provisioning       Do not provision
-                --insecure                   Do not validate SSL certificates
                 --cacert FILE                CA certificate for SSL download
                 --capath DIR                 CA certificate directory for SSL download
                 --cert FILE                  A client SSL cert, if needed
                 --checksum CHECKSUM          Checksum for the box
                 --checksum-type TYPE         Checksum type (md5, sha1, sha256)
-                --no-cache                   Do not save the downloaded box
+                --disable-provisioning       Do not provision
+                --disable-shared-folders     Do not share folders with VM
+                --gui                        Start GUI
+                --insecure                   Do not validate SSL certificates
                 --memsize 1024               Specify the size of memory for VM
-                --numvcpus 1                 Specify the number of vcpus for VM
+                --no-cache                   Do not save the downloaded box
                 --no-nat                     Do not use NAT network (i.e., bridged)
+                --numvcpus 1                 Specify the number of vcpus for VM
             -h, --help                       Print this help
         """
         gui = arguments['--gui']
@@ -798,7 +798,7 @@ class Mech(MechCommand):
         Usage: mech down [options] [<instance>]
 
         Options:
-                --force                      Force a hard stop
+            -f, --force                      Force a hard stop
             -h, --help                       Print this help
         """
         force = arguments['--force']
@@ -1137,8 +1137,8 @@ class Mech(MechCommand):
         Usage: mech provision [options] [<instance>]
 
         Options:
-            -s, --show-only                  Show the provisioning info (do not run)
             -h, --help                       Print this help
+            -s, --show-only                  Show the provisioning info (do not run)
         """
         show = arguments['--show-only']
         instance_name = arguments['<instance>']
@@ -1215,8 +1215,8 @@ class Mech(MechCommand):
 
         Options:
                 --guest PORT                 Output the host port that maps to the given guest port
-                --machine-readable           Display machine-readable output
             -h, --help                       Print this help
+                --machine-readable           Display machine-readable output
         """
         instance_name = arguments['<instance>']
 
