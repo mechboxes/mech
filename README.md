@@ -148,3 +148,24 @@ exec zsh
 ```
 
 4. Try it out by typing `mech <tab>`. It should show the options available.
+
+# Want bash completion for commands/options (aka "tab completion")?
+1. add these lines to ~/.bash_profile
+
+```bash
+[ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
+```
+
+2. Copy script to path above
+
+```bash
+cp mech_completion.sh /usr/local/etc/bash_completion/
+```
+
+3. Reload .bash_profile
+
+```bash
+source ~/.bash_profile
+```
+
+4. Try it out by typing `mech <tab>`. It should show the options available.

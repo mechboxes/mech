@@ -42,7 +42,6 @@ __mech_box_list () {
 
 function _mech_box_arguments {
   _arguments \
-    "--force[Force a hard stop]" \
     "-h[Show help information]" \
     "1: :(add delete list ls remove)"
   }
@@ -74,6 +73,7 @@ function _mech_down {
   typeset -A opt_args
 
   _arguments -C \
+    "-f[Force a hard stop]" \
     "--force[Force a hard stop]" \
     "-h[Show help information]" \
     "--help[Show help information]" \
@@ -102,8 +102,8 @@ function _mech_init {
     "--cert=[FILE A client SSL cert, if needed]" \
     "--checksum=[CHECKSUM Checksum for the box]" \
     "--checksum-type=[TYPE Checksum type (md5, sha1, sha256)]" \
-    "-force[Force a hard stop]" \
-    "--force[Force a hard stop]" \
+    "-f[Overwrite exsting Mechfile]" \
+    "--force[Overwrite existing Mechfile]" \
     "-h[Show help information]" \
     "--help[Show help information]" \
     "--insecure[Do not validate SSL certificates]" \
@@ -146,7 +146,7 @@ function _mech_port {
   typeset -A opt_args
 
   _arguments -C \
-    "-g[PORT Output the host port that maps to the given guest port]" \
+    "--guest[PORT Output the host port that maps to the given guest port]" \
     "-h[Show help information]" \
     "--help[Show help information]" \
     "--machine-readable[Display machine-readable output]" \
