@@ -6,7 +6,7 @@
 # like this: ./shared_folders.bats
 
 @test "shared folders testing" {
-  cd provision
+  cd shared_folders
 
   # setup
   find . -type d -name .mech -exec rm -rf {} \; 2> /dev/null || true
@@ -21,6 +21,14 @@
   [ "$status" -eq 0 ]
   [[ "$output" =~ $regex1 ]]
 
+  # make sure we can see files on 2nd "mech2" mount
+  date > /tmp/now
+  run mech ssh -c "ls -al /mnt/hgfs/mech2/now" first
+  regex1=" /mnt/hgfs/mech2/now"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $regex1 ]]
+  rm /tmp/now
+
   run mech stop
   regex1="Stopped"
   [ "$status" -eq 0 ]
@@ -33,7 +41,7 @@
 
   run mech ssh -c "ls -al /mnt/hgfs/mech/Mechfile" first
   regex1="No such file or directory"
-  [ "$status" -eq 1 ]
+  [ "$status" -eq 2 ]
   [[ "$output" =~ $regex1 ]]
 
   run mech pause
@@ -48,7 +56,7 @@
 
   run mech ssh -c "ls -al /mnt/hgfs/mech/Mechfile" first
   regex1="No such file or directory"
-  [ "$status" -eq 1 ]
+  [ "$status" -eq 2 ]
   [[ "$output" =~ $regex1 ]]
 
   run mech pause

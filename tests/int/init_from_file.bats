@@ -39,7 +39,7 @@
   regex3="Added network"
   regex4="Bringing machine"
   regex5="Getting IP"
-  regex6="Sharing current folder"
+  regex6="Sharing folders"
   regex7="started"
   [ "$status" -eq 0 ]
   [[ "$output" =~ $regex1 ]]

@@ -97,6 +97,7 @@ class MechInstance():
         self.provision = mechfile[name].get('provision', None)
         self.enable_ip_lookup = False
         self.config = {}
+        self.shared_folders = mechfile[name].get('shared_folders', [])
         self.user = DEFAULT_USER
         self.password = DEFAULT_PASSWORD
         self.path = os.path.join(utils.mech_dir(), name)
@@ -117,13 +118,13 @@ class MechInstance():
                 'url:{url}{sep}box_file:{box_file}{sep}provision:{provision}{sep}'
                 'vmx:{vmx}{sep}user:{user}{sep}'
                 'password:{password}{sep}enable_ip_lookup:{enable_ip_lookup}'
-                '{sep}config:{config}'.
+                '{sep}config:{config}{sep}shared_folders:{shared_folders}'.
                 format(name=self.name, created=self.created, box=self.box,
                        box_version=self.box_version, url=self.url,
                        box_file=self.box_file, provision=self.provision,
                        vmx=self.vmx, user=self.user, password=self.password,
                        enable_ip_lookup=self.enable_ip_lookup, config=self.config,
-                       sep=sep))
+                       shared_folders=self.shared_folders, sep=sep))
 
     def config_ssh(self):
         """Configure ssh to work. Create a insecure private key file for ssh/scp."""
@@ -450,6 +451,8 @@ class Mech(MechCommand):
                 box file (ex: 'file:/mnt/boxen/foo.box'),
                 json file (ex: 'file:/tmp/foo.json'), or
                 HashiCorp account/box (ex: 'bento/ubuntu-18.04').
+            A default shared folder name 'mech' will be available
+            in the guest for the current directory.
 
         Options:
                 --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
@@ -574,6 +577,10 @@ class Mech(MechCommand):
              upon first run of the 'up' command.
            - The 'no-nat' option will only be applied if there is no network
              interface supplied in the box file.
+           - Unless 'disable-shared-folders' is used, a default read/write
+             share called "mech" will be mounted from the current directory.
+             (ex: '/mnt/hgfs/mech' on guest will have the file "Mechfile".)
+             To change shared folders, modify the Mechfile directly.
 
         Options:
                 --cacert FILE                CA certificate for SSL download
@@ -647,9 +654,7 @@ class Mech(MechCommand):
                 lookup = inst.enable_ip_lookup
                 ip_address = vmrun.get_guest_ip_address(lookup=lookup)
                 if not disable_shared_folders:
-                    print(colored.blue("Sharing current folder..."))
-                    vmrun.enable_shared_folders(quiet=False)
-                    vmrun.add_shared_folder('mech', utils.main_dir(), quiet=True)
+                    utils.share_folders(vmrun, inst)
                 if ip_address:
                     if started:
                         print(colored.green("VM ({})"
@@ -899,9 +904,7 @@ class Mech(MechCommand):
                     lookup = inst.enable_ip_lookup
                     ip_address = vmrun.get_guest_ip_address(lookup=lookup)
                     if not disable_shared_folders:
-                        print(colored.blue("Sharing current folder..."))
-                        vmrun.enable_shared_folders(quiet=False)
-                        vmrun.add_shared_folder('mech', utils.main_dir(), quiet=True)
+                        utils.share_folders(vmrun, inst)
                     else:
                         print(colored.blue("Disabling shared folders..."))
                         vmrun.disable_shared_folders(quiet=False)
@@ -921,9 +924,7 @@ class Mech(MechCommand):
                         lookup = inst.enable_ip_lookup
                         ip_address = vmrun.get_guest_ip_address(lookup=lookup)
                         if not disable_shared_folders:
-                            print(colored.blue("Sharing current folder..."))
-                            vmrun.enable_shared_folders(quiet=False)
-                            vmrun.add_shared_folder('mech', utils.main_dir(), quiet=True)
+                            utils.share_folders(vmrun, inst)
                         if ip_address:
                             if started:
                                 print(colored.green("VM ({}) started on "

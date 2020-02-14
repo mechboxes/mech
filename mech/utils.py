@@ -217,7 +217,15 @@ def load_mechfile(should_exist=True):
             return {}
 
 
-def build_mechfile_entry(location, box=None, name=None, box_version=None, requests_kwargs=None):
+def default_shared_folders():
+    """Return the default shared folders config.
+       The host_path value of "../.." is because it is relative to the vmx file.
+    """
+    return [{'share_name': 'mech', 'host_path': '../..'}]
+
+
+def build_mechfile_entry(location, box=None, name=None, box_version=None,
+                         shared_folders=None, requests_kwargs=None):
     """Build the Mechfile from the inputs."""
     LOGGER.debug("location:%s name:%s box:%s box_version:%s", location, name, box, box_version)
     if requests_kwargs is None:
@@ -230,6 +238,10 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None, reques
     mechfile_entry['name'] = name
     mechfile_entry['box'] = box
     mechfile_entry['box_version'] = box_version
+
+    if shared_folders is None:
+        shared_folders = default_shared_folders()
+    mechfile_entry['shared_folders'] = shared_folders
 
     if any(location.startswith(s) for s in ('https://', 'http://', 'ftp://')):
         if not name:
@@ -293,6 +305,7 @@ def catalog_to_mechfile(catalog, name=None, box=None, box_version=None):
                     mechfile['box'] = catalog['name']
                     mechfile['box_version'] = current_version
                     mechfile['url'] = provider['url']
+                    mechfile['shared_folders'] = default_shared_folders()
                     return mechfile
     sys.exit(colored.red("Couldn't find a VMWare compatible VM using catalog:{}".format(catalog)))
 
@@ -726,3 +739,13 @@ def config_ssh_string(config_ssh):
         if key != 'Host':
             ssh_config += "  {} {}".format(key, value) + os.linesep
     return ssh_config
+
+
+def share_folders(vmrun, inst):
+    print(colored.blue("Sharing folders..."))
+    vmrun.enable_shared_folders(quiet=False)
+    for share in inst.shared_folders:
+        share_name = share.get('share_name')
+        host_path = share.get('host_path')
+        print(colored.blue("share:{} host_path:{}".format(share_name, host_path)))
+        vmrun.add_shared_folder(share_name, host_path, quiet=True)

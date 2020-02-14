@@ -755,7 +755,7 @@ def test_mech_resume_shared_folders(mock_locate, mock_load_mechfile,
     mock_enable_shared_folders.assert_called()
     mock_add_shared_folder.assert_called()
     mock_vmrun_get_ip.assert_called()
-    assert re.search(r'Sharing current', out, re.MULTILINE)
+    assert re.search(r'Sharing folders', out, re.MULTILINE)
     assert re.search(r'resumed', out, re.MULTILINE)
 
 
@@ -789,7 +789,7 @@ def test_mech_resume_unpause_fails_starts_successfully_with_shared_folders(
     mock_enable_shared_folders.assert_called()
     mock_add_shared_folder.assert_called()
     mock_vmrun_get_ip.assert_called()
-    assert re.search(r'Sharing current', out, re.MULTILINE)
+    assert re.search(r'Sharing folders', out, re.MULTILINE)
     assert re.search(r'started', out, re.MULTILINE)
 
 
@@ -1049,7 +1049,6 @@ def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile, mock_init_bo
     assert re.search(r'started', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.add_shared_folder')
 @patch('mech.vmrun.VMrun.enable_shared_folders')
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value=True)
@@ -1059,8 +1058,7 @@ def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile, mock_init_bo
 def test_mech_up_wth_shared_folders(mock_locate, mock_load_mechfile, mock_init_box,
                                     mock_vmrun_start, mock_vmrun_get_ip,
                                     mock_vmrun_enable_shared_folders,
-                                    mock_vmrun_add_shared_folder, capfd,
-                                    mechfile_one_entry):
+                                    capfd, mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
@@ -1088,7 +1086,6 @@ def test_mech_up_wth_shared_folders(mock_locate, mock_load_mechfile, mock_init_b
     mock_vmrun_start.assert_called()
     mock_vmrun_get_ip.assert_called()
     mock_vmrun_enable_shared_folders.assert_called()
-    mock_vmrun_add_shared_folder.assert_called()
     out, _ = capfd.readouterr()
     assert re.search(r'started', out, re.MULTILINE)
 

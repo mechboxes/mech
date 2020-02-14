@@ -47,7 +47,7 @@
   regex7="Added network"
   regex8="Bringing machine"
   regex9="Getting IP"
-  regex10="Sharing current folder"
+  regex10="Sharing folders"
   regex11="started"
   [ "$status" -eq 0 ]
   [[ "$output" =~ $regex1 ]]
@@ -66,7 +66,7 @@
   run mech up
   regex1="Bringing machine"
   regex2="Getting IP"
-  regex3="Sharing current folder"
+  regex3="Sharing folders"
   regex4="was already started"
   [ "$status" -eq 0 ]
   [[ "$output" =~ $regex1 ]]
@@ -78,7 +78,7 @@
   run mech start
   regex1="Bringing machine"
   regex2="Getting IP"
-  regex3="Sharing current folder"
+  regex3="Sharing folders"
   regex4="was already started"
   [ "$status" -eq 0 ]
   [[ "$output" =~ $regex1 ]]

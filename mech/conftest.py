@@ -23,6 +23,12 @@ def mechfile_two_entries():
             'name': 'first',
             'box': 'bento/ubuntu-18.04',
             'box_version': '201912.04.0',
+            'shared_folders': [
+                {
+                    "host_path": ".",
+                    "share_name": "mech"
+                }
+            ],
             'url':
             'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/'
             'versions/201912.04.0/providers/vmware_desktop.box'

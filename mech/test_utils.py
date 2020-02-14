@@ -302,6 +302,7 @@ def test_build_mechfile_entry_https_location():
         'box': None,
         'box_version': None,
         'name': None,
+        'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
         'url': 'https://foo'
     }
 
@@ -312,6 +313,7 @@ def test_build_mechfile_entry_http_location():
         'box': None,
         'box_version': None,
         'name': None,
+        'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
         'url':
         'http://foo'
     }
@@ -323,6 +325,7 @@ def test_build_mechfile_entry_ftp_location():
         'box': None,
         'box_version': None,
         'name': None,
+        'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
         'url': 'ftp://foo'
     }
 
@@ -333,6 +336,7 @@ def test_build_mechfile_entry_ftp_location_with_other_values():
         'box': 'bbb',
         'box_version': 'ccc',
         'name': 'aaa',
+        'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
         'url': 'ftp://foo'
     }
     assert mech.utils.build_mechfile_entry(location='ftp://foo', name='aaa',
@@ -349,6 +353,7 @@ def test_build_mechfile_entry_file_location_json(catalog):
         'box': 'bento/ubuntu-18.04',
         'box_version': 'aaa',
         'name': 'first',
+        'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
         'url':
         'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
 versions/aaa/providers/vmware_desktop.box'
@@ -376,6 +381,7 @@ def test_build_mechfile_entry_file_location_external_good(mock_requests_get,
         'box': 'bento/ubuntu-18.04',
         'box_version': 'aaa',
         'name': None,
+        'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
         'url':
         'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
 versions/aaa/providers/vmware_desktop.box'
