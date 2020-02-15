@@ -46,6 +46,7 @@ def get_fallback_executable():
             vmrun = os.path.join(path, 'vmrun.exe')
             if os.path.exists(vmrun):
                 return vmrun
+    return None
 
 
 def get_darwin_executable():
@@ -114,13 +115,6 @@ class VMrun():  # pylint: disable=too-many-public-methods
        The 'vmrun' command is used to interact with VMware.
        To add/update vmware functionality, run the 'vmrun' command with '--help'.
     """
-    if sys.platform == 'darwin':
-        default_executable = get_darwin_executable()
-    elif sys.platform == 'win32':
-        default_executable = get_win32_executable()
-    else:
-        default_executable = get_fallback_executable()
-    default_provider = get_provider(default_executable)
 
     def __init__(self, vmx_file=None,  # pylint: disable=too-many-arguments
                  user=None, password=None, executable=None, provider=None):
@@ -128,8 +122,19 @@ class VMrun():  # pylint: disable=too-many-public-methods
         self.vmx_file = vmx_file
         self.user = user
         self.password = password
-        self.executable = executable or self.default_executable
-        self.provider = provider or self.default_provider
+        self.executable = executable
+        self.provider = provider
+
+        if self.executable is None:
+            if sys.platform == 'darwin':
+                default_executable = get_darwin_executable()
+            elif sys.platform == 'win32':
+                default_executable = get_win32_executable()
+            else:
+                default_executable = get_fallback_executable()
+        if self.provider is None:
+            if default_executable is not None:
+                self.provider = get_provider(default_executable)
 
     def vmrun(self, cmd, *args, **kwargs):
         """Execute a 'vmrun' command."""

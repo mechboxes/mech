@@ -6,13 +6,14 @@ import subprocess
 import re
 
 from unittest.mock import patch, mock_open
-from pytest import raises
+from pytest import raises, mark
 
 import mech.command
 import mech.mech
 import mech.vmrun
 
 
+@mark.int
 def test_version():
     """Test '--version'."""
     return_value, out = subprocess.getstatusoutput('mech --version')
@@ -20,6 +21,7 @@ def test_version():
     assert return_value == 0
 
 
+@mark.int
 def test_help():
     """Test '--help'."""
     return_value, out = subprocess.getstatusoutput('mech --help')
@@ -659,13 +661,14 @@ def test_mech_reload_not_created(mock_locate, mock_load_mechfile,
     assert re.search(r'VM not created', out, re.MULTILINE)
 
 
+@patch('mech.vmrun.VMrun.disable_shared_folders', return_value=True)
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.1.101')
 @patch('mech.vmrun.VMrun.unpause', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_resume(mock_locate, mock_load_mechfile,
                      mock_vmrun_unpause, mock_vmrun_get_ip,
-                     capfd, mechfile_two_entries):
+                     mock_vmrun_disable_shared_folders, capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
@@ -680,6 +683,7 @@ def test_mech_resume(mock_locate, mock_load_mechfile,
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_vmrun_unpause.assert_called()
+    mock_vmrun_disable_shared_folders.assert_called()
     mock_vmrun_get_ip.assert_called()
     assert re.search(r'resumed', out, re.MULTILINE)
 
@@ -1110,11 +1114,12 @@ def test_mech_ssh_config_not_created(mock_locate, mock_load_mechfile, capfd,
     assert re.search(r'not created', out, re.MULTILINE)
 
 
+@patch('mech.vmrun.VMrun.check_tools_state', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate')
 @patch('os.getcwd')
 def test_mech_ssh_config_not_started(mock_getcwd, mock_locate, mock_load_mechfile,
-                                     mechfile_one_entry):
+                                     mock_check_tools_state, mechfile_one_entry):
     """Test 'mech ssh-config' when vm is created but not started."""
     mock_locate.return_value = '/tmp/first/some.vmx'
     mock_load_mechfile.return_value = mechfile_one_entry

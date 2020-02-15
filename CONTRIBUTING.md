@@ -14,6 +14,9 @@ git clone git@github.com:mkinney/mech.git
 # Change into that cloned directory
 cd mech
 
+# If virtualenv is not installed:
+sudo apt-get install virtualenv
+
 # Create a virtualenv
 virtualenv -p python3 venv
 
