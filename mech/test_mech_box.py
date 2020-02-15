@@ -1,3 +1,5 @@
+# Copyright (c) 2020 Mike Kinney
+
 """Unit tests for 'mech box'."""
 import re
 

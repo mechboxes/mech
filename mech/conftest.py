@@ -1,3 +1,5 @@
+# Copyright (c) 2020 Mike Kinney
+
 """Common pytest code."""
 import json
 import pytest

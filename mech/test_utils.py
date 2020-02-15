@@ -1,3 +1,5 @@
+# Copyright (c) 2020 Mike Kinney
+
 """Test mech utils."""
 import os
 import re

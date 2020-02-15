@@ -1,3 +1,5 @@
+# Copyright (c) 2020 Mike Kinney
+
 """Test the mech cli. """
 import os
 import subprocess
