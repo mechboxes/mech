@@ -196,6 +196,7 @@ def test_mech_status_could_not_get_ip(mock_locate, mock_load_mechfile,
     assert re.search(r'VM is on.*no IP to connect', out, re.MULTILINE)
 
 
+@patch('mech.vmrun.get_provider', return_value=None)
 @patch('os.path.exists', return_value=True)
 @patch('shutil.rmtree')
 @patch('mech.vmrun.VMrun.delete_vm')
@@ -204,8 +205,8 @@ def test_mech_status_could_not_get_ip(mock_locate, mock_load_mechfile,
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_destroy(mock_locate, mock_load_mechfile,
                       mock_vmrun_stop, mock_vmrun_delete_vm,
-                      mock_rmtree, mock_path_exists, capfd,
-                      mechfile_two_entries):
+                      mock_rmtree, mock_path_exists, mock_get_provider,
+                      capfd, mechfile_two_entries):
     """Test 'mech destroy' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
     mock_rmtree.return_value = True
@@ -220,6 +221,7 @@ def test_mech_destroy(mock_locate, mock_load_mechfile,
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_vmrun_stop.assert_called()
+    mock_get_provider.assert_called()
     mock_vmrun_delete_vm.assert_called()
     mock_rmtree.assert_called()
     mock_path_exists.assert_called()
