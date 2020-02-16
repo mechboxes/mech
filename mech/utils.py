@@ -116,7 +116,7 @@ def remove_mechfile_entry(name, mechfile_should_exist=True):
 
 
 def save_mechfile(mechfile):
-    """Save the mechfile object to a file called 'Mechfile'.
+    """Save the mechfile object (which is a dict) to a file called 'Mechfile'.
        Return True if save was successful.
     """
     LOGGER.debug('mechfile:%s', mechfile)
@@ -382,12 +382,12 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
         if not save and box.startswith(tempfile.gettempdir()):
             os.unlink(box)
 
-    vmx = locate(instance_path, '*.vmx')
-    if not vmx:
+    vmx_path = locate(instance_path, '*.vmx')
+    if not vmx_path:
         sys.exit(colored.red("Cannot locate a VMX file"))
 
-    update_vmx(vmx, numvcpus=numvcpus, memsize=memsize, no_nat=no_nat)
-    return vmx
+    update_vmx(vmx_path, numvcpus=numvcpus, memsize=memsize, no_nat=no_nat)
+    return vmx_path
 
 
 def add_box(name=None, box=None, box_version=None, location=None,
@@ -663,36 +663,53 @@ def provision(instance, show=False):
         print(colored.blue("Nothing to provision"))
 
 
-def provision_file(virtual_machine, source, destination):
+def provision_file(vmrun, source, destination):
     """Provision from file.
-       This simply copies a file from host to guest.
+
+    Args:
+        vmrun (VMrun): instance of the VMrun class
+        source (str): full path of a file to copy
+        source (str): full path where the file is to be copied to
+
+    Notes:
+       This function copies a file from host to guest.
+
     """
     print(colored.blue("Copying ({}) to ({})".format(source, destination)))
-    return virtual_machine.copy_file_from_host_to_guest(source, destination)
+    return vmrun.copy_file_from_host_to_guest(source, destination)
 
 
-def provision_shell(virtual_machine, inline, path, args=None):
-    """Provision from shell."""
+def provision_shell(vmrun, inline, script_path, args=None):
+    """Provision from shell.
+
+    Args:
+        vmrun (VMrun): instance of the VMrun class
+        inline (bool): run the script inline
+        script_path (str): path to the script to run
+        args (list of str): arguments to the script
+
+    """
     if args is None:
         args = []
-    tmp_path = virtual_machine.create_tempfile_in_guest()
-    LOGGER.debug('inline:%s path:%s args:%s tmp_path:%s', inline, path, args, tmp_path)
+    tmp_path = vmrun.create_tempfile_in_guest()
+    LOGGER.debug('inline:%s script_path:%s args:%s tmp_path:%s',
+                 inline, script_path, args, tmp_path)
     if tmp_path is None:
         print(colored.red("Warning: Could not create tempfile in guest."))
         return
 
     try:
-        if path and os.path.isfile(path):
-            print(colored.blue("Configuring script {}...".format(path)))
-            if virtual_machine.copy_file_from_host_to_guest(path, tmp_path) is None:
+        if script_path and os.path.isfile(script_path):
+            print(colored.blue("Configuring script {}...".format(script_path)))
+            if vmrun.copy_file_from_host_to_guest(script_path, tmp_path) is None:
                 print(colored.red("Warning: Could not copy file to guest."))
                 return
         else:
-            if path:
-                if any(path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
-                    print(colored.blue("Downloading {}...".format(path)))
+            if script_path:
+                if any(script_path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
+                    print(colored.blue("Downloading {}...".format(script_path)))
                     try:
-                        response = requests.get(path)
+                        response = requests.get(script_path)
                         response.raise_for_status()
                         inline = response.read()
                     except requests.HTTPError:
@@ -700,7 +717,7 @@ def provision_shell(virtual_machine, inline, path, args=None):
                     except requests.ConnectionError:
                         return
                 else:
-                    print(colored.red("Cannot open {}".format(path)))
+                    print(colored.red("Cannot open {}".format(script_path)))
                     return
 
             if not inline:
@@ -712,25 +729,25 @@ def provision_shell(virtual_machine, inline, path, args=None):
             try:
                 the_file.write(str.encode(inline))
                 the_file.close()
-                if virtual_machine.copy_file_from_host_to_guest(the_file.name, tmp_path) is None:
+                if vmrun.copy_file_from_host_to_guest(the_file.name, tmp_path) is None:
                     return
             finally:
                 os.unlink(the_file.name)
 
         print(colored.blue("Configuring environment..."))
-        if virtual_machine.run_script_in_guest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
+        if vmrun.run_script_in_guest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
             print(colored.red("Warning: Could not configure script in the environment."))
             return
 
         print(colored.blue("Executing program..."))
-        return virtual_machine.run_program_in_guest(tmp_path, args)
+        return vmrun.run_program_in_guest(tmp_path, args)
 
     finally:
-        virtual_machine.delete_file_in_guest(tmp_path, quiet=True)
+        vmrun.delete_file_in_guest(tmp_path, quiet=True)
 
 
 def config_ssh_string(config_ssh):
-    """Build the ssh-config string."""
+    """Build the ssh-config string from a dict holding the keys/values."""
     ssh_config = "Host {}".format(config_ssh.get('Host', '')) + os.linesep
     for key, value in config_ssh.items():
         if key != 'Host':
@@ -739,6 +756,12 @@ def config_ssh_string(config_ssh):
 
 
 def share_folders(vmrun, inst):
+    """Share folders.
+    Args:
+        vmrun (VMrun): an instance of the VMrun class
+        inst (MechInstance): an instance of the MechInstance class (representing a vm)
+
+    """
     print(colored.blue("Sharing folders..."))
     vmrun.enable_shared_folders(quiet=False)
     for share in inst.shared_folders:
@@ -794,7 +817,7 @@ def get_win32_executable():
     return get_fallback_executable()
 
 
-def get_provider(vmrun_exe):
+def get_provider(vmrun_executable):
     """
     Identifies the right hosttype for vmrun command (ws | fusion | player)
     """
@@ -803,12 +826,14 @@ def get_provider(vmrun_exe):
         return 'fusion'
 
     for provider in ['ws', 'player', 'fusion']:
+        # To determine the provider, try
+        # running the vmrun command to see which one works.
         try:
             startupinfo = None
             if os.name == "nt":
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
-            proc = subprocess.Popen([vmrun_exe,
+            proc = subprocess.Popen([vmrun_executable,
                                      '-T',
                                      provider,
                                      'list'],
