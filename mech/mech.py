@@ -338,8 +338,7 @@ class Mech(MechCommand):
                         print(colored.yellow("VM ({}) was already started on an "
                                              "unknown IP address".format(instance)))
                 if not disable_provisioning:
-                    utils.provision(instance, inst.vmx, inst.user, inst.password,
-                                    inst.provision, show=False)
+                    utils.provision(inst, show=False)
 
     # allows "mech start" to alias to "mech up"
     start = up
@@ -823,7 +822,7 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                utils.provision(instance, inst.vmx, inst.user, inst.password, inst.provision, show)
+                utils.provision(inst, show)
             else:
                 print("VM not created.")
 

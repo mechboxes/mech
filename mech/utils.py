@@ -193,7 +193,7 @@ def update_vmx(path, numvcpus=None, memsize=None, no_nat=False):
 
 
 def load_mechfile(should_exist=True):
-    """Load the Mechfile from disk and return the object."""
+    """Load the Mechfile from disk and return the mechfile as a dictionary."""
     mechfile_fullpath = os.path.join(main_dir(), 'Mechfile')
     LOGGER.debug("mechfile_fullpath:%s", mechfile_fullpath)
     if os.path.isfile(mechfile_fullpath):
@@ -206,14 +206,12 @@ def load_mechfile(should_exist=True):
                 print(colored.red("Invalid Mechfile." + os.linesep))
     else:
         if should_exist:
-            print(colored.red(textwrap.fill(
-                "Could not find a Mechfile in the current directory. "
-                "A Mech environment is required to run this command. Run `mech init` "
-                "to create a new Mech environment. Or specify the name of the VM you would "
-                "like to start with `mech up <name>`. A final option is to change to a "
-                "directory with a Mechfile and to try again."
-            )))
-            sys.exit(1)
+            sys.exit(colored.red(textwrap.fill(
+                     "Could not find a Mechfile in the current directory. "
+                     "A Mech environment is required to run this command. Run `mech init` "
+                     "to create a new Mech environment. Or specify the name of the VM you would "
+                     "like to start with `mech up <name>`. A final option is to change to a "
+                     "directory with a Mechfile and to try again.")))
         else:
             return {}
 
@@ -356,8 +354,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
             save=save,
             requests_kwargs=requests_kwargs)
         if not name_version_box:
-            print(colored.red("Cannot find a valid box with a VMX file in it"))
-            sys.exit(1)
+            sys.exit(colored.red("Cannot find a valid box with a VMX file in it"))
 
         box_parts = box.split('/')
         box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes',
@@ -377,8 +374,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
                 startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
             proc = subprocess.Popen(cmd, cwd=instance_path, startupinfo=startupinfo)
             if proc.wait():
-                print(colored.red("Cannot extract box"))
-                sys.exit(1)
+                sys.exit(colored.red("Cannot extract box"))
         else:
             tar = tarfile.open(box_file, 'r')
             tar.extractall(instance_path)
@@ -388,8 +384,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
 
     vmx = locate(instance_path, '*.vmx')
     if not vmx:
-        print(colored.red("Cannot locate a VMX file"))
-        sys.exit(1)
+        sys.exit(colored.red("Cannot locate a VMX file"))
 
     update_vmx(vmx, numvcpus=numvcpus, memsize=memsize, no_nat=no_nat)
     return vmx
@@ -506,11 +501,9 @@ def add_box_url(name, box, box_version, url, force=False, save=True, requests_kw
             finally:
                 os.unlink(the_file.name)
         except requests.HTTPError as exc:
-            print(colored.red("Bad response: %s" % exc))
-            sys.exit(1)
+            sys.exit(colored.red("Bad response: %s" % exc))
         except requests.ConnectionError:
-            print(colored.red("Couldn't connect to '%s'" % url))
-            sys.exit(1)
+            sys.exit(colored.red("Couldn't connect to '%s'" % url))
     return name, box_version, box
 
 
@@ -538,11 +531,9 @@ def add_box_file(box=None, box_version=None, filename=None, url=None, force=Fals
                 valid_tar = True
                 break
             if i.startswith('/') or i.startswith('..'):
-                print(colored.red(textwrap.fill(
-                    "This box is comprised of filenames starting with '/' or '..' "
-                    "Exiting for the safety of your files."
-                )))
-                sys.exit(1)
+                sys.exit(colored.red(textwrap.fill(
+                         "This box is comprised of filenames starting with '/' or '..' "
+                         "Exiting for the safety of your files.")))
 
     if valid_tar:
         if save:
@@ -601,31 +592,36 @@ def get_requests_kwargs(arguments):
     return requests_kwargs
 
 
-def provision(instance, vmx, user, password, provision_config, show):
+def provision(instance, show=False):
     """Provision an instance.
 
-       provision types:
+    Args:
+        instance (MechInstance): an instance
+        show (bool): just print the provisioning
+
+    Notes:
+        Valid provision types are:
            file: copies files to instances
            shell: executes scripts
 
     """
 
-    if not instance or instance == '':
+    if not instance:
         sys.exit(colored.red("Need to provide an instance to provision()."))
 
-    if not vmx or not user or not password:
+    if instance.vmx is None or instance.user is None or instance.password is None:
         sys.exit(colored.red("Need to provide vmx/user/password to provision()."))
 
     print(colored.green('Provisioning instance:{}'.format(instance)))
 
-    vmrun = VMrun(vmx, user, password)
+    vmrun = VMrun(instance.vmx, instance.user, instance.password)
     # cannot run provisioning if vmware tools are not installed
     if not vmrun.installed_tools():
         sys.exit(colored.red("Cannot provision if VMware Tools are not installed."))
 
     provisioned = 0
-    if provision_config:
-        for i, pro in enumerate(provision_config):
+    if instance.provision:
+        for i, pro in enumerate(instance.provision):
             provision_type = pro.get('type')
             if provision_type == 'file':
                 source = pro.get('source')

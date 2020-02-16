@@ -404,25 +404,24 @@ def test_build_mechfile_entry_file_location_external_bad_location():
 def test_provision_no_instance():
     """Test provisioning."""
     with raises(SystemExit, match=r"Need to provide an instance to provision"):
-        mech.utils.provision(instance=None, vmx=None, user=None, password=None,
-                             provision_config=None, show=None)
+        mech.utils.provision(instance=None, show=None)
 
 
 def test_provision_no_vmx():
     """Test provisioning."""
+    mock_inst = MagicMock()
+    mock_inst.vmx = None
     with raises(SystemExit, match=r"Need to provide vmx.*"):
-        mech.utils.provision(instance='first', vmx=None, user=None, password=None,
-                             provision_config=None, show=None)
+        mech.utils.provision(instance=mock_inst, show=None)
 
 
 @patch('mech.vmrun.VMrun.installed_tools')
 def test_provision_no_vmare_tools(mock_installed_tools):
     """Test provisioning."""
+    mock_inst = MagicMock()
     mock_installed_tools.return_value = None
     with raises(SystemExit, match=r"Cannot provision if VMware Tools are not installed"):
-        mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx',
-                             user='vagrant', password='vagrant', provision_config=None,
-                             show=None)
+        mech.utils.provision(instance=mock_inst, show=None)
 
 
 @patch('mech.utils.provision_file')
@@ -431,8 +430,9 @@ def test_provision_file_no_provisioning(mock_installed_tools, mock_provision_fil
     """Test provisioning."""
     mock_installed_tools.return_value = "running"
     mock_provision_file.return_value = None
-    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx', user='vagrant',
-                         password='vagrant', provision_config=[], show=None)
+    mock_inst = MagicMock()
+    mock_inst.provision = []
+    mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     assert re.search(r'Nothing to provision', out, re.MULTILINE)
 
@@ -450,8 +450,11 @@ def test_provision_file(mock_installed_tools, mock_copy_file, capfd):
             "destination": "/tmp/file1.txt",
         },
     ]
-    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx', user='vagrant',
-                         password='vagrant', provision_config=config, show=None)
+    mock_inst = MagicMock()
+    mock_inst.name = 'first'
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.provision = config
+    mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     assert re.search(r'Copying ', out, re.MULTILINE)
 
@@ -470,8 +473,11 @@ def test_provision_file_could_not_copy_file_to_guest(mock_installed_tools,
             "destination": "/tmp/file1.txt",
         },
     ]
-    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx', user='vagrant',
-                         password='vagrant', provision_config=config, show=None)
+    mock_inst = MagicMock()
+    mock_inst.name = 'first'
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.provision = config
+    mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     assert re.search(r'Not Provisioned', out, re.MULTILINE)
 
@@ -487,9 +493,11 @@ def test_provision_file_show(mock_installed_tools, capfd):
             "destination": "/tmp/file1.txt",
         },
     ]
-    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx',
-                         user='vagrant', password='vagrant',
-                         provision_config=config, show=True)
+    mock_inst = MagicMock()
+    mock_inst.name = 'first'
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.provision = config
+    mech.utils.provision(instance=mock_inst, show=True)
     out, _ = capfd.readouterr()
     assert re.search(r'instance:', out, re.MULTILINE)
 
@@ -520,9 +528,11 @@ def test_provision_shell(mock_installed_tools, mock_copy_file,
             "inline": "echo hello from inline"
         },
     ]
-    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx',
-                         user='vagrant', password='vagrant',
-                         provision_config=config, show=None)
+    mock_inst = MagicMock()
+    mock_inst.name = 'first'
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.provision = config
+    mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     mock_installed_tools.assert_called()
     mock_copy_file.assert_called()
@@ -550,9 +560,11 @@ def test_provision_shell_show_only(mock_installed_tools, capfd):
             ],
         },
     ]
-    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx',
-                         user='vagrant', password='vagrant',
-                         provision_config=config, show=True)
+    mock_inst = MagicMock()
+    mock_inst.name = 'first'
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.provision = config
+    mech.utils.provision(instance=mock_inst, show=True)
     out, _ = capfd.readouterr()
     mock_installed_tools.assert_called()
     assert re.search(r' instance:', out, re.MULTILINE)
@@ -573,9 +585,11 @@ def test_provision_shell_with_issue(mock_installed_tools, mock_provision_shell,
             ],
         },
     ]
-    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx',
-                         user='vagrant', password='vagrant',
-                         provision_config=config, show=None)
+    mock_inst = MagicMock()
+    mock_inst.name = 'first'
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.provision = config
+    mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     mock_installed_tools.assert_called()
     mock_provision_shell.assert_called()
@@ -590,9 +604,11 @@ def test_provision_with_unknown_type(mock_installed_tools, capfd):
             "type": "foo",
         },
     ]
-    mech.utils.provision(instance='first', vmx='/tmp/first/some.vmx',
-                         user='vagrant', password='vagrant',
-                         provision_config=config, show=None)
+    mock_inst = MagicMock()
+    mock_inst.name = 'first'
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.provision = config
+    mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     mock_installed_tools.assert_called()
     assert re.search(r'Not Provisioned', out, re.MULTILINE)
