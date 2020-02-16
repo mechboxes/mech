@@ -7,7 +7,7 @@
 ./no_mechfile.bats
 ./simple.bats
 ./two_ubuntu.bats
-./init_from_file.bats
+./init_from_boxfile.bats
 ./provision.bats
 ./shared_folders.bats
 ./add_and_remove_instances.bats

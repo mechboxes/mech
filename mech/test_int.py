@@ -61,9 +61,16 @@ def test_int_two_ubuntu():
 
 
 @pytest.mark.int
-def test_int_init_from_file():
-    """Test init_from_file tests."""
-    return_value, out = subprocess.getstatusoutput('cd tests/int && ./init_from_file.bats')
+def test_int_init_from_boxfile():
+    """Test init_from_boxfile tests."""
+    return_value, out = subprocess.getstatusoutput('cd tests/int && ./init_from_boxfile.bats')
+    assert return_value == 0
+
+
+@pytest.mark.int
+def test_int_init_from_jsonfile():
+    """Test init_from_jsonfile tests."""
+    return_value, out = subprocess.getstatusoutput('cd tests/int && ./init_from_jsonfile.bats')
     assert return_value == 0
 
 

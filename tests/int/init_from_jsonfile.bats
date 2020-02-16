@@ -1,12 +1,12 @@
 #!/usr/bin/env bats
 #
-# init_from_file.bats - init from a box file
+# init_from_jsonfile.bats - init from a json file
 #
 # Note: must be run from this directory
-# like this: ./init_from_file.bats
+# like this: ./init_from_jsonfile.bats
 
-@test "mech init, up, destroy of ubuntu from file" {
-  cd init_from_file
+@test "mech init, up, destroy of ubuntu from json file" {
+  cd init_from_jsonfile
 
   ubuntu='ubuntu-18.04'
   box_file="/tmp/${ubuntu}.box"
@@ -23,7 +23,7 @@
     wget -O "$box_file" "https://vagrantcloud.com/bento/boxes/${ubuntu}/versions/201912.04.0/providers/vmware_desktop.box"
   fi
 
-  run mech init --box "bento/${ubuntu}" "file:${box_file}"
+  run mech init --box "bento/${ubuntu}" "file:bento_ubuntu_18-04.json"
   regex1="Initializing"
   regex2="has been initialized"
   regex3="mech up"

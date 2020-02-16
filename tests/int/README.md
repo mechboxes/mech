@@ -15,7 +15,7 @@ files from the internet and start up/stop/destroy VMs.
 
 # Scripts
 
-- `./init_from_file.bats` - create box from file
+- `./init_from_boxfile.bats` - create box from file
 - `./no_mechfile.bats` - simple validations without a Mechfile
 - `./provision.bats` - provision validation
 - `./quick.bats` - quick validations (ex: help, version)

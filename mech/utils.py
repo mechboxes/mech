@@ -260,9 +260,11 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None,
                 # if an exception is not thrown, then set values and continue
                 # to the end of the function
                 catalog = json.loads(the_file.read())
-        except ValueError:  # includes simplejson.decoder.JSONDecodeError
+                LOGGER.debug('catalog:%s', catalog)
+        except ValueError as e:  # includes simplejson.decoder.JSONDecodeError
             # this means the location/file is probably a .box file
             LOGGER.debug('mechfile_entry:%s', mechfile_entry)
+            LOGGER.debug(e)
             return mechfile_entry
         except IOError:
             # cannot open file
