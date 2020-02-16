@@ -1,6 +1,7 @@
 # mech
 
 ![Python package](https://github.com/mkinney/mech/workflows/Python%20package/badge.svg?branch=multi-pr)
+[![codecov](https://codecov.io/gh/mkinney/mech/branch/multi-pr/graph/badge.svg)](https://codecov.io/gh/mkinney/mech)
 
 One of the authors made this because they don't like VirtualBox and wanted to use vagrant
 with VMmare Fusion but was too cheap to buy the Vagrant plugin.
