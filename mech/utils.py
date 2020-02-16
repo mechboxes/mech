@@ -204,6 +204,7 @@ def load_mechfile(should_exist=True):
                 return mechfile
             except ValueError:
                 print(colored.red("Invalid Mechfile." + os.linesep))
+                return {}
     else:
         if should_exist:
             sys.exit(colored.red(textwrap.fill(
@@ -261,8 +262,9 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None,
                 # to the end of the function
                 catalog = json.loads(the_file.read())
                 LOGGER.debug('catalog:%s', catalog)
-        except ValueError as e:  # includes simplejson.decoder.JSONDecodeError
+        except (json.decoder.JSONDecodeError, ValueError) as e:
             # this means the location/file is probably a .box file
+            # or the json is invalid
             LOGGER.debug('mechfile_entry:%s', mechfile_entry)
             LOGGER.debug(e)
             return mechfile_entry

@@ -29,6 +29,71 @@ def test_mech_dir(mock_os_getcwd):
     assert mechdir == '/tmp/.mech'
 
 
+@patch('json.loads')
+@patch('os.path.isfile')
+@patch('os.getcwd')
+def test_load_mechfile(mock_os_getcwd, mock_os_path_isfile, mock_json_loads):
+    """Test mech_load_mechfile()."""
+    mock_os_getcwd.return_value = '/tmp'
+    expected = {}
+    mock_json_loads.return_value = expected
+    mock_os_path_isfile.return_value = True
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        assert mech.utils.load_mechfile() == expected
+    a_mock.assert_called()
+    mock_os_getcwd.assert_called()
+
+
+@patch('json.loads')
+@patch('os.path.isfile')
+@patch('os.getcwd')
+def test_load_mechfile_no_mechfile(mock_os_getcwd, mock_os_path_isfile, mock_json_loads):
+    """Test mech_load_mechfile()."""
+    mock_os_getcwd.return_value = '/tmp'
+    expected = {}
+    mock_json_loads.return_value = expected
+    mock_os_path_isfile.return_value = False
+    with raises(SystemExit):
+        a_mock = mock_open()
+        with patch('builtins.open', a_mock, create=True):
+            mech.utils.load_mechfile()
+
+
+@patch('json.loads')
+@patch('os.path.isfile')
+@patch('os.getcwd')
+def test_load_mechfile_no_mechfile_should_not_exist(mock_os_getcwd, mock_os_path_isfile,
+                                                    mock_json_loads):
+    """Test mech_load_mechfile()."""
+    mock_os_getcwd.return_value = '/tmp'
+    expected = {}
+    mock_json_loads.return_value = expected
+    mock_os_path_isfile.return_value = False
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        got = mech.utils.load_mechfile(should_exist=False)
+    assert got == expected
+    mock_os_getcwd.assert_called()
+
+
+@patch('os.path.isfile')
+@patch('os.getcwd')
+def test_load_mechfile_invalid_json(mock_os_getcwd, mock_os_path_isfile):
+    """Test mech_load_mechfile()."""
+    mock_os_getcwd.return_value = '/tmp'
+    expected = {}
+    # bad_json below is missing a comma between elements
+    bad_json = '''{"foo": "bar" "foo2": 1}'''
+    mock_os_path_isfile.return_value = True
+    a_mock = mock_open(read_data=bad_json)
+    with patch('builtins.open', a_mock, create=True):
+        got = mech.utils.load_mechfile()
+    assert got == expected
+    a_mock.assert_called()
+    mock_os_getcwd.assert_called()
+
+
 def test_save_mechfile_empty_config():
     """Test save_mechfile with empty configuration."""
     filename = os.path.join(mech.utils.main_dir(), 'Mechfile')
@@ -612,3 +677,48 @@ def test_provision_with_unknown_type(mock_installed_tools, capfd):
     out, _ = capfd.readouterr()
     mock_installed_tools.assert_called()
     assert re.search(r'Not Provisioned', out, re.MULTILINE)
+
+
+@patch('os.environ')
+def test_get_fallback_executable_no_path_in_environ(mock_os_environ):
+    """Weird case where PATH is is not in the environment."""
+    mock_os_environ.return_value = ''
+    assert mech.utils.get_fallback_executable() is None
+
+
+@patch('os.path.exists')
+def test_get_fallback_executable(mock_os_path_exists):
+    """Find vmrun in PATH."""
+    mock_os_path_exists.return_value = True
+    with patch.dict('os.environ', {'PATH': '/tmp:/tmp2'}):
+        got = mech.utils.get_fallback_executable()
+    expected = '/tmp/vmrun'
+    assert got == expected
+    mock_os_path_exists.assert_called()
+
+
+@patch('os.path.exists')
+def test_darwin_executable_when_installed(mock_os_path_exists):
+    """Find vmrun in PATH."""
+    expected = '/Applications/VMware Fusion.app/Contents/Library/vmrun'
+    mock_os_path_exists.return_value = True
+    got = mech.utils.get_darwin_executable()
+    assert expected == got
+    mock_os_path_exists.assert_called()
+
+
+@patch('os.path.exists')
+def test_darwin_executable_when_not_installed(mock_os_path_exists):
+    """Find vmrun in PATH."""
+    # deal with a different file returns a different mocked value
+    def side_effect(filename):
+        if filename == '/Applications/VMware Fusion.app/Contents/Library/vmrun':
+            return False
+        else:
+            return True
+    mock_os_path_exists.side_effect = side_effect
+    expected = '/tmp/vmrun'
+    mock_os_path_exists = False
+    with patch.dict('os.environ', {'PATH': '/tmp:/tmp2'}):
+        got = mech.utils.get_darwin_executable()
+    assert expected == got
