@@ -64,12 +64,6 @@ class MechBox(MechCommand):
 
         Options:
                 --box-version VERSION        Constrain version of the added box
-                --cacert FILE                CA certificate for SSL download
-                --capath DIR                 CA certificate directory for SSL download
-                --cert FILE                  A client SSL cert, if needed
-                --checksum CHECKSUM          Checksum for the box
-                --checksum-type TYPE         Checksum type (md5, sha1, sha256)
-                --insecure                   Do not validate SSL certificates
             -f, --force                      Overwrite an existing box if it exists
             -h, --help                       Print this help
         """
@@ -78,9 +72,8 @@ class MechBox(MechCommand):
         box_version = arguments['--box-version']
 
         force = arguments['--force']
-        requests_kwargs = utils.get_requests_kwargs(arguments)
         utils.add_box(name=None, box=None, location=location, box_version=box_version,
-                      force=force, requests_kwargs=requests_kwargs)
+                      force=force)
 
     def list(self, arguments):  # pylint: disable=no-self-use,unused-argument
         """

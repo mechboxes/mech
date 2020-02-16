@@ -85,13 +85,7 @@ def mech_add_arguments():
     """Return the default 'mech add' arguments."""
     return {
         '--force': False,
-        '--insecure': False,
-        '--cacert': None,
-        '--capath': None,
-        '--cert': None,
         '--box-version': None,
-        '--checksum': None,
-        '--checksum-type': None,
         '--name': None,
         '--box': None,
         '<location>': None,
@@ -103,13 +97,7 @@ def mech_box_arguments():
     """Return the default 'mech box' arguments."""
     return {
         '--force': False,
-        '--insecure': False,
-        '--cacert': None,
-        '--capath': None,
-        '--cert': None,
         '--box-version': None,
-        '--checksum': None,
-        '--checksum-type': None,
         '<location>': None,
     }
 
@@ -119,13 +107,7 @@ def mech_init_arguments():
     """Return the default 'mech init' arguments."""
     return {
         '--force': False,
-        '--insecure': False,
-        '--cacert': None,
-        '--capath': None,
-        '--cert': None,
         '--box-version': None,
-        '--checksum': None,
-        '--checksum-type': None,
         '--name': None,
         '--box': None,
         '<location>': None,

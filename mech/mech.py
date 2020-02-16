@@ -125,14 +125,8 @@ class Mech(MechCommand):
         Options:
                 --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
                 --box-version VERSION        Constrain version of the added box
-                --cacert FILE                CA certificate for SSL download
-                --capath DIR                 CA certificate directory for SSL download
-                --cert FILE                  A client SSL cert, if needed
-                --checksum CHECKSUM          Checksum for the box
-                --checksum-type TYPE         Checksum type (md5, sha1, sha256)
             -f, --force                      Overwrite existing Mechfile
             -h, --help                       Print this help
-                --insecure                   Do not validate SSL certificates
                 --name INSTANCE              Name of the instance (myinst1)
         """
         name = arguments['--name']
@@ -144,7 +138,6 @@ class Mech(MechCommand):
             name = "first"
 
         force = arguments['--force']
-        requests_kwargs = utils.get_requests_kwargs(arguments)
 
         LOGGER.debug('name:%s box:%s box_version:%s location:%s', name, box, box_version, location)
 
@@ -158,8 +151,7 @@ class Mech(MechCommand):
             location=location,
             box=box,
             name=name,
-            box_version=box_version,
-            requests_kwargs=requests_kwargs)
+            box_version=box_version)
         print(colored.green(textwrap.fill(
             "A `Mechfile` has been initialized and placed in this directory. "
             "You are now ready to `mech up` your first virtual environment!")))
@@ -175,12 +167,6 @@ class Mech(MechCommand):
         Options:
                 --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
                 --box-version VERSION        Constrain version of the added box
-                --cacert FILE                CA certificate for SSL download
-                --capath DIR                 CA certificate directory for SSL download
-                --cert FILE                  A client SSL cert, if needed
-                --checksum CHECKSUM          Checksum for the box
-                --checksum-type TYPE         Checksum type (md5, sha1, sha256)
-                --insecure                   Do not validate SSL certificates
             -h, --help                       Print this help
         """
         name = arguments['<name>']
@@ -191,8 +177,6 @@ class Mech(MechCommand):
         if not name or name == "":
             sys.exit(colored.red("Need to provide a name for the instance to add to the Mechfile."))
 
-        requests_kwargs = utils.get_requests_kwargs(arguments)
-
         LOGGER.debug('name:%s box:%s box_version:%s location:%s', name, box, box_version, location)
 
         print(colored.green("Adding ({}) to the Mechfile.".format(name)))
@@ -201,8 +185,7 @@ class Mech(MechCommand):
             location=location,
             box=box,
             name=name,
-            box_version=box_version,
-            requests_kwargs=requests_kwargs)
+            box_version=box_version)
         print(colored.green("Added to the Mechfile."))
 
     def remove(self, arguments):
@@ -251,15 +234,9 @@ class Mech(MechCommand):
              To change shared folders, modify the Mechfile directly.
 
         Options:
-                --cacert FILE                CA certificate for SSL download
-                --capath DIR                 CA certificate directory for SSL download
-                --cert FILE                  A client SSL cert, if needed
-                --checksum CHECKSUM          Checksum for the box
-                --checksum-type TYPE         Checksum type (md5, sha1, sha256)
                 --disable-provisioning       Do not provision
                 --disable-shared-folders     Do not share folders with VM
                 --gui                        Start GUI
-                --insecure                   Do not validate SSL certificates
                 --memsize 1024               Specify the size of memory for VM
                 --no-cache                   Do not save the downloaded box
                 --no-nat                     Do not use NAT network (i.e., bridged)
@@ -270,7 +247,6 @@ class Mech(MechCommand):
         disable_shared_folders = arguments['--disable-shared-folders']
         disable_provisioning = arguments['--disable-provisioning']
         save = not arguments['--no-cache']
-        requests_kwargs = utils.get_requests_kwargs(arguments)
 
         memsize = arguments['--memsize']
         numvcpus = arguments['--numvcpus']
@@ -303,7 +279,6 @@ class Mech(MechCommand):
                 box_version=inst.box_version,
                 location=location,
                 instance_path=inst.path,
-                requests_kwargs=requests_kwargs,
                 save=save,
                 numvcpus=numvcpus,
                 memsize=memsize,
@@ -884,7 +859,6 @@ class Mech(MechCommand):
         Options:
                 --guest PORT                 Output the host port that maps to the given guest port
             -h, --help                       Print this help
-                --machine-readable           Display machine-readable output
         """
         instance_name = arguments['<instance>']
 

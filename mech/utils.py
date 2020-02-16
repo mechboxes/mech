@@ -586,20 +586,6 @@ def add_to_mechfile(location=None, box=None, name=None, box_version=None, reques
     return save_mechfile_entry(this_mech_entry, name, mechfile_should_exist=False)
 
 
-def get_requests_kwargs(arguments):
-    """Get the requests key word arguments."""
-    requests_kwargs = {}
-    if arguments['--insecure']:
-        requests_kwargs['verify'] = False
-    elif arguments['--capath']:
-        requests_kwargs['verify'] = arguments['--capath']
-    elif arguments['--cacert']:
-        requests_kwargs['verify'] = arguments['--cacert']
-    elif arguments['--cert']:
-        requests_kwargs['cert'] = arguments['--cert']
-    return requests_kwargs
-
-
 def provision(instance, show=False):
     """Provision an instance.
 

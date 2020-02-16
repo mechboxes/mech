@@ -97,16 +97,10 @@ function _mech_init {
   _arguments \
     "--box=[BOXNAME Name of the box (ex: bento/ubuntu-18.04)]" \
     "--box-version=[VERSION Constrain version of the added box]" \
-    "--cacert=[CA certificate for SSL download]" \
-    "--capath=[DIR CA certificate directory for SSL download]" \
-    "--cert=[FILE A client SSL cert, if needed]" \
-    "--checksum=[CHECKSUM Checksum for the box]" \
-    "--checksum-type=[TYPE Checksum type (md5, sha1, sha256)]" \
     "-f[Overwrite exsting Mechfile]" \
     "--force[Overwrite existing Mechfile]" \
     "-h[Show help information]" \
     "--help[Show help information]" \
-    "--insecure[Do not validate SSL certificates]" \
     "--name=[NAME Name of the instance (ex: first)]"
 }
 
@@ -149,7 +143,6 @@ function _mech_port {
     "--guest[PORT Output the host port that maps to the given guest port]" \
     "-h[Show help information]" \
     "--help[Show help information]" \
-    "--machine-readable[Display machine-readable output]" \
     '::options:->options'
 
   case $state in
@@ -284,17 +277,11 @@ function _mech_up {
   typeset -A opt_args
 
   _arguments -C \
-    "--cacert=[CA certificate for SSL download]" \
-    "--capath=[DIR CA certificate directory for SSL download]" \
-    "--cert=[FILE A client SSL cert, if needed]" \
-    "--checksum=[CHECKSUM Checksum for the box]" \
-    "--checksum-type=[TYPE Checksum type (md5, sha1, sha256)]" \
     "--disable-provisioning[Do not provision]" \
     "--disable-shared-folders[Do not share folders with VM]" \
     "--gui[Start GUI]" \
     "-h[Show help information]" \
     "--help[Show help information]" \
-    "--insecure[Do not validate SSL certificates]" \
     "--memsize=[SIZE Specify the size of memory for VM (ex: 1024)]" \
     "--no-cache[Do not save the downloaded box]" \
     "--no-nat[Do not use NAT network (i.e., bridged)]" \

@@ -43,7 +43,7 @@ _mech() {
       return 0
       ;;
     init)
-      local commands="--box --box-version --cacert --capath --cert --checksum --checksum-type --force -h --help --insecure --name"
+      local commands="--box --box-version --force -h --help --name"
       COMPREPLY=( $(compgen -W "${commands}" -- ${cur}) )
       return 0
       ;;
@@ -63,7 +63,7 @@ _mech() {
       return 0
       ;;
     port)
-      local commands="--guest -h --help --machine-readable"
+      local commands="--guest -h --help"
       COMPREPLY=( $(compgen -W "${commands} $(get_instances)" -- ${cur}) )
       return 0
       ;;
@@ -97,7 +97,7 @@ _mech() {
       return 0
       ;;
     up)
-      local commands="--cacert --capath --cert --checksum --checksum-type --disable-provisioning --disable-shared-folders --gui -h --help --insecure --memsize --no-cache --no-nat --numvcpus"
+      local commands="--disable-provisioning --disable-shared-folders --gui -h --help --memsize --no-cache --no-nat --numvcpus"
       COMPREPLY=( $(compgen -W "${commands} $(get_instances)" -- ${cur}) )
       return 0
       ;;
