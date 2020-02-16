@@ -46,7 +46,7 @@ class VMrun():  # pylint: disable=too-many-public-methods
 
     def __init__(self, vmx_file=None,  # pylint: disable=too-many-arguments
                  user=None, password=None, executable=None, provider=None):
-        """Constructof for the instance. Set some sane defaults."""
+        """Constructor - set sane defaults."""
         self.vmx_file = vmx_file
         self.user = user
         self.password = password

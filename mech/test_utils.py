@@ -734,10 +734,8 @@ def test_catalog_to_mechfile_when_empty_catalog():
 def test_init_box_cannot_find_valid_box(mock_locate):
     """Test init_box."""
     mock_locate.return_value = None
-    expected = None
     with raises(SystemExit):
-        got = mech.utils.init_box(name='first')
-        assert got == expected
+        mech.utils.init_box(name='first')
 
 
 def test_add_mechfile_with_empty_mechfile():
