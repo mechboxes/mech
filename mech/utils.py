@@ -606,7 +606,7 @@ def provision(instance, show=False):
     if instance.vmx is None or instance.user is None or instance.password is None:
         sys.exit(colored.red("Need to provide vmx/user/password to provision()."))
 
-    print(colored.green('Provisioning instance:{}'.format(instance)))
+    print(colored.green('Provisioning instance:{}'.format(instance.name)))
 
     vmrun = VMrun(instance.vmx, instance.user, instance.password)
     # cannot run provisioning if vmware tools are not installed

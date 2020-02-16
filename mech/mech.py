@@ -76,6 +76,7 @@ class Mech(MechCommand):
         status            outputs status of the instances
         suspend           suspends the instances
         (up|start)        starts instances (aka virtual machines)
+        upgrade           upgrade the instances
 
     For help on any individual command run `mech <command> -h`
 
@@ -506,6 +507,42 @@ class Mech(MechCommand):
                     print(colored.red("Not paused", vmrun))
                 else:
                     print(colored.yellow("Paused", vmrun))
+            else:
+                print(colored.red("VM ({}) not created.".format(instance)))
+
+    def upgrade(self, arguments):
+        """
+        Upgrade the vm file format and virtual hardware for the instance(s).
+
+        Usage: mech upgrade [options] [<instance>]
+
+        Note: The VMs must be created and stopped.
+
+        Options:
+            -h, --help                       Print this help
+        """
+        instance_name = arguments['<instance>']
+
+        if instance_name:
+            # single instance
+            instances = [instance_name]
+        else:
+            # multiple instances
+            instances = self.instances()
+
+        for instance in instances:
+            inst = MechInstance(instance)
+
+            if inst.created:
+                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                state = vmrun.check_tools_state(quiet=True)
+                if state == "running":
+                    print("VM must be stopped before doing upgrade.")
+                else:
+                    if vmrun.upgradevm(quiet=False) is None:
+                        print(colored.red("Not upgraded", vmrun))
+                    else:
+                        print(colored.yellow("Upgraded", vmrun))
             else:
                 print(colored.red("VM ({}) not created.".format(instance)))
 

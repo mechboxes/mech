@@ -590,7 +590,7 @@ def test_mech_pause(mock_locate, mock_load_mechfile,
 @patch('mech.utils.locate', return_value=None)
 def test_mech_pause_not_created(mock_locate, mock_load_mechfile,
                                 capfd, mechfile_two_entries):
-    """Test 'mech pause' powered on."""
+    """Test 'mech pause' not created."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -599,6 +599,71 @@ def test_mech_pause_not_created(mock_locate, mock_load_mechfile,
         '--force': None,
     }
     a_mech.pause(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r' not created', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.upgradevm', return_value=True)
+@patch('mech.vmrun.VMrun.check_tools_state', return_value=False)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_upgrade_created__powered_off(mock_locate, mock_load_mechfile,
+                                           mock_check_tools_state, mock_vmrun_upgradevm,
+                                           capfd, mechfile_two_entries):
+    """Test 'mech upgrade' with vm created and powered off."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+        '--force': None,
+    }
+    a_mech.upgrade(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_check_tools_state.assert_called()
+    mock_vmrun_upgradevm.assert_called()
+    assert re.search(r'Upgraded', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.check_tools_state', return_value="running")
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_upgrade_created__powered_on(mock_locate, mock_load_mechfile,
+                                          mock_check_tools_state,
+                                          capfd, mechfile_two_entries):
+    """Test 'mech upgrade' with vm created and powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+        '--force': None,
+    }
+    a_mech.upgrade(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_check_tools_state.assert_called()
+    assert re.search(r'VM must be stopped', out, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_upgrade_not_created(mock_locate, mock_load_mechfile,
+                                  capfd, mechfile_two_entries):
+    """Test 'mech upgrade' not created."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': None,
+        '--force': None,
+    }
+    a_mech.upgrade(arguments)
     out, _ = capfd.readouterr()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()

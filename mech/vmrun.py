@@ -587,7 +587,9 @@ class VMrun():  # pylint: disable=too-many-public-methods
         return self.vmrun('list', self.vmx_file, quiet=quiet)
 
     def upgradevm(self, quiet=False):
-        '''Upgrade VM file format, virtual hw'''
+        '''Upgrade VM file format, virtual hw.
+           Note: The vm must be stopped before running this command.
+        '''
         return self.vmrun('upgradevm', self.vmx_file, quiet=quiet)
 
     def install_tools(self, quiet=False):
