@@ -492,6 +492,26 @@ def test_mech_suspend(mock_locate, mock_load_mechfile,
     assert re.search(r'Suspended', out, re.MULTILINE)
 
 
+@patch('mech.vmrun.VMrun.suspend', return_value=None)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_suspend_fails(mock_locate, mock_load_mechfile,
+                            mock_vmrun_suspend, capfd, mechfile_two_entries):
+    """Test 'mech suspend' powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+    }
+    a_mech.suspend(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_vmrun_suspend.assert_called()
+    assert re.search(r'Not suspended', out, re.MULTILINE)
+
+
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
 def test_mech_suspend_not_created(mock_locate, mock_load_mechfile,
@@ -605,13 +625,39 @@ def test_mech_pause_not_created(mock_locate, mock_load_mechfile,
     assert re.search(r' not created', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.upgradevm', return_value=True)
+@patch('mech.vmrun.VMrun.upgradevm', return_value=None)
 @patch('mech.vmrun.VMrun.check_tools_state', return_value=False)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
-def test_mech_upgrade_created__powered_off(mock_locate, mock_load_mechfile,
-                                           mock_check_tools_state, mock_vmrun_upgradevm,
-                                           capfd, mechfile_two_entries):
+def test_mech_upgrade_created_powered_off_upgrade_fails(mock_locate, mock_load_mechfile,
+                                                        mock_check_tools_state,
+                                                        mock_vmrun_upgradevm,
+                                                        capfd, mechfile_two_entries):
+    """Test 'mech upgrade' with vm created and powered off."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+        '--force': None,
+    }
+    a_mech.upgrade(arguments)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_check_tools_state.assert_called()
+    mock_vmrun_upgradevm.assert_called()
+    assert re.search(r'Not upgraded', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.upgradevm', return_value='')
+@patch('mech.vmrun.VMrun.check_tools_state', return_value=False)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_upgrade_created_powered_off_upgrade_works(mock_locate, mock_load_mechfile,
+                                                        mock_check_tools_state,
+                                                        mock_vmrun_upgradevm,
+                                                        capfd, mechfile_two_entries):
     """Test 'mech upgrade' with vm created and powered off."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
@@ -1523,6 +1569,28 @@ def test_mech_scp_guest_to_host(mock_locate,
         mock_get_ip.assert_called()
         mock_chmod.assert_called()
         a_mock.assert_called_once_with(filename, 'w')
+
+
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_scp_guest_to_host_not_created(mock_locate,
+                                            mock_load_mechfile,
+                                            mechfile_two_entries):
+    """Test 'mech scp'."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<extra-ssh-args>': None,
+        '<src>': 'first:/tmp/now',
+        '<dst>': '.',
+    }
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        a_mech.scp(arguments)
+        # Note: Could not figure out how to capture output from subprocess.call.
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
 
 
 def test_mech_scp_invalid_args():
