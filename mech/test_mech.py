@@ -1,32 +1,15 @@
 # Copyright (c) 2020 Mike Kinney
 
-"""Test the mech cli. """
+"""mech tests"""
 import os
-import subprocess
 import re
 
 from unittest.mock import patch, mock_open
-from pytest import raises, mark
+from pytest import raises
 
 import mech.command
 import mech.mech
 import mech.vmrun
-
-
-@mark.int
-def test_version():
-    """Test '--version'."""
-    return_value, out = subprocess.getstatusoutput('mech --version')
-    assert re.match(r'mech v[0-9]+\.[0-9]+\.[0-9]', out)
-    assert return_value == 0
-
-
-@mark.int
-def test_help():
-    """Test '--help'."""
-    return_value, out = subprocess.getstatusoutput('mech --help')
-    assert re.match(r'Usage: mech ', out)
-    assert return_value == 0
 
 
 @patch('mech.utils.load_mechfile')
@@ -196,7 +179,7 @@ def test_mech_status_could_not_get_ip(mock_locate, mock_load_mechfile,
     assert re.search(r'VM is on.*no IP to connect', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.get_provider', return_value=None)
+@patch('mech.utils.get_provider', return_value=None)
 @patch('os.path.exists', return_value=True)
 @patch('shutil.rmtree')
 @patch('mech.vmrun.VMrun.delete_vm')

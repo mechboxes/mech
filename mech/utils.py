@@ -44,8 +44,8 @@ import requests
 from clint.textui import colored
 from clint.textui import progress
 
-from .compat import raw_input, b2s
 from .vmrun import VMrun
+from .compat import b2s, PY3, raw_input
 
 LOGGER = logging.getLogger(__name__)
 
@@ -750,3 +750,78 @@ def share_folders(vmrun, inst):
         host_path = share.get('host_path')
         print(colored.blue("share:{} host_path:{}".format(share_name, host_path)))
         vmrun.add_shared_folder(share_name, host_path, quiet=True)
+
+
+def get_fallback_executable():
+    """Get a fallback executable for the command line tool 'vmrun'."""
+    if 'PATH' in os.environ:
+        LOGGER.debug("os.environ['PATH']:%s", os.environ['PATH'])
+        for path in os.environ['PATH'].split(os.pathsep):
+            vmrun = os.path.join(path, 'vmrun')
+            if os.path.exists(vmrun):
+                return vmrun
+            vmrun = os.path.join(path, 'vmrun.exe')
+            if os.path.exists(vmrun):
+                return vmrun
+    return None
+
+
+def get_darwin_executable():
+    """Get the full path for the 'vmrun' command on a mac host."""
+    vmrun = '/Applications/VMware Fusion.app/Contents/Library/vmrun'
+    if os.path.exists(vmrun):
+        return vmrun
+    return get_fallback_executable()
+
+
+def get_win32_executable():
+    """Get the full path for the 'vmrun' command on a Windows host."""
+    if PY3:
+        import winreg
+    else:
+        import _winreg as winreg
+    reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
+    try:
+        key = winreg.OpenKey(reg, 'SOFTWARE\\VMware, Inc.\\VMware Workstation')
+        try:
+            return os.path.join(winreg.QueryValueEx(key, 'InstallPath')[0], 'vmrun.exe')
+        finally:
+            winreg.CloseKey(key)
+    except WindowsError:
+        key = winreg.OpenKey(reg, 'SOFTWARE\\WOW6432Node\\VMware, Inc.\\VMware Workstation')
+        try:
+            return os.path.join(winreg.QueryValueEx(key, 'InstallPath')[0], 'vmrun.exe')
+        finally:
+            winreg.CloseKey(key)
+    finally:
+        reg.Close()
+    return get_fallback_executable()
+
+
+def get_provider(vmrun_exe):
+    """
+    Identifies the right hosttype for vmrun command (ws | fusion | player)
+    """
+
+    if sys.platform == 'darwin':
+        return 'fusion'
+
+    for provider in ['ws', 'player', 'fusion']:
+        try:
+            startupinfo = None
+            if os.name == "nt":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
+            proc = subprocess.Popen([vmrun_exe,
+                                     '-T',
+                                     provider,
+                                     'list'],
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    startupinfo=startupinfo)
+        except OSError:
+            pass
+
+        map(b2s, proc.communicate())
+        if proc.returncode == 0:
+            return provider

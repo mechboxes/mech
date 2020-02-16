@@ -1,10 +1,27 @@
 # Copyright (c) 2020 Mike Kinney
 
-"""Test the mech cli. """
+"""Mech integration tests"""
+import re
 import subprocess
 
 
 import pytest
+
+
+@pytest.mark.int
+def test_version():
+    """Test '--version'."""
+    return_value, out = subprocess.getstatusoutput('mech --version')
+    assert re.match(r'mech v[0-9]+\.[0-9]+\.[0-9]', out)
+    assert return_value == 0
+
+
+@pytest.mark.int
+def test_help():
+    """Test '--help'."""
+    return_value, out = subprocess.getstatusoutput('mech --help')
+    assert re.match(r'Usage: mech ', out)
+    assert return_value == 0
 
 
 @pytest.mark.int

@@ -21,7 +21,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
-"""mech code to interface with VMware vmrun command line utility."""
+"""VMrun class"""
 
 from __future__ import absolute_import
 
@@ -31,84 +31,11 @@ import logging
 import subprocess
 import tempfile
 
-from .compat import PY3, b2s
+from .compat import b2s
+from . import utils
+
 
 LOGGER = logging.getLogger(__name__)
-
-
-def get_fallback_executable():
-    """Get a fallback executable for the command line tool 'vmrun'."""
-    if 'PATH' in os.environ:
-        LOGGER.debug("os.environ['PATH']:%s", os.environ['PATH'])
-        for path in os.environ['PATH'].split(os.pathsep):
-            vmrun = os.path.join(path, 'vmrun')
-            if os.path.exists(vmrun):
-                return vmrun
-            vmrun = os.path.join(path, 'vmrun.exe')
-            if os.path.exists(vmrun):
-                return vmrun
-    return None
-
-
-def get_darwin_executable():
-    """Get the full path for the 'vmrun' command on a mac host."""
-    vmrun = '/Applications/VMware Fusion.app/Contents/Library/vmrun'
-    if os.path.exists(vmrun):
-        return vmrun
-    return get_fallback_executable()
-
-
-def get_win32_executable():
-    """Get the full path for the 'vmrun' command on a Windows host."""
-    if PY3:
-        import winreg
-    else:
-        import _winreg as winreg
-    reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
-    try:
-        key = winreg.OpenKey(reg, 'SOFTWARE\\VMware, Inc.\\VMware Workstation')
-        try:
-            return os.path.join(winreg.QueryValueEx(key, 'InstallPath')[0], 'vmrun.exe')
-        finally:
-            winreg.CloseKey(key)
-    except WindowsError:
-        key = winreg.OpenKey(reg, 'SOFTWARE\\WOW6432Node\\VMware, Inc.\\VMware Workstation')
-        try:
-            return os.path.join(winreg.QueryValueEx(key, 'InstallPath')[0], 'vmrun.exe')
-        finally:
-            winreg.CloseKey(key)
-    finally:
-        reg.Close()
-    return get_fallback_executable()
-
-
-def get_provider(vmrun_exe):
-    """
-    identifies the right hosttype for vmrun command (ws | fusion | player)
-    """
-
-    if sys.platform == 'darwin':
-        return 'fusion'
-
-    for provider in ['ws', 'player', 'fusion']:
-        try:
-            startupinfo = None
-            if os.name == "nt":
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
-            proc = subprocess.Popen([vmrun_exe,
-                                     '-T',
-                                     provider,
-                                     'list'],
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    startupinfo=startupinfo)
-        except OSError:
-            pass
-
-        map(b2s, proc.communicate())
-        if proc.returncode == 0:
-            return provider
 
 
 class VMrun():  # pylint: disable=too-many-public-methods
@@ -128,14 +55,14 @@ class VMrun():  # pylint: disable=too-many-public-methods
 
         if self.executable is None:
             if sys.platform == 'darwin':
-                self.executable = get_darwin_executable()
+                self.executable = utils.get_darwin_executable()
             elif sys.platform == 'win32':
-                self.executable = get_win32_executable()
+                self.executable = utils.get_win32_executable()
             else:
-                self.executable = get_fallback_executable()
+                self.executable = utils.get_fallback_executable()
         if self.provider is None:
             if self.executable is not None:
-                self.provider = get_provider(self.executable)
+                self.provider = utils.get_provider(self.executable)
                 LOGGER.debug('self.executable:%s self.provider:%s',
                              self.executable, self.provider)
 
