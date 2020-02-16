@@ -456,8 +456,12 @@ def add_box_url(name, box, box_version, url, force=False, save=True, requests_kw
     LOGGER.debug('name:%s box:%s box_version:%s url:%s', name, box, box_version, url)
     boxname = os.path.basename(url)
     box_parts = box.split('/')
+    first_box_part = box_parts[0]
+    second_box_part = ''
+    if len(box_parts) > 1:
+        second_box_part = box_parts[1]
     box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes',
-                                          box_parts[0], box_parts[1], box_version)))
+                                          first_box_part, second_box_part, box_version)))
     exists = os.path.exists(box_dir)
     if not exists or force:
         if exists:

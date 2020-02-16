@@ -718,7 +718,39 @@ def test_darwin_executable_when_not_installed(mock_os_path_exists):
             return True
     mock_os_path_exists.side_effect = side_effect
     expected = '/tmp/vmrun'
-    mock_os_path_exists = False
     with patch.dict('os.environ', {'PATH': '/tmp:/tmp2'}):
         got = mech.utils.get_darwin_executable()
     assert expected == got
+
+
+def test_catalog_to_mechfile_when_empty_catalog():
+    """Test catalog_to_mechfile."""
+    catalog = {}
+    with raises(SystemExit):
+        mech.utils.catalog_to_mechfile(catalog)
+
+
+@patch('mech.utils.locate')
+def test_init_box_cannot_find_valid_box(mock_locate):
+    """Test init_box."""
+    mock_locate.return_value = None
+    expected = None
+    with raises(SystemExit):
+        got = mech.utils.init_box(name='first')
+        assert got == expected
+
+
+def test_add_mechfile_with_empty_mechfile():
+    """Test add_mechfile."""
+    mech.utils.add_mechfile(mechfile_entry={})
+
+
+@patch('requests.get')
+@patch('mech.utils.locate')
+def test_add_box_url(mock_locate, mock_requests_get, catalog_as_json):
+    """Test init_box."""
+    mock_locate.return_value = False
+    mock_requests_get.return_value.status_code = 200
+    mock_requests_get.return_value.json.return_value = catalog_as_json
+    got = mech.utils.add_box_url(name='first', box='abox', box_version='aver', url='')
+    assert got is None
