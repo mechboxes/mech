@@ -1289,11 +1289,15 @@ class Mech(MechCommand):
                 print(inst)
                 print()
             else:
+                # deal with box_version being none
+                box_version = inst.box_version
+                if inst.box_version is None:
+                    box_version = ''
                 print("{}\t{}\t{}\t{}".format(
                     colored.green(name.rjust(20)),
                     ip_address.rjust(15),
                     inst.box.rjust(35),
-                    inst.box_version.rjust(12)
+                    box_version.rjust(12)
                 ))
 
     # allow 'mech ls' as alias to 'mech list'

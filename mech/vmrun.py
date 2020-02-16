@@ -39,6 +39,7 @@ LOGGER = logging.getLogger(__name__)
 def get_fallback_executable():
     """Get a fallback executable for the command line tool 'vmrun'."""
     if 'PATH' in os.environ:
+        LOGGER.debug("os.environ['PATH']:%s", os.environ['PATH'])
         for path in os.environ['PATH'].split(os.pathsep):
             vmrun = os.path.join(path, 'vmrun')
             if os.path.exists(vmrun):
@@ -127,14 +128,16 @@ class VMrun():  # pylint: disable=too-many-public-methods
 
         if self.executable is None:
             if sys.platform == 'darwin':
-                default_executable = get_darwin_executable()
+                self.executable = get_darwin_executable()
             elif sys.platform == 'win32':
-                default_executable = get_win32_executable()
+                self.executable = get_win32_executable()
             else:
-                default_executable = get_fallback_executable()
+                self.executable = get_fallback_executable()
         if self.provider is None:
-            if default_executable is not None:
-                self.provider = get_provider(default_executable)
+            if self.executable is not None:
+                self.provider = get_provider(self.executable)
+                LOGGER.debug('self.executable:%s self.provider:%s',
+                             self.executable, self.provider)
 
     def vmrun(self, cmd, *args, **kwargs):
         """Execute a 'vmrun' command."""

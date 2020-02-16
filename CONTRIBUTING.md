@@ -69,8 +69,8 @@ pytest --durations=0
 # Or, you can run them from the main project directory like this:
 pytest -m"int"
 
-# To run all tests:
-pytest -m"int or not int"
+# To run all tests (with verbose output and show local variables):
+pytest -m"int or not int" -vv -l
 
 # Or, just one run int test like this (with verbose and show local variables):
 pytest -m"int" -k"provision" -v -l
