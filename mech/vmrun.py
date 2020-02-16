@@ -541,26 +541,32 @@ class VMrun():  # pylint: disable=too-many-public-methods
     def get_guest_ip_address(self, wait=True, quiet=False, lookup=False):
         '''Gets the IP address of the guest'''
         if lookup is True:
-            self.run_script_in_guest(
-                '/bin/sh',
-                "ifconfig | grep -Eo 'inet (addr:)?([0-9]*\\.){3}[0-9]*' "
-                "| grep -Eo '([0-9]*\\.){3}[0-9]*' | grep -v '127.0.0.1' > /tmp/ip_address",
-                quiet=quiet)
+            guest_tmp_filename = '/tmp/.ip_address'
+            cmd = "ifconfig | grep -Eo 'inet (addr:)?([0-9]*\\.){3}[0-9]*'"
+            cmd += "| grep -Eo '([0-9]*\\.){3}[0-9]*' | grep -v '127.0.0.1' > " + guest_tmp_filename
+            LOGGER.debug("cmd:%s", cmd)
+            self.run_script_in_guest('/bin/sh', cmd, quiet=quiet)
             temp_file = tempfile.NamedTemporaryFile(delete=False)
             try:
                 temp_file.close()
-                self.copy_file_from_guest_to_host('/tmp/ip_address', temp_file.name, quiet=quiet)
+                self.copy_file_from_guest_to_host(guest_tmp_filename, temp_file.name, quiet=quiet)
                 ip_addresses = open(temp_file.name).read().split()
+                # clean up the guest tmp file
+                self.run_script_in_guest(
+                    '/bin/sh',
+                    "rm {}".format(guest_tmp_filename),
+                    quiet=False)
                 if ip_addresses:
                     return ip_addresses[0]
                 else:
                     return None
             finally:
                 os.unlink(temp_file.name)
-        ip_address = self.vmrun('getGuestIPAddress', self.vmx_file,
-                                '-wait' if wait else None, quiet=quiet)
-        if ip_address == 'unknown':
-            ip_address = ''
+        else:
+            ip_address = self.vmrun('getGuestIPAddress', self.vmx_file,
+                                    '-wait' if wait else None, quiet=quiet)
+            if ip_address == 'unknown':
+                ip_address = ''
         return ip_address
 
     ############################################################################
