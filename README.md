@@ -1,6 +1,6 @@
 # mech
 
-![](https://github.com/actions/mkinney/mech/workflows/Python%20packaage/badge.svg)
+![](https://github.com/mkinney/mech/workflows/Python%20packaage/badge.svg)
 
 One of the authors made this because they don't like VirtualBox and wanted to use vagrant
 with VMmare Fusion but was too cheap to buy the Vagrant plugin.
