@@ -64,7 +64,7 @@ class MechSnapshot(MechCommand):
         instance = arguments['<instance>']
         inst = MechInstance(instance)
 
-        vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+        vmrun = VMrun(inst.vmx)
         if vmrun.delete_snapshot(name) is None:
             print(colored.red("Cannot delete name"))
         else:
@@ -95,7 +95,7 @@ class MechSnapshot(MechCommand):
             inst = MechInstance(instance)
             print('Snapshots for instance:{}'.format(instance))
             if inst.created:
-                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                vmrun = VMrun(inst.vmx)
                 print(vmrun.list_snapshots())
             else:
                 print(colored.red('Instance ({}) is not created.'.format(instance)))
@@ -123,7 +123,7 @@ class MechSnapshot(MechCommand):
 
         inst = MechInstance(instance)
         if inst.created:
-            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+            vmrun = VMrun(inst.vmx)
             if vmrun.snapshot(name) is None:
                 sys.exit(colored.red("Warning: Could not take snapshot."))
             else:

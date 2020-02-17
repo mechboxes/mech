@@ -124,6 +124,7 @@ class MechInstance():
 
     def config_ssh(self):
         """Configure ssh to work. Create a insecure private key file for ssh/scp."""
+        # Note: need user/password for generating the config file
         vmrun = VMrun(self.vmx, user=self.user, password=self.password)
         lookup = self.enable_ip_lookup
         ip_address = vmrun.get_guest_ip_address(wait=False,

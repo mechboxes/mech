@@ -10,8 +10,8 @@ import mech.vmrun
 @patch('mech.vmrun.VMrun.vmrun', return_value='')
 def test_vmrun_start(mock_vmrun):
     """Test start method."""
-    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', user='auser',
-                             password='apass', executable='/tmp/vmrun', provider='ws')
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', executable='/tmp/vmrun',
+                             provider='ws')
     got = vmrun.start()
     mock_vmrun.assert_called()
     assert got == ''
@@ -24,7 +24,7 @@ def test_vmrun_vmrun(mock_popen):
     attrs = {'communicate.return_value': ('output', 'error')}
     process_mock.configure_mock(**attrs)
     mock_popen.return_value = process_mock
-    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', user='auser', password='apass',
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx',
                              executable='/tmp/vmrun', provider='ws')
     got = vmrun.vmrun('list', vmrun.vmx_file)
     assert got is None
@@ -34,7 +34,7 @@ def test_vmrun_vmrun(mock_popen):
 @patch('mech.vmrun.VMrun.vmrun', return_value='192.168.1.200')
 def test_vmrun_get_guest_ip_address_no_lookup(mock_vmrun):
     """Test get_guest_ip_address method without lookup."""
-    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', user='auser', password='apass',
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx',
                              executable='/tmp/vmrun', provider='ws')
     got = vmrun.get_guest_ip_address()
     assert got == '192.168.1.200'
@@ -44,7 +44,7 @@ def test_vmrun_get_guest_ip_address_no_lookup(mock_vmrun):
 @patch('mech.vmrun.VMrun.vmrun', return_value='unknown')
 def test_vmrun_get_guest_ip_address_no_lookup_unknown(mock_vmrun):
     """Test get_guest_ip_address method without lookup."""
-    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', user='auser', password='apass',
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx',
                              executable='/tmp/vmrun', provider='ws')
     got = vmrun.get_guest_ip_address()
     assert got == ''

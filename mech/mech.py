@@ -288,7 +288,8 @@ class Mech(MechCommand):
                 inst.vmx = vmx
                 inst.created = True
 
-            vmrun = VMrun(vmx, user=inst.user, password=inst.password)
+            # Note: user/password is needed for provisioning
+            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
             print(colored.blue("Bringing machine ({}) up...".format(instance)))
             started = vmrun.start(gui=gui)
             if started is None:
@@ -345,6 +346,7 @@ class Mech(MechCommand):
         inst = MechInstance(instance_name)
 
         if inst.created:
+            # Note: user/password is needed for ps
             vmrun = VMrun(inst.vmx, inst.user, inst.password)
             print(vmrun.list_processes_in_guest())
         else:
@@ -375,7 +377,7 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                vmrun = VMrun(inst.vmx)
 
                 lookup = inst.enable_ip_lookup
                 ip_address = vmrun.get_guest_ip_address(wait=False, quiet=True, lookup=lookup)
@@ -428,7 +430,7 @@ class Mech(MechCommand):
                 if force or utils.confirm("Are you sure you want to delete {} "
                                           "at {}".format(inst.name, inst.path), default='n'):
                     print(colored.green("Deleting ({})...".format(instance)))
-                    vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                    vmrun = VMrun(inst.vmx)
                     vmrun.stop(mode='hard', quiet=True)
                     vmrun.delete_vm()
                     if os.path.exists(inst.path):
@@ -464,7 +466,7 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                vmrun = VMrun(inst.vmx)
                 if not force and vmrun.installed_tools():
                     stopped = vmrun.stop()
                 else:
@@ -502,7 +504,7 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                vmrun = VMrun(inst.vmx)
                 if vmrun.pause() is None:
                     print(colored.red("Not paused", vmrun))
                 else:
@@ -534,7 +536,7 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                vmrun = VMrun(inst.vmx)
                 state = vmrun.check_tools_state(quiet=True)
                 if state == "running":
                     print("VM must be stopped before doing upgrade.")
@@ -576,7 +578,7 @@ class Mech(MechCommand):
             # if we have started this instance before, try to unpause
             if inst.created:
 
-                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                vmrun = VMrun(inst.vmx)
 
                 if vmrun.unpause(quiet=True) is not None:
                     print(colored.blue("Getting IP address..."))
@@ -594,7 +596,7 @@ class Mech(MechCommand):
 
                 else:
                     # Otherwise try starting
-                    vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                    vmrun = VMrun(inst.vmx)
                     started = vmrun.start()
                     if started is None:
                         print(colored.red("VM not started"))
@@ -643,7 +645,7 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                vmrun = VMrun(inst.vmx)
                 if vmrun.suspend() is None:
                     print(colored.red("Not suspended", vmrun))
                 else:
@@ -797,7 +799,7 @@ class Mech(MechCommand):
         inst = MechInstance(instance)
 
         if inst.created:
-            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+            vmrun = VMrun(inst.vmx)
             lookup = inst.enable_ip_lookup
             ip_address = vmrun.get_guest_ip_address(lookup=lookup)
             if ip_address:
@@ -860,7 +862,7 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                vmrun = VMrun(inst.vmx)
 
                 print(colored.blue("Reloading machine..."))
                 started = vmrun.reset()
@@ -912,7 +914,7 @@ class Mech(MechCommand):
 
             print('Instance ({}):'. format(instance))
             nat_found = False
-            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+            vmrun = VMrun(inst.vmx)
             for line in vmrun.list_host_networks().split('\n'):
                 network = line.split()
                 if len(network) > 2 and network[2] == 'nat':
@@ -950,7 +952,7 @@ class Mech(MechCommand):
         for name in self.mechfile:
             inst = MechInstance(name, self.mechfile)
             if inst.created:
-                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                vmrun = VMrun(inst.vmx)
                 lookup = inst.enable_ip_lookup
                 ip_address = vmrun.get_guest_ip_address(wait=False, quiet=True, lookup=lookup)
                 if ip_address is None:
