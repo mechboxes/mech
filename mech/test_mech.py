@@ -920,6 +920,7 @@ def test_mech_up_without_name(mock_load_mechfile):
         '--memsize': None,
         '--numvcpus': None,
         '--no-nat': None,
+        '--remove-vagrant': None,
         '<instance>': '',
     }
     with raises(AttributeError, match=r"Must provide a name for the instance."):
@@ -942,6 +943,7 @@ def test_mech_up_with_name_not_in_mechfile(mock_load_mechfile,
         '--memsize': None,
         '--numvcpus': None,
         '--no-nat': None,
+        '--remove-vagrant': None,
         '<instance>': 'notfirst',
     }
     with raises(SystemExit, match=r" was not found in the Mechfile"):
@@ -950,10 +952,9 @@ def test_mech_up_with_name_not_in_mechfile(mock_load_mechfile,
 
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value='')
-@patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
-def test_mech_up_already_started(mock_locate, mock_load_mechfile, mock_init_box,
+def test_mech_up_already_started(mock_locate, mock_load_mechfile,
                                  mock_vmrun_start, mock_vmrun_get_ip, capfd,
                                  mechfile_one_entry):
     """Test 'mech up'."""
@@ -968,12 +969,12 @@ def test_mech_up_already_started(mock_locate, mock_load_mechfile, mock_init_box,
         '--memsize': None,
         '--numvcpus': None,
         '--no-nat': None,
+        '--remove-vagrant': None,
         '<instance>': None,
     }
     a_mech.up(arguments)
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_init_box.assert_called()
     mock_vmrun_start.assert_called()
     mock_vmrun_get_ip.assert_called()
     out, _ = capfd.readouterr()
@@ -984,10 +985,9 @@ def test_mech_up_already_started(mock_locate, mock_load_mechfile, mock_init_box,
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value='')
-@patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
-def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile, mock_init_box,
+def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile,
                                              mock_vmrun_start, mock_vmrun_get_ip,
                                              mock_installed_tools,
                                              mock_run_script_in_guest, capfd,
@@ -1004,6 +1004,7 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile, mo
         '--memsize': None,
         '--numvcpus': None,
         '--no-nat': None,
+        '--remove-vagrant': None,
         '<instance>': None,
     }
     mock_file = mock_open(read_data='some_pub_key_data')
@@ -1012,7 +1013,6 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile, mo
         mock_file.assert_called()
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
-        mock_init_box.assert_called()
         mock_vmrun_start.assert_called()
         mock_installed_tools.assert_called()
         mock_run_script_in_guest.assert_called()
@@ -1024,11 +1024,9 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile, mo
 
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='')
 @patch('mech.vmrun.VMrun.start', return_value='')
-@patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 def test_mech_up_already_started_but_could_not_get_ip(mock_locate, mock_load_mechfile,
-                                                      mock_init_box,
                                                       mock_vmrun_start, mock_vmrun_get_ip,
                                                       capfd, mechfile_one_entry):
     """Test 'mech up'."""
@@ -1043,12 +1041,12 @@ def test_mech_up_already_started_but_could_not_get_ip(mock_locate, mock_load_mec
         '--memsize': None,
         '--numvcpus': None,
         '--no-nat': None,
+        '--remove-vagrant': None,
         '<instance>': None,
     }
     a_mech.up(arguments)
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_init_box.assert_called()
     mock_vmrun_start.assert_called()
     mock_vmrun_get_ip.assert_called()
     out, _ = capfd.readouterr()
@@ -1057,10 +1055,9 @@ def test_mech_up_already_started_but_could_not_get_ip(mock_locate, mock_load_mec
 
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=False)
 @patch('mech.vmrun.VMrun.start', return_value=True)
-@patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
-def test_mech_up_already_started_but_on_unknnown_ip(mock_locate, mock_load_mechfile, mock_init_box,
+def test_mech_up_already_started_but_on_unknnown_ip(mock_locate, mock_load_mechfile,
                                                     mock_vmrun_start, mock_vmrun_get_ip, capfd,
                                                     mechfile_one_entry):
     """Test 'mech up'."""
@@ -1075,12 +1072,12 @@ def test_mech_up_already_started_but_on_unknnown_ip(mock_locate, mock_load_mechf
         '--memsize': None,
         '--numvcpus': None,
         '--no-nat': None,
+        '--remove-vagrant': None,
         '<instance>': None,
     }
     a_mech.up(arguments)
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_init_box.assert_called()
     mock_vmrun_start.assert_called()
     mock_vmrun_get_ip.assert_called()
     out, _ = capfd.readouterr()
@@ -1088,10 +1085,9 @@ def test_mech_up_already_started_but_on_unknnown_ip(mock_locate, mock_load_mechf
 
 
 @patch('mech.vmrun.VMrun.start', return_value=None)
-@patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
-def test_mech_up_problem(mock_locate, mock_load_mechfile, mock_init_box,
+def test_mech_up_problem(mock_locate, mock_load_mechfile,
                          mock_vmrun_start, capfd,
                          mechfile_one_entry):
     """Test 'mech up' when issue with starting VM"""
@@ -1106,12 +1102,12 @@ def test_mech_up_problem(mock_locate, mock_load_mechfile, mock_init_box,
         '--memsize': None,
         '--numvcpus': None,
         '--no-nat': None,
+        '--remove-vagrant': None,
         '<instance>': None,
     }
     a_mech.up(arguments)
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_init_box.assert_called()
     mock_vmrun_start.assert_called()
     out, _ = capfd.readouterr()
     assert re.search(r'not started', out, re.MULTILINE)
@@ -1120,10 +1116,9 @@ def test_mech_up_problem(mock_locate, mock_load_mechfile, mock_init_box,
 @patch('mech.utils.provision')
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value=True)
-@patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
-def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile, mock_init_box,
+def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile,
                                    mock_vmrun_start, mock_vmrun_get_ip,
                                    mock_provision, capfd, mechfile_one_entry):
     """Test 'mech up'."""
@@ -1138,12 +1133,12 @@ def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile, mock_init_bo
         '--memsize': None,
         '--numvcpus': None,
         '--no-nat': None,
+        '--remove-vagrant': None,
         '<instance>': None,
     }
     a_mech.up(arguments)
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_init_box.assert_called()
     mock_vmrun_start.assert_called()
     mock_vmrun_get_ip.assert_called()
     mock_provision.assert_called()
@@ -1154,10 +1149,9 @@ def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile, mock_init_bo
 @patch('mech.vmrun.VMrun.enable_shared_folders')
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value=True)
-@patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
-def test_mech_up_wth_shared_folders(mock_locate, mock_load_mechfile, mock_init_box,
+def test_mech_up_wth_shared_folders(mock_locate, mock_load_mechfile,
                                     mock_vmrun_start, mock_vmrun_get_ip,
                                     mock_vmrun_enable_shared_folders,
                                     capfd, mechfile_one_entry):
@@ -1173,12 +1167,12 @@ def test_mech_up_wth_shared_folders(mock_locate, mock_load_mechfile, mock_init_b
         '--memsize': None,
         '--numvcpus': None,
         '--no-nat': None,
+        '--remove-vagrant': None,
         '<instance>': None,
     }
     a_mech.up(arguments)
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_init_box.assert_called()
     mock_vmrun_start.assert_called()
     mock_vmrun_get_ip.assert_called()
     mock_vmrun_enable_shared_folders.assert_called()

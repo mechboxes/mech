@@ -29,6 +29,8 @@ from __future__ import division, absolute_import
 
 import os
 import re
+import random
+import string
 import sys
 import json
 import tarfile
@@ -540,40 +542,49 @@ def add_box_file(box=None, box_version=None, filename=None, url=None, force=Fals
         return box, box_version
 
 
-def get_info_for_auth():
+def get_info_for_auth(mech_use=False):
     """Get information (username/pub_key) for authentication."""
     username = os.getlogin()
     pub_key = os.path.expanduser('~/.ssh/id_rsa.pub')
-    return {'auth': {'username': username, 'pub_key': pub_key}}
+    return {'auth': {'username': username, 'pub_key': pub_key, 'mech_use': mech_use}}
 
 
-def init_mechfile(location=None, box=None, name=None, box_version=None, add_me=None):
+def init_mechfile(location=None, box=None, name=None, box_version=None, add_me=None,
+                  use_me=None):
     """Initialize the Mechfile."""
-    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s", name, box,
-                 box_version, location, add_me)
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s use_me:%s",
+                 name, box, box_version, location, add_me, use_me)
     mechfile_entry = build_mechfile_entry(
         location=location,
         box=box,
         name=name,
         box_version=box_version)
     if add_me:
-        mechfile_entry.update(get_info_for_auth())
+        mechfile_entry.update(get_info_for_auth(use_me))
     LOGGER.debug('mechfile_entry:%s', mechfile_entry)
     return save_mechfile_entry(mechfile_entry, name, mechfile_should_exist=False)
 
 
-def add_to_mechfile(location=None, box=None, name=None, box_version=None, add_me=None):
+def add_to_mechfile(location=None, box=None, name=None, box_version=None, add_me=None,
+                    use_me=None):
     """Add entry to the Mechfile."""
-    LOGGER.debug("name:%s box:%s box_version:%s location:%s", name, box, box_version, location)
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s use_me:%s",
+                 name, box, box_version, location, add_me, use_me)
     this_mech_entry = build_mechfile_entry(
         location=location,
         box=box,
         name=name,
         box_version=box_version)
     if add_me:
-        this_mech_entry.update(get_info_for_auth())
+        this_mech_entry.update(get_info_for_auth(use_me))
     LOGGER.debug('this_mech_entry:%s', this_mech_entry)
     return save_mechfile_entry(this_mech_entry, name, mechfile_should_exist=False)
+
+
+def random_string(string_len=15):
+    """Generate a random string of fixed length."""
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(string_len))
 
 
 def add_auth(instance):
@@ -599,14 +610,23 @@ def add_auth(instance):
             with open(pub_key, 'r') as the_file:
                 pub_key_contents = the_file.read().strip()
             if pub_key_contents:
-                cmd = ('sudo useradd -m -s/bin/bash {username};'
-                       'sudo usermod -aG sudo {username};'
+                # set the password to some random string
+                # user should never need it (sudo should not prompt for a
+                # password)
+                password = random_string()
+                cmd = ('sudo useradd -m -s /bin/bash -p "{password}" {username};'
                        'sudo mkdir /home/{username}/.ssh;'
+                       'sudo usermod -aG sudo {username};'
+                       'echo "{username} ALL=(ALL) NOPASSWD: ALL" | '
+                       'sudo tee -a /etc/sudoers;'
                        'echo "{pub_key_contents}" | '
                        'sudo tee -a /home/{username}/.ssh/authorized_keys;'
+                       'sudo chmod 700 /home/{username}/.ssh;'
+                       'sudo chown {username}:{username} /home/{username}/.ssh;'
                        'sudo chmod 600 /home/{username}/.ssh/authorized_keys;'
                        'sudo chown {username}:{username} /home/{username}/.ssh/authorized_keys'
-                       ).format(username=username, pub_key_contents=pub_key_contents)
+                       ).format(username=username, pub_key_contents=pub_key_contents,
+                                password=password)
                 LOGGER.debug('cmd:', cmd)
                 results = vmrun.run_script_in_guest('/bin/sh', cmd, quiet=True)
                 LOGGER.debug('results:%s', results)
@@ -621,6 +641,112 @@ def add_auth(instance):
             print(colored.blue("Warning: Need a username and pub_key in auth."))
     else:
         print(colored.blue("No auth to add."))
+
+
+def ssh(instance, command, plain=None, extra=None):
+    """Run ssh command.
+       Note: May not really need the tempfile if self.use_psk==True.
+             Using the tempfile, there are options to not add host to the known_hosts files
+             which is useful, but could be MITM attacks. Not likely locally, but still
+             could be an issue.
+    """
+    if instance.created:
+        config_ssh = instance.config_ssh()
+        temp_file = tempfile.NamedTemporaryFile(delete=False)
+        try:
+            temp_file.write(config_ssh_string(config_ssh).encode('utf-8'))
+            temp_file.close()
+
+            cmds = ['ssh']
+            if not plain:
+                cmds.extend(('-F', temp_file.name))
+            if extra:
+                cmds.extend(extra)
+            if not plain:
+                cmds.append(config_ssh['Host'])
+            if command:
+                cmds.extend(('--', command))
+
+            LOGGER.debug(
+                " ".join(
+                    "'{}'".format(
+                        c.replace(
+                            "'",
+                            "\\'")) if ' ' in c else c for c in cmds))
+            return subprocess.call(cmds)
+        finally:
+            os.unlink(temp_file.name)
+
+
+def scp(instance, src, dst, dst_is_host, extra=None):
+    """Run scp command.
+       Note: May not really need the tempfile if self.use_psk==True.
+             Using the tempfile, there are options to not add host to the known_hosts files
+             which is useful, but could be MITM attacks. Not likely locally, but still
+             could be an issue.
+    """
+    if instance.created:
+
+        config_ssh = instance.config_ssh()
+        temp_file = tempfile.NamedTemporaryFile(delete=False)
+
+        try:
+            temp_file.write(config_ssh_string(config_ssh).encode())
+            temp_file.close()
+
+            cmds = ['scp']
+            cmds.extend(('-F', temp_file.name))
+            if extra:
+                cmds.extend(extra)
+
+            host = config_ssh['Host']
+            dst = '{}:{}'.format(host, dst) if dst_is_host else dst
+            src = '{}:{}'.format(host, src) if not dst_is_host else src
+            cmds.extend((src, dst))
+
+            LOGGER.debug(
+                " ".join(
+                    "'{}'".format(
+                        c.replace(
+                            "'",
+                            "\\'")) if ' ' in c else c for c in cmds))
+            return subprocess.call(cmds)
+        finally:
+            os.unlink(temp_file.name)
+
+
+def del_user(instance, username):
+    """Delete a user in guest VM."""
+
+    if not instance:
+        sys.exit(colored.red("Need to provide an instance to del_user()."))
+
+    if instance.vmx is None:
+        sys.exit(colored.red("VM must be created."))
+
+    if instance.user is None:
+        sys.exit(colored.red("A user is required."))
+
+    print(colored.green('Removing username ({}) from instance:{}...'.format(username,
+                                                                            instance.name)))
+
+    cmd = 'sudo userdel -fr vagrant'
+    LOGGER.debug('cmd:', cmd)
+
+    if instance.use_psk:
+        ssh(instance, cmd)
+    else:
+        vmrun = VMrun(instance.vmx, user=instance.user,
+                      password=instance.password, use_psk=instance.use_psk)
+        # cannot run if vmware tools are not installed
+        if not vmrun.installed_tools():
+            sys.exit(colored.red("Cannot add del_user if VMware Tools are not installed."))
+        results = vmrun.run_script_in_guest('/bin/sh', cmd, quiet=True)
+        LOGGER.debug('results:%s', results)
+        if results is None:
+            print(colored.red("Failed running del_user()."))
+        else:
+            print(colored.green("Success running del_user()."))
 
 
 def provision(instance, show=False):
@@ -640,8 +766,8 @@ def provision(instance, show=False):
     if not instance:
         sys.exit(colored.red("Need to provide an instance to provision()."))
 
-    if instance.vmx is None or instance.user is None or instance.password is None:
-        sys.exit(colored.red("Need to provide vmx/user/password to provision()."))
+    if instance.vmx is None or instance.user is None:
+        sys.exit(colored.red("Need to provide vmx/user to provision()."))
 
     print(colored.green('Provisioning instance:{}'.format(instance.name)))
 
@@ -662,7 +788,9 @@ def provision(instance, show=False):
                                         "destination:{}".format(instance, provision_type,
                                                                 source, destination)))
                 else:
-                    if provision_file(vmrun, source, destination) is None:
+                    results = provision_file(vmrun, instance, source, destination)
+                    LOGGER.debug('results:%s', results)
+                    if results is None:
                         print(colored.red("Not Provisioned"))
                         return
                 provisioned += 1
@@ -679,7 +807,7 @@ def provision(instance, show=False):
                                         "args:{}".format(instance, provision_type,
                                                          inline, path, args)))
                 else:
-                    if provision_shell(vmrun, inline, path, args) is None:
+                    if provision_shell(vmrun, instance, inline, path, args) is None:
                         print(colored.red("Not Provisioned"))
                         return
                 provisioned += 1
@@ -694,7 +822,7 @@ def provision(instance, show=False):
         print(colored.blue("Nothing to provision"))
 
 
-def provision_file(vmrun, source, destination):
+def provision_file(vmrun, instance, source, destination):
     """Provision from file.
 
     Args:
@@ -707,14 +835,25 @@ def provision_file(vmrun, source, destination):
 
     """
     print(colored.blue("Copying ({}) to ({})".format(source, destination)))
-    return vmrun.copy_file_from_host_to_guest(source, destination)
+    if instance.use_psk:
+        results = scp(instance, source, '{}:{}'.format(instance.name, destination), True)
+    else:
+        results = vmrun.copy_file_from_host_to_guest(source, destination)
+    return results
 
 
-def provision_shell(vmrun, inline, script_path, args=None):
+def create_tempfile_in_guest(instance):
+    """Create a tempfile in the guest."""
+    cmd = 'tmpfile=$(mktemp); echo $tmpfile'
+    return ssh(instance, cmd)
+
+
+def provision_shell(vmrun, instance, inline, script_path, args=None):
     """Provision from shell.
 
     Args:
         vmrun (VMrun): instance of the VMrun class
+        instance (MechInstance): instance of the MechInstance class
         inline (bool): run the script inline
         script_path (str): path to the script to run
         args (list of str): arguments to the script
@@ -722,7 +861,10 @@ def provision_shell(vmrun, inline, script_path, args=None):
     """
     if args is None:
         args = []
-    tmp_path = vmrun.create_tempfile_in_guest()
+    if instance.use_psk:
+        tmp_path = create_tempfile_in_guest(instance)
+    else:
+        tmp_path = vmrun.create_tempfile_in_guest()
     LOGGER.debug('inline:%s script_path:%s args:%s tmp_path:%s',
                  inline, script_path, args, tmp_path)
     if tmp_path is None:
@@ -732,9 +874,15 @@ def provision_shell(vmrun, inline, script_path, args=None):
     try:
         if script_path and os.path.isfile(script_path):
             print(colored.blue("Configuring script {}...".format(script_path)))
-            if vmrun.copy_file_from_host_to_guest(script_path, tmp_path) is None:
-                print(colored.red("Warning: Could not copy file to guest."))
-                return
+            if instance.use_psk:
+                results = scp(instance, script_path, '{}:{}'.format(instance.name, tmp_path), True)
+                if results is None:
+                    print(colored.red("Warning: Could not copy file to guest."))
+                    return
+            else:
+                if vmrun.copy_file_from_host_to_guest(script_path, tmp_path) is None:
+                    print(colored.red("Warning: Could not copy file to guest."))
+                    return
         else:
             if script_path:
                 if any(script_path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
@@ -760,21 +908,37 @@ def provision_shell(vmrun, inline, script_path, args=None):
             try:
                 the_file.write(str.encode(inline))
                 the_file.close()
-                if vmrun.copy_file_from_host_to_guest(the_file.name, tmp_path) is None:
-                    return
+                if instance.use_psk:
+                    scp(instance, the_file.name, '{}:{}'.format(instance.name, tmp_path), True)
+                else:
+                    if vmrun.copy_file_from_host_to_guest(the_file.name, tmp_path) is None:
+                        return
             finally:
                 os.unlink(the_file.name)
 
         print(colored.blue("Configuring environment..."))
-        if vmrun.run_script_in_guest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
-            print(colored.red("Warning: Could not configure script in the environment."))
-            return
+        make_executable = "chmod +x '{}'".format(tmp_path)
+        if instance.use_psk:
+            if ssh(instance, make_executable) is None:
+                print(colored.red("Warning: Could not configure script in the environment."))
+                return
+        else:
+            if vmrun.run_script_in_guest('/bin/sh', make_executable) is None:
+                print(colored.red("Warning: Could not configure script in the environment."))
+                return
 
         print(colored.blue("Executing program..."))
-        return vmrun.run_program_in_guest(tmp_path, args)
+        if instance.use_psk:
+            args_string = ' '.join([str(elem) for elem in args])
+            return ssh(instance, tmp_path, args_string)
+        else:
+            return vmrun.run_program_in_guest(tmp_path, args)
 
     finally:
-        vmrun.delete_file_in_guest(tmp_path, quiet=True)
+        if instance.use_psk:
+            return ssh(instance, 'rm -f "{}"'.format(tmp_path))
+        else:
+            vmrun.delete_file_in_guest(tmp_path, quiet=True)
 
 
 def config_ssh_string(config_ssh):

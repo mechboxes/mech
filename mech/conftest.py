@@ -105,6 +105,7 @@ def mech_add_arguments():
         '--name': None,
         '--box': None,
         '--add-me': None,
+        '--use-me': None,
         '<location>': None,
     }
 
@@ -128,6 +129,7 @@ def mech_init_arguments():
         '--name': None,
         '--box': None,
         '--add-me': None,
+        '--use-me': None,
         '<location>': None,
     }
 

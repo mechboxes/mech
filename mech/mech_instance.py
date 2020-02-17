@@ -93,10 +93,11 @@ class MechInstance():
         self.provision = mechfile[name].get('provision', None)
         self.enable_ip_lookup = False
         self.config = {}
-        self.auth = mechfile[name].get('auth', {})
+        self.auth = mechfile[name].get('auth', None)
         self.shared_folders = mechfile[name].get('shared_folders', [])
         self.user = DEFAULT_USER
         self.password = DEFAULT_PASSWORD
+        self.use_psk = False
         self.path = os.path.join(utils.mech_dir(), name)
         vmx = utils.locate(self.path, '*.vmx')
         # Note: If vm has not been started vmx will be None
@@ -106,6 +107,22 @@ class MechInstance():
         else:
             self.vmx = None
             self.created = False
+
+        # If vmx exists, then the VM has already been created.
+        # See if we need to switch to preshared key authentication
+        # for interactions with this guest.
+        if self.created:
+            self.switch_to_psk()
+
+    def switch_to_psk(self):
+        """Switch to using preshared key, instead of using user/password."""
+        if self.auth:
+            mech_use = self.auth.get('mech_use')
+            username = self.auth.get('username')
+            if username and username != '' and mech_use:
+                self.user = username
+                self.password = None
+                self.use_psk = True
 
     def __repr__(self):
         """Return a representation of a Mech instance."""
@@ -127,9 +144,8 @@ class MechInstance():
                                           auth=self.auth, sep=sep))
 
     def config_ssh(self):
-        """Configure ssh to work. Create a insecure private key file for ssh/scp."""
-        # Note: need user/password for generating the config file
-        vmrun = VMrun(self.vmx, user=self.user, password=self.password)
+        """Configure ssh to work. If needed, create an insecure private key file for ssh/scp."""
+        vmrun = VMrun(self.vmx)
         lookup = self.enable_ip_lookup
         ip_address = vmrun.get_guest_ip_address(wait=False,
                                                 lookup=lookup) if vmrun.installed_tools() else None
@@ -140,12 +156,16 @@ class MechInstance():
                 "Additionally, check the output of `mech status` to verify "
                 "that the machine is in the state that you expect.")))
 
-        insecure_private_key = os.path.abspath(os.path.join(
-            utils.mech_dir(), "insecure_private_key"))
-        if not os.path.exists(insecure_private_key):
-            with open(insecure_private_key, 'w') as the_file:
-                the_file.write(INSECURE_PRIVATE_KEY)
-            os.chmod(insecure_private_key, 0o400)
+        if not self.use_psk:
+            key = os.path.abspath(os.path.join(
+                utils.mech_dir(), "insecure_private_key"))
+            if not os.path.exists(key):
+                with open(key, 'w') as the_file:
+                    the_file.write(INSECURE_PRIVATE_KEY)
+                os.chmod(key, 0o400)
+        else:
+            key = '~/.ssh/id_rsa'
+
         self.config = {
             "Host": self.name,
             "User": self.user,
@@ -153,7 +173,7 @@ class MechInstance():
             "UserKnownHostsFile": "/dev/null",
             "StrictHostKeyChecking": "no",
             "PasswordAuthentication": "no",
-            "IdentityFile": insecure_private_key,
+            "IdentityFile": key,
             "IdentitiesOnly": "yes",
             "LogLevel": "FATAL",
         }

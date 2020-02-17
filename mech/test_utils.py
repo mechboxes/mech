@@ -542,6 +542,7 @@ def test_provision_file_could_not_copy_file_to_guest(mock_installed_tools,
     mock_inst.name = 'first'
     mock_inst.vmx = '/tmp/first/some.vmx'
     mock_inst.provision = config
+    mock_inst.use_psk = False
     mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     assert re.search(r'Not Provisioned', out, re.MULTILINE)
@@ -597,6 +598,7 @@ def test_provision_shell(mock_installed_tools, mock_copy_file,
     mock_inst.name = 'first'
     mock_inst.vmx = '/tmp/first/some.vmx'
     mock_inst.provision = config
+    mock_inst.use_psk = False
     mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     mock_installed_tools.assert_called()
@@ -758,6 +760,6 @@ def test_add_box_url(mock_locate, mock_requests_get, catalog_as_json):
 @patch('os.path.expanduser', return_value='/home/bob/id_rsa.pub')
 def test_get_info_for_auth(mock_path_expanduser, mock_getlogin):
     """Test get_info_for_auth."""
-    expected = {'auth': {'username': 'bob', 'pub_key': '/home/bob/id_rsa.pub'}}
+    expected = {'auth': {'username': 'bob', 'pub_key': '/home/bob/id_rsa.pub', 'mech_use': False}}
     got = mech.utils.get_info_for_auth()
     assert got == expected

@@ -29,10 +29,8 @@ from __future__ import print_function, absolute_import
 import os
 import sys
 import logging
-import tempfile
 import textwrap
 import shutil
-import subprocess
 
 from clint.textui import colored
 
@@ -116,16 +114,18 @@ class Mech(MechCommand):
 
         Notes:
           - The location can be a:
-                URL (ex: 'http://example.com/foo.box'),
-                box file (ex: 'file:/mnt/boxen/foo.box'),
-                json file (ex: 'file:/tmp/foo.json'), or
-                HashiCorp account/box (ex: 'bento/ubuntu-18.04').
+              + URL (ex: 'http://example.com/foo.box'),
+              + box file (ex: 'file:/mnt/boxen/foo.box'),
+              + json file (ex: 'file:/tmp/foo.json'), or
+              + HashiCorp account/box (ex: 'bento/ubuntu-18.04').
           - A default shared folder name 'mech' will be available
             in the guest for the current directory.
           - The 'add-me' option will add the currently logged in user to the guest,
             add the same user to sudoers, and add the id_rsa.pub key to the
             authorized_hosts file for that user.
-
+          - The 'use-me' option will use the currently logged in user for
+            future interactions with the guest instead of the vagrant user.
+            The first provisioning run will be done with 'vagrant' user.
 
         Options:
             -a, --add-me                     Add the current host user/pubkey to guest
@@ -134,8 +134,10 @@ class Mech(MechCommand):
             -f, --force                      Overwrite existing Mechfile
             -h, --help                       Print this help
                 --name INSTANCE              Name of the instance (myinst1)
+            -u, --use-me                     Use the current user for mech interactions
         """
         add_me = arguments['--add-me']
+        use_me = arguments['--use-me']
         name = arguments['--name']
         box_version = arguments['--box-version']
         box = arguments['--box']
@@ -159,7 +161,8 @@ class Mech(MechCommand):
             box=box,
             name=name,
             box_version=box_version,
-            add_me=add_me)
+            add_me=add_me,
+            use_me=use_me)
         print(colored.green(textwrap.fill(
             "A `Mechfile` has been initialized and placed in this directory. "
             "You are now ready to `mech up` your first virtual environment!")))
@@ -172,20 +175,23 @@ class Mech(MechCommand):
 
         Example box: bento/ubuntu-18.04
 
-        Note: The 'add-me' option will add the currently logged in user to the guest,
-        add the same user to sudoers, and add the id_rsa.pub key to the authorized_hosts file
-        for that user.
+        Notes:
+        - The 'add-me' option will add the currently logged in user to the guest,
+          add the same user to sudoers, and add the id_rsa.pub key to the authorized_hosts file
+          for that user.
 
         Options:
             -a, --add-me                     Add the current host user/pubkey to guest
                 --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
                 --box-version VERSION        Constrain version of the added box
             -h, --help                       Print this help
+            -u, --use-me                     Use the current user for mech interactions
         """
         name = arguments['<name>']
         box_version = arguments['--box-version']
         box = arguments['--box']
         add_me = arguments['--add-me']
+        use_me = arguments['--use-me']
         location = arguments['<location>']
 
         if not name or name == "":
@@ -200,7 +206,8 @@ class Mech(MechCommand):
             box=box,
             name=name,
             box_version=box_version,
-            add_me=add_me)
+            add_me=add_me,
+            use_me=use_me)
         print(colored.green("Added to the Mechfile."))
 
     def remove(self, arguments):
@@ -228,8 +235,9 @@ class Mech(MechCommand):
         else:
             sys.exit(colored.red("There is no instance called ({}) in the Mechfile.".format(name)))
 
-    # add alias for 'mech delete'
+    # add aliases for 'mech delete'
     delete = remove
+    rm = remove
 
     def up(self, arguments):  # pylint: disable=invalid-name
         """
@@ -247,6 +255,9 @@ class Mech(MechCommand):
              share called "mech" will be mounted from the current directory.
              (ex: '/mnt/hgfs/mech' on guest will have the file "Mechfile".)
              To change shared folders, modify the Mechfile directly.
+           - The 'remove-vagrant' option will remove the vagrant account from the
+             guest VM which is what 'mech' uses to communicate with the VM.
+             Be sure you can connect/admin the instance before using this option.
 
         Options:
                 --disable-provisioning       Do not provision
@@ -257,11 +268,13 @@ class Mech(MechCommand):
                 --no-nat                     Do not use NAT network (i.e., bridged)
                 --numvcpus 1                 Specify the number of vcpus for VM
             -h, --help                       Print this help
+            -r, --remove-vagrant             Remove vagrant user
         """
         gui = arguments['--gui']
         disable_shared_folders = arguments['--disable-shared-folders']
         disable_provisioning = arguments['--disable-provisioning']
         save = not arguments['--no-cache']
+        remove_vagrant = arguments['--remove-vagrant']
 
         memsize = arguments['--memsize']
         numvcpus = arguments['--numvcpus']
@@ -288,18 +301,18 @@ class Mech(MechCommand):
             if not location:
                 location = inst.box_file
 
-            vmx = utils.init_box(
-                instance,
-                box=inst.box,
-                box_version=inst.box_version,
-                location=location,
-                instance_path=inst.path,
-                save=save,
-                numvcpus=numvcpus,
-                memsize=memsize,
-                no_nat=no_nat)
-            if vmx:
-                inst.vmx = vmx
+            # only run init_box on first "up"
+            if not inst.created:
+                inst.vmx = utils.init_box(
+                    instance,
+                    box=inst.box,
+                    box_version=inst.box_version,
+                    location=location,
+                    instance_path=inst.path,
+                    save=save,
+                    numvcpus=numvcpus,
+                    memsize=memsize,
+                    no_nat=no_nat)
                 inst.created = True
 
             # Note: user/password is needed for provisioning
@@ -328,10 +341,17 @@ class Mech(MechCommand):
                     else:
                         print(colored.yellow("VM ({}) was already started on an "
                                              "unknown IP address".format(instance)))
+
                 if not disable_provisioning:
                     utils.provision(inst, show=False)
-                if inst.auth:
+
+                # if not already using preshared key, switch to it
+                if not inst.use_psk and inst.auth:
                     utils.add_auth(inst)
+                    inst.switch_to_psk()
+
+                if remove_vagrant:
+                    utils.del_user(inst, 'vagrant')
 
     # allows "mech start" to alias to "mech up"
     start = up
@@ -714,31 +734,7 @@ class Mech(MechCommand):
         inst = MechInstance(instance)
 
         if inst.created:
-            config_ssh = inst.config_ssh()
-            temp_file = tempfile.NamedTemporaryFile(delete=False)
-            try:
-                temp_file.write(utils.config_ssh_string(config_ssh).encode('utf-8'))
-                temp_file.close()
-
-                cmds = ['ssh']
-                if not plain:
-                    cmds.extend(('-F', temp_file.name))
-                if extra:
-                    cmds.extend(extra)
-                if not plain:
-                    cmds.append(config_ssh['Host'])
-                if command:
-                    cmds.extend(('--', command))
-
-                LOGGER.debug(
-                    " ".join(
-                        "'{}'".format(
-                            c.replace(
-                                "'",
-                                "\\'")) if ' ' in c else c for c in cmds))
-                return subprocess.call(cmds)
-            finally:
-                os.unlink(temp_file.name)
+            utils.ssh(inst, command, plain, extra)
         else:
             print("VM not created.")
 
@@ -758,46 +754,25 @@ class Mech(MechCommand):
         dst_instance, dst_is_host, dst = dst.partition(':')
         src_instance, src_is_host, src = src.partition(':')
 
+        instance_name = None
         if dst_is_host and src_is_host:
             sys.exit(colored.red("Both src and dst are host destinations"))
         if dst_is_host:
-            instance = dst_instance
+            instance_name = dst_instance
         else:
             dst = dst_instance
         if src_is_host:
-            instance = src_instance
+            instance_name = src_instance
         else:
             src = src_instance
 
-        inst = MechInstance(instance)
+        if instance_name is None:
+            sys.exit(colored.red("Could not determine instance name."))
+
+        inst = MechInstance(instance_name)
 
         if inst.created:
-            config_ssh = inst.config_ssh()
-            temp_file = tempfile.NamedTemporaryFile(delete=False)
-
-            try:
-                temp_file.write(utils.config_ssh_string(config_ssh).encode())
-                temp_file.close()
-
-                cmds = ['scp']
-                cmds.extend(('-F', temp_file.name))
-                if extra:
-                    cmds.extend(extra)
-
-                host = config_ssh['Host']
-                dst = '{}:{}'.format(host, dst) if dst_is_host else dst
-                src = '{}:{}'.format(host, src) if src_is_host else src
-                cmds.extend((src, dst))
-
-                LOGGER.debug(
-                    " ".join(
-                        "'{}'".format(
-                            c.replace(
-                                "'",
-                                "\\'")) if ' ' in c else c for c in cmds))
-                return subprocess.call(cmds)
-            finally:
-                os.unlink(temp_file.name)
+            utils.scp(inst, src, dst, dst_is_host, extra)
         else:
             print(colored.red('VM not created.'))
 

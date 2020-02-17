@@ -46,13 +46,14 @@ class VMrun():  # pylint: disable=too-many-public-methods
 
     def __init__(self, vmx_file=None,  # pylint: disable=too-many-arguments
                  user=None, password=None, executable=None, provider=None,
-                 test_mode=False):
+                 test_mode=False, use_psk=False):
         """Constructor - set sane defaults."""
         self.vmx_file = vmx_file
         self.user = user
         self.password = password
         self.executable = executable
         self.provider = provider
+        self.use_psk = use_psk
 
         if self.executable is None:
             if sys.platform == 'darwin':
@@ -469,15 +470,19 @@ class VMrun():  # pylint: disable=too-many-public-methods
             interactive=False,
             quiet=False):
         '''Run a script in Guest OS'''
-        return self.vmrun(
-            'runScriptInGuest',
-            self.vmx_file,
-            interpreter_path,
-            script,
-            None if wait else '-noWait',
-            '-activateWindow' if activate_window else None,
-            '-interactive' if interactive else None,
-            quiet=quiet)
+        if self.use_psk:
+            # TODO call utils.ssh()
+            pass
+        else:
+            return self.vmrun(
+                'runScriptInGuest',
+                self.vmx_file,
+                interpreter_path,
+                script,
+                None if wait else '-noWait',
+                '-activateWindow' if activate_window else None,
+                '-interactive' if interactive else None,
+                quiet=quiet)
 
     def delete_file_in_guest(self, filename, quiet=False):
         '''Delete a file in Guest OS'''
