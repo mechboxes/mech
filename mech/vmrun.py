@@ -45,7 +45,8 @@ class VMrun():  # pylint: disable=too-many-public-methods
     """
 
     def __init__(self, vmx_file=None,  # pylint: disable=too-many-arguments
-                 user=None, password=None, executable=None, provider=None):
+                 user=None, password=None, executable=None, provider=None,
+                 test_mode=False):
         """Constructor - set sane defaults."""
         self.vmx_file = vmx_file
         self.user = user
@@ -65,6 +66,9 @@ class VMrun():  # pylint: disable=too-many-public-methods
                 self.provider = utils.get_provider(self.executable)
                 LOGGER.debug('self.executable:%s self.provider:%s',
                              self.executable, self.provider)
+        # If test_mode is True, then do not perform the action
+        # just return the command info
+        self.test_mode = test_mode
 
     def vmrun(self, cmd, *args, **kwargs):
         """Execute a 'vmrun' command."""
@@ -90,6 +94,9 @@ class VMrun():  # pylint: disable=too-many-public-methods
                     c.replace(
                         "'",
                         "\\'")) if ' ' in c else c for c in cmds))
+
+        if self.test_mode:
+            return cmds
 
         startupinfo = None
         if os.name == "nt":
@@ -472,9 +479,9 @@ class VMrun():  # pylint: disable=too-many-public-methods
             '-interactive' if interactive else None,
             quiet=quiet)
 
-    def delete_file_in_guest(self, file, quiet=False):
+    def delete_file_in_guest(self, filename, quiet=False):
         '''Delete a file in Guest OS'''
-        return self.vmrun('deleteFileInGuest', self.vmx_file, file, quiet=quiet)
+        return self.vmrun('deleteFileInGuest', self.vmx_file, filename, quiet=quiet)
 
     def create_directory_in_guest(self, path, quiet=False):
         '''Create a directory in Guest OS'''
@@ -712,6 +719,8 @@ class VMrun():  # pylint: disable=too-many-public-methods
     ############################################################################
 
     def installed_tools(self, quiet=False):
-        '''Return if VMware tools are either 'installed' or 'running'.'''
+        '''Return True if VMware tools is in either 'installed' or 'running',
+           otherwise, return False.
+        '''
         state = self.check_tools_state(quiet=quiet)
         return state in ('installed', 'running')
