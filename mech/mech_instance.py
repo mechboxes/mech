@@ -93,6 +93,7 @@ class MechInstance():
         self.provision = mechfile[name].get('provision', None)
         self.enable_ip_lookup = False
         self.config = {}
+        self.auth = mechfile[name].get('auth', {})
         self.shared_folders = mechfile[name].get('shared_folders', [])
         self.user = DEFAULT_USER
         self.password = DEFAULT_PASSWORD
@@ -114,13 +115,16 @@ class MechInstance():
                 'url:{url}{sep}box_file:{box_file}{sep}provision:{provision}{sep}'
                 'vmx:{vmx}{sep}user:{user}{sep}'
                 'password:{password}{sep}enable_ip_lookup:{enable_ip_lookup}'
-                '{sep}config:{config}{sep}shared_folders:{shared_folders}'.
-                format(name=self.name, created=self.created, box=self.box,
-                       box_version=self.box_version, url=self.url,
-                       box_file=self.box_file, provision=self.provision,
-                       vmx=self.vmx, user=self.user, password=self.password,
-                       enable_ip_lookup=self.enable_ip_lookup, config=self.config,
-                       shared_folders=self.shared_folders, sep=sep))
+                '{sep}config:{config}{sep}shared_folders:{shared_folders}'
+                '{sep}auth:{auth}'.format(name=self.name, created=self.created,
+                                          box=self.box, box_version=self.box_version,
+                                          url=self.url, box_file=self.box_file,
+                                          provision=self.provision, vmx=self.vmx,
+                                          user=self.user, password=self.password,
+                                          enable_ip_lookup=self.enable_ip_lookup,
+                                          config=self.config,
+                                          shared_folders=self.shared_folders,
+                                          auth=self.auth, sep=sep))
 
     def config_ssh(self):
         """Configure ssh to work. Create a insecure private key file for ssh/scp."""

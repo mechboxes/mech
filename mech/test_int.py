@@ -86,3 +86,10 @@ def test_int_shared_folders():
     """Test shared_folders tests."""
     return_value, out = subprocess.getstatusoutput('cd tests/int && ./shared_folders.bats')
     assert return_value == 0
+
+
+@pytest.mark.int
+def test_int_auth():
+    """Test auth tests."""
+    return_value, out = subprocess.getstatusoutput('cd tests/int && ./auth.bats')
+    assert return_value == 0

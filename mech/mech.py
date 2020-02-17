@@ -115,21 +115,27 @@ class Mech(MechCommand):
         Usage: mech init [options] <location>
 
         Notes:
-            The location can be a:
+          - The location can be a:
                 URL (ex: 'http://example.com/foo.box'),
                 box file (ex: 'file:/mnt/boxen/foo.box'),
                 json file (ex: 'file:/tmp/foo.json'), or
                 HashiCorp account/box (ex: 'bento/ubuntu-18.04').
-            A default shared folder name 'mech' will be available
+          - A default shared folder name 'mech' will be available
             in the guest for the current directory.
+          - The 'add-me' option will add the currently logged in user to the guest,
+            add the same user to sudoers, and add the id_rsa.pub key to the
+            authorized_hosts file for that user.
+
 
         Options:
+            -a, --add-me                     Add the current host user/pubkey to guest
                 --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
                 --box-version VERSION        Constrain version of the added box
             -f, --force                      Overwrite existing Mechfile
             -h, --help                       Print this help
                 --name INSTANCE              Name of the instance (myinst1)
         """
+        add_me = arguments['--add-me']
         name = arguments['--name']
         box_version = arguments['--box-version']
         box = arguments['--box']
@@ -152,7 +158,8 @@ class Mech(MechCommand):
             location=location,
             box=box,
             name=name,
-            box_version=box_version)
+            box_version=box_version,
+            add_me=add_me)
         print(colored.green(textwrap.fill(
             "A `Mechfile` has been initialized and placed in this directory. "
             "You are now ready to `mech up` your first virtual environment!")))
@@ -165,7 +172,12 @@ class Mech(MechCommand):
 
         Example box: bento/ubuntu-18.04
 
+        Note: The 'add-me' option will add the currently logged in user to the guest,
+        add the same user to sudoers, and add the id_rsa.pub key to the authorized_hosts file
+        for that user.
+
         Options:
+            -a, --add-me                     Add the current host user/pubkey to guest
                 --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
                 --box-version VERSION        Constrain version of the added box
             -h, --help                       Print this help
@@ -173,6 +185,7 @@ class Mech(MechCommand):
         name = arguments['<name>']
         box_version = arguments['--box-version']
         box = arguments['--box']
+        add_me = arguments['--add-me']
         location = arguments['<location>']
 
         if not name or name == "":
@@ -186,7 +199,8 @@ class Mech(MechCommand):
             location=location,
             box=box,
             name=name,
-            box_version=box_version)
+            box_version=box_version,
+            add_me=add_me)
         print(colored.green("Added to the Mechfile."))
 
     def remove(self, arguments):
@@ -316,6 +330,8 @@ class Mech(MechCommand):
                                              "unknown IP address".format(instance)))
                 if not disable_provisioning:
                     utils.provision(inst, show=False)
+                if inst.auth:
+                    utils.add_auth(inst)
 
     # allows "mech start" to alias to "mech up"
     start = up

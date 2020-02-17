@@ -18,6 +18,22 @@ def mechfile_one_entry():
 
 
 @pytest.fixture
+def mechfile_one_entry_with_auth():
+    """Return one mechfile entry with auth."""
+    return {
+        'first': {
+            'name': 'first',
+            'box': 'bento/ubuntu-18.04',
+            'box_version': '201912.04.0',
+            'auth': {
+                'username': 'bob',
+                'pub_key': 'some_pub_key_data'
+            }
+        }
+    }
+
+
+@pytest.fixture
 def mechfile_two_entries():
     """Return two mechfile entries."""
     return {
@@ -88,6 +104,7 @@ def mech_add_arguments():
         '--box-version': None,
         '--name': None,
         '--box': None,
+        '--add-me': None,
         '<location>': None,
     }
 
@@ -110,6 +127,7 @@ def mech_init_arguments():
         '--box-version': None,
         '--name': None,
         '--box': None,
+        '--add-me': None,
         '<location>': None,
     }
 

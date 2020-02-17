@@ -752,3 +752,12 @@ def test_add_box_url(mock_locate, mock_requests_get, catalog_as_json):
     mock_requests_get.return_value.json.return_value = catalog_as_json
     got = mech.utils.add_box_url(name='first', box='abox', box_version='aver', url='')
     assert got is None
+
+
+@patch('os.getlogin', return_value='bob')
+@patch('os.path.expanduser', return_value='/home/bob/id_rsa.pub')
+def test_get_info_for_auth(mock_path_expanduser, mock_getlogin):
+    """Test get_info_for_auth."""
+    expected = {'auth': {'username': 'bob', 'pub_key': '/home/bob/id_rsa.pub'}}
+    got = mech.utils.get_info_for_auth()
+    assert got == expected

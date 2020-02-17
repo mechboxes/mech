@@ -225,11 +225,9 @@ def default_shared_folders():
 
 
 def build_mechfile_entry(location, box=None, name=None, box_version=None,
-                         shared_folders=None, requests_kwargs=None):
+                         shared_folders=None):
     """Build the Mechfile from the inputs."""
     LOGGER.debug("location:%s name:%s box:%s box_version:%s", location, name, box, box_version)
-    if requests_kwargs is None:
-        requests_kwargs = {}
     mechfile_entry = {}
 
     if location is None:
@@ -282,7 +280,7 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None,
                 colored.blue("Loading metadata for box '{}'{}".format(
                     location, " ({})".format(box_version) if box_version else "")))
             url = 'https://app.vagrantup.com/{}/boxes/{}'.format(account, box)
-            response = requests.get(url, **requests_kwargs)
+            response = requests.get(url)
             response.raise_for_status()
             catalog = response.json()
         except (requests.HTTPError, ValueError) as exc:
@@ -339,14 +337,11 @@ def tar_cmd(*args, **kwargs):
 
 
 def init_box(name, box=None, box_version=None, location=None, force=False, save=True,
-             instance_path=None, requests_kwargs=None, numvcpus=None,
-             memsize=None, no_nat=False):
+             instance_path=None, numvcpus=None, memsize=None, no_nat=False):
     """Initialize the box. This includes uncompressing the files
        from the box file and updating the vmx file with
        desired settings. Return the full path to the vmx file.
     """
-    if requests_kwargs is None:
-        requests_kwargs = {}
     LOGGER.debug("name:%s box:%s box_version:%s location:%s", name, box, box_version, location)
     if not locate(instance_path, '*.vmx'):
         name_version_box = add_box(
@@ -355,8 +350,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
             box_version=box_version,
             location=location,
             force=force,
-            save=save,
-            requests_kwargs=requests_kwargs)
+            save=save)
         if not name_version_box:
             sys.exit(colored.red("Cannot find a valid box with a VMX file in it"))
 
@@ -395,10 +389,8 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
 
 
 def add_box(name=None, box=None, box_version=None, location=None,
-            force=False, save=True, requests_kwargs=None):
+            force=False, save=True):
     """Add a box."""
-    if requests_kwargs is None:
-        requests_kwargs = {}
     # build the dict
     LOGGER.debug('name:%s box:%s box_version:%s location:%s', name,
                  box, box_version, location)
@@ -406,8 +398,7 @@ def add_box(name=None, box=None, box_version=None, location=None,
         box=box,
         name=name,
         location=location,
-        box_version=box_version,
-        requests_kwargs=requests_kwargs)
+        box_version=box_version)
 
     return add_mechfile(
         mechfile_entry,
@@ -416,15 +407,12 @@ def add_box(name=None, box=None, box_version=None, location=None,
         location=location,
         box_version=box_version,
         force=force,
-        save=save,
-        requests_kwargs=requests_kwargs)
+        save=save)
 
 
 def add_mechfile(mechfile_entry, name=None, box=None, box_version=None,
-                 location=None, force=False, save=True, requests_kwargs=None):
+                 location=None, force=False, save=True):
     """Add a mechfile entry."""
-    if requests_kwargs is None:
-        requests_kwargs = {}
     LOGGER.debug('mechfile_entry:%s name:%s box:%s box_version:%s location:%s',
                  mechfile_entry, name, box, box_version, location)
 
@@ -441,18 +429,15 @@ def add_mechfile(mechfile_entry, name=None, box=None, box_version=None,
 
     if url:
         return add_box_url(name=name, box=box, box_version=box_version,
-                           url=url, force=force, save=save,
-                           requests_kwargs=requests_kwargs)
+                           url=url, force=force, save=save)
     print(
         colored.red(
             "Could not find a VMWare compatible VM for '{}'{}".format(
                 name, " ({})".format(box_version) if box_version else "")))
 
 
-def add_box_url(name, box, box_version, url, force=False, save=True, requests_kwargs=None):
+def add_box_url(name, box, box_version, url, force=False, save=True):
     """Add a box using the URL."""
-    if requests_kwargs is None:
-        requests_kwargs = {}
     LOGGER.debug('name:%s box:%s box_version:%s url:%s', name, box, box_version, url)
     boxname = os.path.basename(url)
     box_parts = box.split('/')
@@ -471,7 +456,7 @@ def add_box_url(name, box, box_version, url, force=False, save=True, requests_kw
                                "Attempting to download...".format(box)))
         try:
             print(colored.blue("URL: {}".format(url)))
-            response = requests.get(url, stream=True, **requests_kwargs)
+            response = requests.get(url, stream=True)
             response.raise_for_status()
             try:
                 length = int(response.headers['content-length'])
@@ -499,8 +484,7 @@ def add_box_url(name, box, box_version, url, force=False, save=True, requests_kw
                         name=name,
                         box_version=box_version,
                         force=force,
-                        save=save,
-                        requests_kwargs=requests_kwargs)
+                        save=save)
                 else:
                     # Otherwise it must be a valid box:
                     return add_box_file(box=box, box_version=box_version,
@@ -556,34 +540,87 @@ def add_box_file(box=None, box_version=None, filename=None, url=None, force=Fals
         return box, box_version
 
 
-def init_mechfile(location=None, box=None, name=None, box_version=None, requests_kwargs=None):
+def get_info_for_auth():
+    """Get information (username/pub_key) for authentication."""
+    username = os.getlogin()
+    pub_key = os.path.expanduser('~/.ssh/id_rsa.pub')
+    return {'auth': {'username': username, 'pub_key': pub_key}}
+
+
+def init_mechfile(location=None, box=None, name=None, box_version=None, add_me=None):
     """Initialize the Mechfile."""
-    if requests_kwargs is None:
-        requests_kwargs = {}
-    LOGGER.debug("name:%s box:%s box_version:%s location:%s", name, box, box_version, location)
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s", name, box,
+                 box_version, location, add_me)
     mechfile_entry = build_mechfile_entry(
         location=location,
         box=box,
         name=name,
-        box_version=box_version,
-        requests_kwargs=requests_kwargs)
+        box_version=box_version)
+    if add_me:
+        mechfile_entry.update(get_info_for_auth())
     LOGGER.debug('mechfile_entry:%s', mechfile_entry)
     return save_mechfile_entry(mechfile_entry, name, mechfile_should_exist=False)
 
 
-def add_to_mechfile(location=None, box=None, name=None, box_version=None, requests_kwargs=None):
+def add_to_mechfile(location=None, box=None, name=None, box_version=None, add_me=None):
     """Add entry to the Mechfile."""
-    if requests_kwargs is None:
-        requests_kwargs = {}
     LOGGER.debug("name:%s box:%s box_version:%s location:%s", name, box, box_version, location)
     this_mech_entry = build_mechfile_entry(
         location=location,
         box=box,
         name=name,
-        box_version=box_version,
-        requests_kwargs=requests_kwargs)
+        box_version=box_version)
+    if add_me:
+        this_mech_entry.update(get_info_for_auth())
     LOGGER.debug('this_mech_entry:%s', this_mech_entry)
     return save_mechfile_entry(this_mech_entry, name, mechfile_should_exist=False)
+
+
+def add_auth(instance):
+    """Add authentication to VM."""
+
+    if not instance:
+        sys.exit(colored.red("Need to provide an instance to add_auth()."))
+
+    if instance.vmx is None or instance.user is None or instance.password is None:
+        sys.exit(colored.red("Need to provide vmx/user/password to add_auth()."))
+
+    print(colored.green('Adding auth to instance:{}'.format(instance.name)))
+
+    vmrun = VMrun(instance.vmx, instance.user, instance.password)
+    # cannot run if vmware tools are not installed
+    if not vmrun.installed_tools():
+        sys.exit(colored.red("Cannot add auth if VMware Tools are not installed."))
+
+    if instance.auth:
+        username = instance.auth.get('username', None)
+        pub_key = instance.auth.get('pub_key', None)
+        if username and pub_key:
+            with open(pub_key, 'r') as the_file:
+                pub_key_contents = the_file.read().strip()
+            if pub_key_contents:
+                cmd = ('sudo useradd -m -s/bin/bash {username};'
+                       'sudo usermod -aG sudo {username};'
+                       'sudo mkdir /home/{username}/.ssh;'
+                       'echo "{pub_key_contents}" | '
+                       'sudo tee -a /home/{username}/.ssh/authorized_keys;'
+                       'sudo chmod 600 /home/{username}/.ssh/authorized_keys;'
+                       'sudo chown {username}:{username} /home/{username}/.ssh/authorized_keys'
+                       ).format(username=username, pub_key_contents=pub_key_contents)
+                LOGGER.debug('cmd:', cmd)
+                results = vmrun.run_script_in_guest('/bin/sh', cmd, quiet=True)
+                LOGGER.debug('results:%s', results)
+                if results is None:
+                    print(colored.red("Did not add auth"))
+                else:
+                    print(colored.green("Added auth."))
+            else:
+                print(colored.green("Could not read contents of the pub_key"
+                                    " file:{}".format(pub_key)))
+        else:
+            print(colored.blue("Warning: Need a username and pub_key in auth."))
+    else:
+        print(colored.blue("No auth to add."))
 
 
 def provision(instance, show=False):

@@ -980,6 +980,48 @@ def test_mech_up_already_started(mock_locate, mock_load_mechfile, mock_init_box,
     assert re.search(r'was already started on', out, re.MULTILINE)
 
 
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value='')
+@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
+@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
+@patch('mech.vmrun.VMrun.start', return_value='')
+@patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
+def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile, mock_init_box,
+                                             mock_vmrun_start, mock_vmrun_get_ip,
+                                             mock_installed_tools,
+                                             mock_run_script_in_guest, capfd,
+                                             mechfile_one_entry_with_auth):
+    """Test 'mech up'."""
+    mock_load_mechfile.return_value = mechfile_one_entry_with_auth
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '--gui': False,
+        '--disable-shared-folders': True,
+        '--disable-provisioning': True,
+        '--no-cache': None,
+        '--memsize': None,
+        '--numvcpus': None,
+        '--no-nat': None,
+        '<instance>': None,
+    }
+    mock_file = mock_open(read_data='some_pub_key_data')
+    with patch('builtins.open', mock_file, create=True):
+        a_mech.up(arguments)
+        mock_file.assert_called()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_init_box.assert_called()
+        mock_vmrun_start.assert_called()
+        mock_installed_tools.assert_called()
+        mock_run_script_in_guest.assert_called()
+        mock_vmrun_get_ip.assert_called()
+        out, _ = capfd.readouterr()
+        assert re.search(r'was already started on', out, re.MULTILINE)
+        assert re.search(r'Added auth', out, re.MULTILINE)
+
+
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='')
 @patch('mech.vmrun.VMrun.start', return_value='')
 @patch('mech.utils.init_box', return_value='/tmp/first/one.vmx')
@@ -1327,6 +1369,7 @@ def test_mech_init(mock_os_getcwd, mock_os_path_exists,
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = mech_init_arguments
     arguments['<location>'] = 'bento/ubuntu-18.04'
+    arguments['-add-me'] = None
     a_mech.init(arguments)
     out, _ = capfd.readouterr()
     assert re.search(r'Loading metadata', out, re.MULTILINE)
