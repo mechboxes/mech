@@ -117,7 +117,7 @@ class MechInstance():
     def switch_to_psk(self):
         """Switch to using preshared key, instead of using user/password."""
         if self.auth:
-            mech_use = self.auth.get('mech_use')
+            mech_use = self.auth.get('mech_use', False)
             username = self.auth.get('username')
             if username and username != '' and mech_use:
                 self.user = username

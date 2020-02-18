@@ -342,9 +342,6 @@ class Mech(MechCommand):
                         print(colored.yellow("VM ({}) was already started on an "
                                              "unknown IP address".format(instance)))
 
-                if not disable_provisioning:
-                    utils.provision(inst, show=False)
-
                 # if not already using preshared key, switch to it
                 if not inst.use_psk and inst.auth:
                     utils.add_auth(inst)
@@ -352,6 +349,9 @@ class Mech(MechCommand):
 
                 if remove_vagrant:
                     utils.del_user(inst, 'vagrant')
+
+                if not disable_provisioning:
+                    utils.provision(inst, show=False)
 
     # allows "mech start" to alias to "mech up"
     start = up
@@ -734,7 +734,10 @@ class Mech(MechCommand):
         inst = MechInstance(instance)
 
         if inst.created:
-            utils.ssh(inst, command, plain, extra)
+            rc, stdout, stderr = utils.ssh(inst, command, plain, extra)
+            LOGGER.debug('command:%s rc:%d stdout:%s stderr:%s', rc, stdout, stderr)
+            if stdout:
+                print(stdout)
         else:
             print("VM not created.")
 

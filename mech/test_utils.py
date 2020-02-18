@@ -497,6 +497,8 @@ def test_provision_file_no_provisioning(mock_installed_tools, mock_provision_fil
     mock_provision_file.return_value = None
     mock_inst = MagicMock()
     mock_inst.provision = []
+    mock_inst.created = True
+    mock_inst.use_psk = False
     mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     assert re.search(r'Nothing to provision', out, re.MULTILINE)
@@ -519,6 +521,7 @@ def test_provision_file(mock_installed_tools, mock_copy_file, capfd):
     mock_inst.name = 'first'
     mock_inst.vmx = '/tmp/first/some.vmx'
     mock_inst.provision = config
+    mock_inst.use_psk = False
     mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     assert re.search(r'Copying ', out, re.MULTILINE)

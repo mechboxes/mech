@@ -30,7 +30,7 @@ source venv/bin/activate
 python setup.py install
 
 # if doing development
-pip install docopt clint requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist
+pip install docopt clint requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout
 
 # also optional
 pip install autopep8
@@ -60,6 +60,9 @@ pytest --cov-report html:cov_html --cov=mech -m"int or not int"
 
 # to see the slowest unit tests
 pytest --durations=0
+
+# if you have a unittest that is taking too long, but cannot find out which one
+# add "timeout = 10" (for 10 seconds)
 
 # for testing/validation, we have also some integration tests
 # NOTE: Can take 5+ minutes.

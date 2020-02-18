@@ -82,6 +82,13 @@ def test_int_provision():
 
 
 @pytest.mark.int
+def test_int_provision_using_me():
+    """Test provision using psk tests."""
+    return_value, out = subprocess.getstatusoutput('cd tests/int && ./provision_using_me.bats')
+    assert return_value == 0
+
+
+@pytest.mark.int
 def test_int_shared_folders():
     """Test shared_folders tests."""
     return_value, out = subprocess.getstatusoutput('cd tests/int && ./shared_folders.bats')

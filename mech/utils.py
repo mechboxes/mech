@@ -650,6 +650,7 @@ def ssh(instance, command, plain=None, extra=None):
              which is useful, but could be MITM attacks. Not likely locally, but still
              could be an issue.
     """
+    LOGGER.debug('command:%s plain:%s extra:%s', command, plain, extra)
     if instance.created:
         config_ssh = instance.config_ssh()
         temp_file = tempfile.NamedTemporaryFile(delete=False)
@@ -673,7 +674,16 @@ def ssh(instance, command, plain=None, extra=None):
                         c.replace(
                             "'",
                             "\\'")) if ' ' in c else c for c in cmds))
-            return subprocess.call(cmds)
+
+            # if running a script
+            if command:
+                result = subprocess.run(cmds, capture_output=True)
+                stdout = result.stdout.decode('utf-8').strip()
+                stderr = result.stderr.decode('utf-8').strip()
+                return result.returncode, stdout, stderr
+            else:
+                # interactive
+                return subprocess.call(cmds), None, None
         finally:
             os.unlink(temp_file.name)
 
@@ -710,7 +720,7 @@ def scp(instance, src, dst, dst_is_host, extra=None):
                         c.replace(
                             "'",
                             "\\'")) if ' ' in c else c for c in cmds))
-            return subprocess.call(cmds)
+            return subprocess.run(cmds, capture_output=True)
         finally:
             os.unlink(temp_file.name)
 
@@ -804,7 +814,7 @@ def provision(instance, show=False):
                     args = [args]
                 if show:
                     print(colored.green(" instance:{} provision_type:{} inline:{} path:{} "
-                                        "args:{}".format(instance, provision_type,
+                                        "args:{}".format(instance.name, provision_type,
                                                          inline, path, args)))
                 else:
                     if provision_shell(vmrun, instance, inline, path, args) is None:
@@ -817,7 +827,7 @@ def provision(instance, show=False):
                 return
         else:
             print(colored.green("VM ({}) Provision {} "
-                                "entries".format(instance, provisioned)))
+                                "entries".format(instance.name, provisioned)))
     else:
         print(colored.blue("Nothing to provision"))
 
@@ -836,7 +846,7 @@ def provision_file(vmrun, instance, source, destination):
     """
     print(colored.blue("Copying ({}) to ({})".format(source, destination)))
     if instance.use_psk:
-        results = scp(instance, source, '{}:{}'.format(instance.name, destination), True)
+        results = scp(instance, source, destination, True)
     else:
         results = vmrun.copy_file_from_host_to_guest(source, destination)
     return results
@@ -845,7 +855,10 @@ def provision_file(vmrun, instance, source, destination):
 def create_tempfile_in_guest(instance):
     """Create a tempfile in the guest."""
     cmd = 'tmpfile=$(mktemp); echo $tmpfile'
-    return ssh(instance, cmd)
+    result = ssh(instance, cmd)
+    stdout = result.stdout.decode('utf-8').strip()
+    LOGGER.debug('MIKE MIKE MIKE result:%s stdout:%s', result, stdout)
+    return stdout
 
 
 def provision_shell(vmrun, instance, inline, script_path, args=None):
@@ -875,7 +888,7 @@ def provision_shell(vmrun, instance, inline, script_path, args=None):
         if script_path and os.path.isfile(script_path):
             print(colored.blue("Configuring script {}...".format(script_path)))
             if instance.use_psk:
-                results = scp(instance, script_path, '{}:{}'.format(instance.name, tmp_path), True)
+                results = scp(instance, script_path, tmp_path, True)
                 if results is None:
                     print(colored.red("Warning: Could not copy file to guest."))
                     return
@@ -909,7 +922,7 @@ def provision_shell(vmrun, instance, inline, script_path, args=None):
                 the_file.write(str.encode(inline))
                 the_file.close()
                 if instance.use_psk:
-                    scp(instance, the_file.name, '{}:{}'.format(instance.name, tmp_path), True)
+                    scp(instance, the_file.name, tmp_path, True)
                 else:
                     if vmrun.copy_file_from_host_to_guest(the_file.name, tmp_path) is None:
                         return
@@ -918,6 +931,7 @@ def provision_shell(vmrun, instance, inline, script_path, args=None):
 
         print(colored.blue("Configuring environment..."))
         make_executable = "chmod +x '{}'".format(tmp_path)
+        LOGGER.debug('make_executable:%s', make_executable)
         if instance.use_psk:
             if ssh(instance, make_executable) is None:
                 print(colored.red("Warning: Could not configure script in the environment."))
@@ -930,6 +944,7 @@ def provision_shell(vmrun, instance, inline, script_path, args=None):
         print(colored.blue("Executing program..."))
         if instance.use_psk:
             args_string = ' '.join([str(elem) for elem in args])
+            LOGGER.debug('args:%s args_string:%s', args, args_string)
             return ssh(instance, tmp_path, args_string)
         else:
             return vmrun.run_program_in_guest(tmp_path, args)

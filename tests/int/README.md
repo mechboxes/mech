@@ -18,6 +18,7 @@ files from the internet and start up/stop/destroy VMs.
 - `./init_from_boxfile.bats` - create box from file
 - `./no_mechfile.bats` - simple validations without a Mechfile
 - `./provision.bats` - provision validation
+- `./provision_using_me.bats` - provision using psk validation
 - `./quick.bats` - quick validations (ex: help, version)
 - `./simple.bats` - simple validations of most basic functionality
 - `./two_ubuntu.bats` - validate two ubuntu instances
