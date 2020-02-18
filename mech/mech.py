@@ -735,9 +735,12 @@ class Mech(MechCommand):
 
         if inst.created:
             rc, stdout, stderr = utils.ssh(inst, command, plain, extra)
-            LOGGER.debug('command:%s rc:%d stdout:%s stderr:%s', rc, stdout, stderr)
+            LOGGER.debug('command:%s rc:%d stdout:%s stderr:%s', command, rc, stdout, stderr)
             if stdout:
                 print(stdout)
+            if stderr:
+                print(stderr)
+            sys.exit(rc)
         else:
             print("VM not created.")
 

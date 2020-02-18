@@ -532,7 +532,7 @@ def test_mech_suspend_not_created(mock_locate, mock_load_mechfile,
 
 @patch('os.chmod', return_value=True)
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.130")
+@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.4.130")
 @patch('subprocess.run')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
@@ -554,15 +554,16 @@ def test_mech_ssh(mock_locate, mock_load_mechfile,
     }
     filename = os.path.join(mech.utils.mech_dir(), 'insecure_private_key')
     a_mock = mock_open()
-    with patch('builtins.open', a_mock, create=True):
-        a_mech.ssh(arguments)
-        mock_locate.assert_called()
-        mock_load_mechfile.assert_called()
-        mock_subprocess_run.assert_called()
-        mock_installed_tools.assert_called()
-        mock_get_ip.assert_called()
-        mock_chmod.assert_called()
-        a_mock.assert_called_once_with(filename, 'w')
+    with raises(SystemExit):
+        with patch('builtins.open', a_mock, create=True):
+            a_mech.ssh(arguments)
+            mock_locate.assert_called()
+            mock_load_mechfile.assert_called()
+            mock_subprocess_run.assert_called()
+            mock_installed_tools.assert_called()
+            mock_get_ip.assert_called()
+            mock_chmod.assert_called()
+            a_mock.assert_called_once_with(filename, 'w')
 
 
 @patch('mech.utils.load_mechfile')

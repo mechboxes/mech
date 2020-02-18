@@ -19,26 +19,27 @@ Options:
     --debug                          Show debug messages.
 
 Common commands:
-        (list|ls)         lists all available boxes
-        init              initializes a new Mech environment by creating a Mechfile
-        destroy           stops and deletes all traces of the instances
-        (up|start)        starts instances (aka virtual machines)
-        (down|stop|halt)  stops the instances
-        suspend           suspends the instances
-        pause             pauses the instances
-        ssh               connects to an instance via SSH
-        ssh-config        outputs OpenSSH valid configuration to connect to the instances
-        scp               copies files to/from the machine via SCP
-        ip                outputs ip of an instance
         box               manages boxes: add, list remove, etc.
+        destroy           stops and deletes all traces of the instances
+        (down|stop|halt)  stops the instances
         global-status     outputs status of all virutal machines on this host
-        status            outputs status of the instances
-        ps                list running processes for an instance
+        init              initializes a new Mech environment by creating a Mechfile
+        ip                outputs ip of an instance
+        (list|ls)         lists all available boxes
+        pause             pauses the instances
+        port              displays information about guest port mappings
         provision         provisions the Mech machine
+        ps                list running processes for an instance
         reload            restarts Mech machine, loads new Mechfile configuration
         resume            resume a paused/suspended Mech machine
+        scp               copies files to/from the machine via SCP
         snapshot          manages snapshots: save, list, remove, etc.
-        port              displays information about guest port mappings
+        ssh               connects to an instance via SSH
+        ssh-config        outputs OpenSSH valid configuration to connect to the instances
+        status            outputs status of the instances
+        suspend           suspends the instances
+        (up|start)        starts instances (aka virtual machines)
+        upgrade           upgrade the instances
 
 For help on any individual command run `mech <command> -h`
 
@@ -52,14 +53,15 @@ Starts and provisions the mech environment.
 Usage: mech up [options] [<instance>]
 
 Options:
-        --gui                        Start GUI
-        --disable-shared-folder      Do not share folder with VM
-        --provision                  Enable provisioning
-        --no-cache                   Do not save the downloaded box
-        --memsize 1024               Specify the size of memory for VM
-        --numvcpus 1                 Specify the number of vcpus for VM
+	--disable-provisioning       Do not provision
+	--disable-shared-folders     Do not share folders with VM
+	--gui                        Start GUI
+	--memsize 1024               Specify the size of memory for VM
+	--no-cache                   Do not save the downloaded box
+	--no-nat                     Do not use NAT network (i.e., bridged)
+	--numvcpus 1                 Specify the number of vcpus for VM
     -h, --help                       Print this help
-
+    -r, --remove-vagrant             Remove vagrant user
 
 Example using mech:
 
@@ -74,8 +76,7 @@ Initializing and using a machine from HashiCorp's Vagrant Cloud:
 `mech init` can be used to pull a box file which will be installed and
 generate a Mechfile in the current directory. You can also pull boxes
 from Vagrant Cloud with `mech init freebsd/FreeBSD-11.1-RELEASE`.
-Barring that, `mech up <name>` can also be used to specify a vmx file
-to start.
+See the `mech up -h` page for more information.
 
 # Install
 

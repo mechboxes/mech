@@ -795,7 +795,7 @@ def provision(instance, show=False):
                 destination = pro.get('destination')
                 if show:
                     print(colored.green("instance:{} provision_type:{} source:{} "
-                                        "destination:{}".format(instance, provision_type,
+                                        "destination:{}".format(instance.name, provision_type,
                                                                 source, destination)))
                 else:
                     results = provision_file(vmrun, instance, source, destination)
@@ -855,9 +855,7 @@ def provision_file(vmrun, instance, source, destination):
 def create_tempfile_in_guest(instance):
     """Create a tempfile in the guest."""
     cmd = 'tmpfile=$(mktemp); echo $tmpfile'
-    result = ssh(instance, cmd)
-    stdout = result.stdout.decode('utf-8').strip()
-    LOGGER.debug('MIKE MIKE MIKE result:%s stdout:%s', result, stdout)
+    _, stdout, _ = ssh(instance, cmd)
     return stdout
 
 
