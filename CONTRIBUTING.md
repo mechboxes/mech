@@ -39,10 +39,6 @@ pip install autopep8
 # Configure git to use pre-commit hook
 flake8 --install-hook git
 
-# install bats (on mac)
-# see https://github.com/bats-core/bats-core
-brew install bats-core
-
 # for running unit tests:
 pytest
 
@@ -57,6 +53,10 @@ pytest --cov-report html:cov_html --cov=mech
 # then open cov_html/index.html
 # or if you want all coverage html report
 pytest --cov-report html:cov_html --cov=mech -m"int or not int"
+
+# if you want to do a quick-ish (takes 1.5 minutes) smoke test
+# this runs thru most basic functionality of mech
+./smoke_test
 
 # to see the slowest unit tests
 pytest --durations=0
@@ -74,6 +74,7 @@ pytest -m"int"
 
 # To run all tests (with verbose output and show local variables):
 pytest -m"int or not int" -vv -l
+# or just run "./full_test"
 
 # Or, just one run int test like this (with verbose and show local variables):
 pytest -m"int" -k"provision" -v -l

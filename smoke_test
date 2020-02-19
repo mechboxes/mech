@@ -1,0 +1,2 @@
+# convenience script to run the smoke integration test
+pytest -m"int or not int" -vv -l mech/test_int_simple.py::test_int_smoke

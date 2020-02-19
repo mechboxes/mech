@@ -2,7 +2,12 @@
 
 """Common pytest code."""
 import json
+import os
 import pytest
+import subprocess
+
+
+from shutil import rmtree
 
 
 @pytest.fixture
@@ -148,7 +153,40 @@ class Helpers:
                 written += line
         return written
 
+    @staticmethod
+    def kill_pids(pids):
+        """Kill all pids."""
+        for pid in pids:
+            results = subprocess.run(args='kill {}'.format(pid), shell=True, capture_output=True)
+            if results.returncode != 0:
+                print("Could not kill pid:{}".format(pid))
+
+    @staticmethod
+    def find_vmx_for_dir(part_of_dir):
+        """Return all pids that that are VMware VMs where
+           the .vmx part_of_dir matches the full path."""
+        pids = []
+        results = subprocess.run(args='ps -ef | grep vmware-vmx | grep {} | grep -v grep'
+                                 .format(part_of_dir), shell=True, capture_output=True)
+        if results.returncode == 0:
+            # we found a proc
+            stdout = results.stdout.decode('utf-8')
+            for line in stdout.split('\n'):
+                data = line.split()
+                if len(data) > 2:
+                    # add pid to the collection
+                    pids.append(data[1])
+        return pids
+
+    @staticmethod
+    def cleanup_dir_and_vms_from_dir(a_dir):
+        """Kill any vms from this directory, remove directory and re-create the directory."""
+        Helpers.kill_pids(Helpers.find_vmx_for_dir(a_dir + '/.mech/'))
+        rmtree(a_dir, ignore_errors=True)
+        os.mkdir(a_dir)
+
 
 @pytest.fixture
 def helpers():
+    """Helper functions for testing."""
     return Helpers
