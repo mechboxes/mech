@@ -2,6 +2,7 @@
 #
 # Copyright (c) 2016-2017 Kevin Chung
 # Copyright (c) 2018 German Mendez Bravo (Kronuz)
+# Copyright (c) 2020 Mike Kinney
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -22,10 +23,14 @@
 # IN THE SOFTWARE.
 #
 
+"""Mech utility functions."""
+
 from __future__ import division, absolute_import
 
 import os
 import re
+import random
+import string
 import sys
 import json
 import tarfile
@@ -38,48 +43,35 @@ import collections
 from shutil import copyfile
 
 import requests
-from filelock import Timeout, FileLock
-from clint.textui import colored, puts_err
+from clint.textui import colored
 from clint.textui import progress
 
-from .compat import raw_input, b2s
+from .vmrun import VMrun
+from .compat import b2s, PY3, raw_input
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
-HOME = os.path.expanduser('~/.mech')
-DATA_DIR = os.path.join(HOME, 'data')
+def main_dir():
+    """Return the main directory."""
+    return os.getcwd()
+
+
+def mech_dir():
+    """Return the mech directory."""
+    return os.path.join(main_dir(), '.mech')
 
 
 def makedirs(name, mode=0o777):
+    """Make directories with mode supplied."""
     try:
         os.makedirs(name, mode)
     except OSError:
         pass
 
 
-def uncomment(text):
-    def e(m):
-        return '\x00%02x' % ord(m.group(1))
-    e.re = re.compile(r'\\(.)', re.DOTALL | re.MULTILINE)
-
-    def r(m):
-        s = m.group(0)
-        if s.startswith('/'):
-            return ''
-        if s.startswith(','):
-            return s[1:]
-        return s
-    r.re = re.compile(r'//.*?$|/\*.*?\*/|\'.*?\'|".*?"|,\s*?(?:}|])', re.DOTALL | re.MULTILINE)
-
-    def u(m):
-        return '\\%s' % chr(int(m.group(1), 16))
-    u.re = re.compile(r'\x00(..)', re.DOTALL | re.MULTILINE)
-
-    return u.re.sub(u, r.re.sub(r, e.re.sub(e, text)))
-
-
 def confirm(prompt, default='y'):
+    """Confirmation prompt."""
     default = default.lower()
     if default not in ['y', 'n']:
         default = 'y'
@@ -87,44 +79,79 @@ def confirm(prompt, default='y'):
     prompt = prompt + ' ' + choicebox + ' '
 
     while True:
-        input = raw_input(prompt).strip()
-        if input == '':
+        some_input = raw_input(prompt).strip()
+        if some_input == '':
             if default == 'y':
                 return True
             else:
                 return False
 
-        if re.match('y(?:es)?', input, re.IGNORECASE):
+        if re.match('y(?:es)?', some_input, re.IGNORECASE):
             return True
 
-        elif re.match('n(?:o)?', input, re.IGNORECASE):
+        elif re.match('n(?:o)?', some_input, re.IGNORECASE):
             return False
 
 
-def save_mechfile(mechfile, path):
-    with open(os.path.join(path, 'Mechfile'), 'w+') as fp:
-        json.dump(mechfile, fp, sort_keys=True, indent=2, separators=(',', ': '))
+def save_mechfile_entry(mechfile_entry, name, mechfile_should_exist=False):
+    """Save the entry to the Mechfile."""
+    LOGGER.debug('mechfile_entry:%s name:%s mechfile_should_exist:%s',
+                 mechfile_entry, name, mechfile_should_exist)
+    mechfile = load_mechfile(mechfile_should_exist)
+
+    mechfile[name] = mechfile_entry
+
+    LOGGER.debug("after adding name:%s mechfile:%s", name, mechfile)
+    return save_mechfile(mechfile)
+
+
+def remove_mechfile_entry(name, mechfile_should_exist=True):
+    """Removed the entry from the Mechfile."""
+    LOGGER.debug('name:%s mechfile_should_exist:%s', name, mechfile_should_exist)
+    mechfile = load_mechfile(mechfile_should_exist)
+
+    if mechfile.get(name):
+        del mechfile[name]
+
+    LOGGER.debug("after removing name:%s mechfile:%s", name, mechfile)
+    return save_mechfile(mechfile)
+
+
+def save_mechfile(mechfile):
+    """Save the mechfile object (which is a dict) to a file called 'Mechfile'.
+       Return True if save was successful.
+    """
+    LOGGER.debug('mechfile:%s', mechfile)
+    with open(os.path.join(main_dir(), 'Mechfile'), 'w+') as the_file:
+        json.dump(mechfile, the_file, sort_keys=True, indent=2, separators=(',', ': '))
     return True
 
 
 def locate(path, glob):
-    for root, dirnames, filenames in os.walk(path):
+    """Locate a file in the path provided."""
+    for root, _, filenames in os.walk(path):
         for filename in filenames:
             if fnmatch.fnmatch(filename, glob):
                 return os.path.abspath(os.path.join(root, filename))
 
 
 def parse_vmx(path):
+    """Parse the virtual machine configuration (.vmx) file and return an
+       ordered dictionary.
+    """
     vmx = collections.OrderedDict()
-    with open(path) as fp:
-        for line in fp:
+    with open(path) as the_file:
+        for line in the_file:
             line = line.strip().split('=', 1)
             if len(line) > 1:
                 vmx[line[0].rstrip()] = line[1].lstrip()
     return vmx
 
 
-def update_vmx(path):
+def update_vmx(path, numvcpus=None, memsize=None, no_nat=False):
+    """Update the virtual machine configuration (.vmx)
+       file with desired settings.
+    """
     updated = False
 
     vmx = parse_vmx(path)
@@ -139,14 +166,24 @@ def update_vmx(path):
     if not has_network:
         vmx["ethernet0.addresstype"] = "generated"
         vmx["ethernet0.bsdname"] = "en0"
-        vmx["ethernet0.connectiontype"] = "nat"
+        if not no_nat:
+            vmx["ethernet0.connectiontype"] = "nat"
         vmx["ethernet0.displayname"] = "Ethernet"
         vmx["ethernet0.linkstatepropagation.enable"] = "FALSE"
         vmx["ethernet0.pcislotnumber"] = "32"
         vmx["ethernet0.present"] = "TRUE"
         vmx["ethernet0.virtualdev"] = "e1000"
         vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
-        puts_err(colored.yellow("Added network interface to vmx file"))
+        print(colored.yellow("Added network interface to vmx file"))
+        updated = True
+
+    # write out vmx file if memsize or numvcpus was specified
+    if numvcpus is not None:
+        vmx["numvcpus"] = '"{}"'.format(numvcpus)
+        updated = True
+
+    if memsize is not None:
+        vmx["memsize"] = '"{}"'.format(memsize)
         updated = True
 
     if updated:
@@ -156,170 +193,140 @@ def update_vmx(path):
                 row = "{} = {}".format(key, value)
                 new_vmx.write(row + os.linesep)
 
-    # puts_err(colored.yellow("Upgrading VM..."))
-    # vmrun = VMrun(path)
-    # vmrun.upgradevm()
+
+def load_mechfile(should_exist=True):
+    """Load the Mechfile from disk and return the mechfile as a dictionary."""
+    mechfile_fullpath = os.path.join(main_dir(), 'Mechfile')
+    LOGGER.debug("mechfile_fullpath:%s", mechfile_fullpath)
+    if os.path.isfile(mechfile_fullpath):
+        with open(mechfile_fullpath) as the_file:
+            try:
+                mechfile = json.loads(the_file.read())
+                LOGGER.debug('mechfile:%s', mechfile)
+                return mechfile
+            except ValueError:
+                print(colored.red("Invalid Mechfile." + os.linesep))
+                return {}
+    else:
+        if should_exist:
+            sys.exit(colored.red(textwrap.fill(
+                     "Could not find a Mechfile in the current directory. "
+                     "A Mech environment is required to run this command. Run `mech init` "
+                     "to create a new Mech environment. Or specify the name of the VM you would "
+                     "like to start with `mech up <name>`. A final option is to change to a "
+                     "directory with a Mechfile and to try again.")))
+        else:
+            return {}
 
 
-def instances():
-    makedirs(DATA_DIR)
-    index_path = os.path.join(DATA_DIR, 'index')
-    index_lock = os.path.join(DATA_DIR, 'index.lock')
-    try:
-        with FileLock(index_lock, timeout=3):
-            updated = False
-            if os.path.exists(index_path):
-                with open(index_path) as fp:
-                    instances = json.loads(uncomment(fp.read()))
-                # prune unexistent Mechfiles
-                for k in list(instances):
-                    instance_data = instances[k]
-                    path = instance_data and instance_data.get('path')
-                    if not path or not os.path.exists(os.path.join(path, 'Mechfile')):
-                        del instances[k]
-                        updated = True
-            else:
-                instances = {}
-            if updated:
-                with open(index_path, 'w') as fp:
-                    json.dump(instances, fp, sort_keys=True, indent=2, separators=(',', ': '))
-            return instances
-    except Timeout:
-        puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
-        sys.exit(1)
+def default_shared_folders():
+    """Return the default shared folders config.
+       The host_path value of "../.." is because it is relative to the vmx file.
+    """
+    return [{'share_name': 'mech', 'host_path': '../..'}]
 
 
-def settle_instance(instance_name, obj=None, force=False):
-    makedirs(DATA_DIR)
-    index_path = os.path.join(DATA_DIR, 'index')
-    index_lock = os.path.join(DATA_DIR, 'index.lock')
-    try:
-        with FileLock(index_lock, timeout=3):
-            updated = False
-            if os.path.exists(index_path):
-                with open(index_path) as fp:
-                    instances = json.loads(uncomment(fp.read()))
-                # prune unexistent Mechfiles
-                for k in list(instances):
-                    instance_data = instances[k]
-                    path = instance_data and instance_data.get('path')
-                    if not path or not os.path.exists(os.path.join(path, 'Mechfile')):
-                        del instances[k]
-                        updated = True
-            else:
-                instances = {}
-            instance_data = instances.get(instance_name)
-            if not instance_data or force:
-                if obj:
-                    instance_data = instances[instance_name] = obj
-                    updated = True
-                else:
-                    instance_data = {}
-            if updated:
-                with open(index_path, 'w') as fp:
-                    json.dump(instances, fp, sort_keys=True, indent=2, separators=(',', ': '))
-            return instance_data
-    except Timeout:
-        puts_err(colored.red(textwrap.fill("Couldn't access index, it seems locked.")))
-        sys.exit(1)
+def build_mechfile_entry(location, box=None, name=None, box_version=None,
+                         shared_folders=None):
+    """Build the Mechfile from the inputs."""
+    LOGGER.debug("location:%s name:%s box:%s box_version:%s", location, name, box, box_version)
+    mechfile_entry = {}
 
+    if location is None:
+        return mechfile_entry
 
-def load_mechfile(pwd):
-    while pwd:
-        mechfile = os.path.join(pwd, 'Mechfile')
-        if os.path.isfile(mechfile):
-            with open(mechfile) as fp:
-                try:
-                    return json.loads(uncomment(fp.read()))
-                except ValueError:
-                    puts_err(colored.red("Invalid Mechfile." + os.linesep))
-                    break
-        new_pwd = os.path.basename(pwd)
-        pwd = None if new_pwd == pwd else new_pwd
-    puts_err(colored.red(textwrap.fill(
-        "Couldn't find a Mechfile in the current directory any deeper directories. "
-        "A Mech environment is required to run this command. Run `mech init` "
-        "to create a new Mech environment. Or specify the name of the VM you'd "
-        "like to start with `mech up <name>`. A final option is to change to a "
-        "directory with a Mechfile and to try again."
-    )))
-    sys.exit(1)
+    mechfile_entry['name'] = name
+    mechfile_entry['box'] = box
+    mechfile_entry['box_version'] = box_version
 
+    if shared_folders is None:
+        shared_folders = default_shared_folders()
+    mechfile_entry['shared_folders'] = shared_folders
 
-def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
-    mechfile = {}
-    if descriptor is None:
-        return mechfile
-    if any(descriptor.startswith(s) for s in ('https://', 'http://', 'ftp://')):
-        mechfile['url'] = descriptor
+    if any(location.startswith(s) for s in ('https://', 'http://', 'ftp://')):
         if not name:
-            name = os.path.splitext(os.path.basename(descriptor))[0]
-        mechfile['box'] = name
-        if version:
-            mechfile['box_version'] = version
-        return mechfile
-    elif descriptor.startswith('file:') or os.path.isfile(re.sub(r'^file:(?://)?', '', descriptor)):
-        descriptor = re.sub(r'^file:(?://)?', '', descriptor)
+            name = 'first'
+        mechfile_entry['url'] = location
+        return mechfile_entry
+
+    elif location.startswith('file:') or os.path.isfile(re.sub(r'^file:(?://)?', '', location)):
+        if not name:
+            name = 'first'
+        location = re.sub(r'^file:(?://)?', '', location)
+        LOGGER.debug('location:%s', location)
+        mechfile_entry['file'] = location
         try:
-            with open(descriptor) as fp:
-                catalog = json.loads(uncomment(fp.read()))
-        except Exception:
-            mechfile['file'] = descriptor
-            if not name:
-                name = os.path.splitext(os.path.basename(descriptor))[0]
-            mechfile['box'] = name
-            if version:
-                mechfile['box_version'] = version
-            return mechfile
+            # see if the location/file is a json file
+            with open(location) as the_file:
+                # if an exception is not thrown, then set values and continue
+                # to the end of the function
+                catalog = json.loads(the_file.read())
+                LOGGER.debug('catalog:%s', catalog)
+        except (json.decoder.JSONDecodeError, ValueError) as e:
+            # this means the location/file is probably a .box file
+            # or the json is invalid
+            LOGGER.debug('mechfile_entry:%s', mechfile_entry)
+            LOGGER.debug(e)
+            return mechfile_entry
+        except IOError:
+            # cannot open file
+            sys.exit('Error: Cannot open file:({})'.format(location))
     else:
         try:
-            account, box, v = (descriptor.split('/', 2) + ['', ''])[:3]
+            account, box, ver = (location.split('/', 2) + ['', ''])[:3]
             if not account or not box:
-                puts_err(colored.red("Provided box name is not valid"))
-            if v:
-                version = v
-            puts_err(colored.blue("Loading metadata for box '{}'{}".format(descriptor, " ({})".format(version) if version else "")))
+                sys.exit(colored.red("Provided box name is not valid"))
+            if ver:
+                box_version = ver
+            print(
+                colored.blue("Loading metadata for box '{}'{}".format(
+                    location, " ({})".format(box_version) if box_version else "")))
             url = 'https://app.vagrantup.com/{}/boxes/{}'.format(account, box)
-            r = requests.get(url, **requests_kwargs)
-            r.raise_for_status()
-            catalog = r.json()
+            response = requests.get(url)
+            response.raise_for_status()
+            catalog = response.json()
         except (requests.HTTPError, ValueError) as exc:
-            puts_err(colored.red("Bad response from HashiCorp's Vagrant Cloud API: %s" % exc))
-            sys.exit(1)
+            sys.exit(colored.red("Bad response from HashiCorp's Vagrant Cloud API: %s" % exc))
         except requests.ConnectionError:
-            puts_err(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
-            sys.exit(1)
-    return catalog_to_mechfile(catalog, name, version)
+            sys.exit(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
+
+    LOGGER.debug("catalog:%s name:%s box_version:%s", catalog, name, box_version)
+    return catalog_to_mechfile(catalog, name=name, box=box, box_version=box_version)
 
 
-def catalog_to_mechfile(catalog, name=None, version=None):
+def catalog_to_mechfile(catalog, name=None, box=None, box_version=None):
+    """Convert the Hashicorp cloud catalog entry to Mechfile entry."""
+    LOGGER.debug('catalog:%s name:%s box:%s box_version:%s', catalog, name, box, box_version)
     mechfile = {}
     versions = catalog.get('versions', [])
-    for v in versions:
-        current_version = v['version']
-        if not version or current_version == version:
-            for provider in v['providers']:
+    for ver in versions:
+        current_version = ver['version']
+        if not box_version or current_version == box_version:
+            for provider in ver['providers']:
                 if 'vmware' in provider['name']:
+                    mechfile['name'] = name
                     mechfile['box'] = catalog['name']
                     mechfile['box_version'] = current_version
                     mechfile['url'] = provider['url']
+                    mechfile['shared_folders'] = default_shared_folders()
                     return mechfile
-    puts_err(colored.red("Couldn't find a VMWare compatible VM for '{}'{}".format(name, " ({})".format(version) if version else "")))
-    sys.exit(1)
+    sys.exit(colored.red("Couldn't find a VMWare compatible VM using catalog:{}".format(catalog)))
 
 
 def tar_cmd(*args, **kwargs):
+    """Build the tar command to be used to extract the box."""
     try:
         startupinfo = None
         if os.name == "nt":
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
-        proc = subprocess.Popen(['tar', '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo)
+        proc = subprocess.Popen(['tar', '--help'], stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, startupinfo=startupinfo)
     except OSError:
         return None
     if proc.returncode:
         return None
-    stdoutdata, stderrdata = map(b2s, proc.communicate())
+    stdoutdata, _ = map(b2s, proc.communicate())
     tar = ['tar']
     if kwargs.get('wildcards') and re.search(r'--wildcards\b', stdoutdata):
         tar.append('--wildcards')
@@ -331,108 +338,172 @@ def tar_cmd(*args, **kwargs):
     return tar
 
 
-def init_box(name, version, force=False, save=True, requests_kwargs={}):
-    if not locate('.mech', '*.vmx'):
-        name_version_box = add_box(name, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
+def init_box(name, box=None, box_version=None, location=None, force=False, save=True,
+             instance_path=None, numvcpus=None, memsize=None, no_nat=False):
+    """Initialize the box. This includes uncompressing the files
+       from the box file and updating the vmx file with
+       desired settings. Return the full path to the vmx file.
+    """
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s", name, box, box_version, location)
+    if not locate(instance_path, '*.vmx'):
+        name_version_box = add_box(
+            name=name,
+            box=box,
+            box_version=box_version,
+            location=location,
+            force=force,
+            save=save)
         if not name_version_box:
-            puts_err(colored.red("Cannot find a valid box with a VMX file in it"))
-            sys.exit(1)
-        name, version, box = name_version_box
-        # box = locate(os.path.join(*filter(None, (HOME, 'boxes', name, version))), '*.box')
+            sys.exit(colored.red("Cannot find a valid box with a VMX file in it"))
 
-        puts_err(colored.blue("Extracting box '{}'...".format(name)))
-        makedirs('.mech')
+        box_parts = box.split('/')
+        box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes',
+                                              box_parts[0], box_parts[1], box_version)))
+        box_file = locate(box_dir, '*.box')
+
+        print(colored.blue("Extracting box '{}'...".format(box_file)))
+        makedirs(instance_path)
         if sys.platform == 'win32':
-            cmd = tar_cmd('-xf', box, force_local=True)
+            cmd = tar_cmd('-xf', box_file, force_local=True)
         else:
-            cmd = tar_cmd('-xf', box)
+            cmd = tar_cmd('-xf', box_file)
         if cmd:
             startupinfo = None
             if os.name == "nt":
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
-            proc = subprocess.Popen(cmd, cwd='.mech', startupinfo=startupinfo)
+            proc = subprocess.Popen(cmd, cwd=instance_path, startupinfo=startupinfo)
             if proc.wait():
-                puts_err(colored.red("Cannot extract box"))
-                sys.exit(1)
+                sys.exit(colored.red("Cannot extract box"))
         else:
-            tar = tarfile.open(box, 'r')
-            tar.extractall('.mech')
+            tar = tarfile.open(box_file, 'r')
+            tar.extractall(instance_path)
 
         if not save and box.startswith(tempfile.gettempdir()):
             os.unlink(box)
 
-    vmx = get_vmx()
+    vmx_path = locate(instance_path, '*.vmx')
+    if not vmx_path:
+        sys.exit(colored.red("Cannot locate a VMX file"))
 
-    update_vmx(vmx)
-
-    return vmx
-
-
-def add_box(descriptor, name=None, version=None, force=False, save=True, requests_kwargs={}):
-    mechfile = build_mechfile(descriptor, name=name, version=version, requests_kwargs=requests_kwargs)
-    return add_mechfile(mechfile, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
+    update_vmx(vmx_path, numvcpus=numvcpus, memsize=memsize, no_nat=no_nat)
+    return vmx_path
 
 
-def add_mechfile(mechfile, name=None, version=None, force=False, save=True, requests_kwargs={}):
-    url = mechfile.get('url')
-    file = mechfile.get('file')
-    name = mechfile.get('box')
-    version = mechfile.get('box_version')
-    if file:
-        return add_box_file(name, version, file, force=force, save=save)
+def add_box(name=None, box=None, box_version=None, location=None,
+            force=False, save=True):
+    """Add a box."""
+    # build the dict
+    LOGGER.debug('name:%s box:%s box_version:%s location:%s', name,
+                 box, box_version, location)
+    mechfile_entry = build_mechfile_entry(
+        box=box,
+        name=name,
+        location=location,
+        box_version=box_version)
+
+    return add_mechfile(
+        mechfile_entry,
+        name=name,
+        box=box,
+        location=location,
+        box_version=box_version,
+        force=force,
+        save=save)
+
+
+def add_mechfile(mechfile_entry, name=None, box=None, box_version=None,
+                 location=None, force=False, save=True):
+    """Add a mechfile entry."""
+    LOGGER.debug('mechfile_entry:%s name:%s box:%s box_version:%s location:%s',
+                 mechfile_entry, name, box, box_version, location)
+
+    box = mechfile_entry.get('box')
+    name = mechfile_entry.get('name')
+    box_version = mechfile_entry.get('box_version')
+
+    url = mechfile_entry.get('url')
+    box_file = mechfile_entry.get('file')
+
+    if box_file:
+        return add_box_file(box=box, box_version=box_version, filename=box_file,
+                            force=force, save=save)
+
     if url:
-        return add_box_url(name, version, url, force=force, save=save, requests_kwargs=requests_kwargs)
-    puts_err(colored.red("Couldn't find a VMWare compatible VM for '{}'{}".format(name, " ({})".format(version) if version else "")))
+        return add_box_url(name=name, box=box, box_version=box_version,
+                           url=url, force=force, save=save)
+    print(
+        colored.red(
+            "Could not find a VMWare compatible VM for '{}'{}".format(
+                name, " ({})".format(box_version) if box_version else "")))
 
 
-def add_box_url(name, version, url, force=False, save=True, requests_kwargs={}):
+def add_box_url(name, box, box_version, url, force=False, save=True):
+    """Add a box using the URL."""
+    LOGGER.debug('name:%s box:%s box_version:%s url:%s', name, box, box_version, url)
     boxname = os.path.basename(url)
-    box = os.path.join(*filter(None, (HOME, 'boxes', name, version, boxname)))
-    exists = os.path.exists(box)
+    box_parts = box.split('/')
+    first_box_part = box_parts[0]
+    second_box_part = ''
+    if len(box_parts) > 1:
+        second_box_part = box_parts[1]
+    box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes',
+                                          first_box_part, second_box_part, box_version)))
+    exists = os.path.exists(box_dir)
     if not exists or force:
         if exists:
-            puts_err(colored.blue("Attempting to download box '{}'...".format(name)))
+            print(colored.blue("Attempting to download box '{}'...".format(box)))
         else:
-            puts_err(colored.blue("Box '{}' could not be found. Attempting to download...".format(name)))
+            print(colored.blue("Box '{}' could not be found. "
+                               "Attempting to download...".format(box)))
         try:
-            puts_err(colored.blue("URL: {}".format(url)))
-            r = requests.get(url, stream=True, **requests_kwargs)
-            r.raise_for_status()
+            print(colored.blue("URL: {}".format(url)))
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
             try:
-                length = int(r.headers['content-length'])
+                length = int(response.headers['content-length'])
                 progress_args = dict(expected_size=length // 1024 + 1)
                 progress_type = progress.bar
             except KeyError:
                 progress_args = dict(every=1024 * 100)
                 progress_type = progress.dots
-            fp = tempfile.NamedTemporaryFile(delete=False)
+            the_file = tempfile.NamedTemporaryFile(delete=False)
             try:
-                for chunk in progress_type(r.iter_content(chunk_size=1024), label="{} ".format(boxname), **progress_args):
+                for chunk in progress_type(
+                        response.iter_content(
+                            chunk_size=1024),
+                        label="{} ".format(boxname),
+                        **progress_args):
                     if chunk:
-                        fp.write(chunk)
-                fp.close()
-                if r.headers.get('content-type') == 'application/json':
+                        the_file.write(chunk)
+                the_file.close()
+                if response.headers.get('content-type') == 'application/json':
                     # Downloaded URL might be a Vagrant catalog if it's json:
-                    catalog = json.load(fp.name)
-                    mechfile = catalog_to_mechfile(catalog, name, version)
-                    return add_mechfile(mechfile, name=name, version=version, force=force, save=save, requests_kwargs=requests_kwargs)
+                    catalog = json.load(the_file.name)
+                    mechfile = catalog_to_mechfile(catalog, name, box, box_version)
+                    return add_mechfile(
+                        mechfile,
+                        name=name,
+                        box_version=box_version,
+                        force=force,
+                        save=save)
                 else:
                     # Otherwise it must be a valid box:
-                    return add_box_file(name, version, fp.name, url=url, force=force, save=save)
+                    return add_box_file(box=box, box_version=box_version,
+                                        filename=the_file.name, url=url, force=force,
+                                        save=save)
             finally:
-                os.unlink(fp.name)
+                os.unlink(the_file.name)
         except requests.HTTPError as exc:
-            puts_err(colored.red("Bad response: %s" % exc))
-            sys.exit(1)
+            sys.exit(colored.red("Bad response: %s" % exc))
         except requests.ConnectionError:
-            puts_err(colored.red("Couldn't connect to '%s'" % url))
-            sys.exit(1)
-    return name, version, box
+            sys.exit(colored.red("Couldn't connect to '%s'" % url))
+    return name, box_version, box
 
 
-def add_box_file(name, version, filename, url=None, force=False, save=True):
-    puts_err(colored.blue("Checking box '{}' integrity...".format(name)))
+def add_box_file(box=None, box_version=None, filename=None, url=None, force=False, save=True):
+    """Add a box using a file as the source. Returns box and box_version."""
+    print(colored.blue("Checking box '{}' integrity filename:{}...".format(box, filename)))
 
     if sys.platform == 'win32':
         cmd = tar_cmd('-tf', filename, '*.vmx', wildcards=True, fast_read=True, force_local=True)
@@ -454,126 +525,532 @@ def add_box_file(name, version, filename, url=None, force=False, save=True):
                 valid_tar = True
                 break
             if i.startswith('/') or i.startswith('..'):
-                puts_err(colored.red(textwrap.fill(
-                    "This box is comprised of filenames starting with '/' or '..' "
-                    "Exiting for the safety of your files."
-                )))
-                sys.exit(1)
+                sys.exit(colored.red(textwrap.fill(
+                         "This box is comprised of filenames starting with '/' or '..' "
+                         "Exiting for the safety of your files.")))
 
     if valid_tar:
         if save:
             boxname = os.path.basename(url if url else filename)
-            box = os.path.join(*filter(None, (HOME, 'boxes', name, version, boxname)))
+            box = os.path.join(*filter(None, (mech_dir(), 'boxes', box, box_version, boxname)))
             path = os.path.dirname(box)
             makedirs(path)
             if not os.path.exists(box) or force:
                 copyfile(filename, box)
         else:
             box = filename
-        return name, version, box
+        return box, box_version
 
 
-def index_active_instance(instance_name):
-    path = os.getcwd()
-    instance = settle_instance(instance_name, {
-        'path': path,
-    })
-    if instance.get('path') != path:
-        puts_err(colored.red(textwrap.fill((
-            "There is already a Mech box with the name '{}' at {}"
-        ).format(instance_name, instance.get('path')))))
-        sys.exit(1)
-    return path
+def get_info_for_auth(mech_use=False):
+    """Get information (username/pub_key) for authentication."""
+    username = os.getlogin()
+    pub_key = os.path.expanduser('~/.ssh/id_rsa.pub')
+    return {'auth': {'username': username, 'pub_key': pub_key, 'mech_use': mech_use}}
 
 
-def init_mechfile(instance_name, descriptor, name=None, version=None, requests_kwargs={}):
-    if not instance_name:
-        instance_name = os.path.basename(os.getcwd())
-    path = index_active_instance(instance_name)
-    mechfile = build_mechfile(descriptor, name=name, version=version, requests_kwargs=requests_kwargs)
-    mechfile['name'] = instance_name
-    return save_mechfile(mechfile, path)
+def init_mechfile(location=None, box=None, name=None, box_version=None, add_me=None,
+                  use_me=None):
+    """Initialize the Mechfile."""
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s use_me:%s",
+                 name, box, box_version, location, add_me, use_me)
+    mechfile_entry = build_mechfile_entry(
+        location=location,
+        box=box,
+        name=name,
+        box_version=box_version)
+    if add_me:
+        mechfile_entry.update(get_info_for_auth(use_me))
+    LOGGER.debug('mechfile_entry:%s', mechfile_entry)
+    return save_mechfile_entry(mechfile_entry, name, mechfile_should_exist=False)
 
 
-def get_requests_kwargs(arguments):
-    requests_kwargs = {}
-    if arguments['--insecure']:
-        requests_kwargs['verify'] = False
-    elif arguments['--capath']:
-        requests_kwargs['verify'] = arguments['--capath']
-    elif arguments['--cacert']:
-        requests_kwargs['verify'] = arguments['--cacert']
-    elif arguments['--cert']:
-        requests_kwargs['cert'] = arguments['--cert']
-    return requests_kwargs
+def add_to_mechfile(location=None, box=None, name=None, box_version=None, add_me=None,
+                    use_me=None):
+    """Add entry to the Mechfile."""
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s use_me:%s",
+                 name, box, box_version, location, add_me, use_me)
+    this_mech_entry = build_mechfile_entry(
+        location=location,
+        box=box,
+        name=name,
+        box_version=box_version)
+    if add_me:
+        this_mech_entry.update(get_info_for_auth(use_me))
+    LOGGER.debug('this_mech_entry:%s', this_mech_entry)
+    return save_mechfile_entry(this_mech_entry, name, mechfile_should_exist=False)
 
 
-def get_vmx(silent=False):
-    vmx = locate('.mech', '*.vmx')
-    if not vmx and not silent:
-        puts_err(colored.red("Cannot locate a VMX file"))
-        sys.exit(1)
-    return vmx
+def random_string(string_len=15):
+    """Generate a random string of fixed length."""
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(string_len))
 
 
-def provision_file(vm, source, destination):
-    return vm.copyFileFromHostToGuest(source, destination)
+def add_auth(instance):
+    """Add authentication to VM."""
+
+    if not instance:
+        sys.exit(colored.red("Need to provide an instance to add_auth()."))
+
+    if instance.vmx is None or instance.user is None or instance.password is None:
+        sys.exit(colored.red("Need to provide vmx/user/password to add_auth()."))
+
+    print(colored.green('Adding auth to instance:{}'.format(instance.name)))
+
+    vmrun = VMrun(instance.vmx, instance.user, instance.password)
+    # cannot run if vmware tools are not installed
+    if not vmrun.installed_tools():
+        sys.exit(colored.red("Cannot add auth if VMware Tools are not installed."))
+
+    if instance.auth:
+        username = instance.auth.get('username', None)
+        pub_key = instance.auth.get('pub_key', None)
+        if username and pub_key:
+            with open(pub_key, 'r') as the_file:
+                pub_key_contents = the_file.read().strip()
+            if pub_key_contents:
+                # set the password to some random string
+                # user should never need it (sudo should not prompt for a
+                # password)
+                password = random_string()
+                cmd = ('sudo useradd -m -s /bin/bash -p "{password}" {username};'
+                       'sudo mkdir /home/{username}/.ssh;'
+                       'sudo usermod -aG sudo {username};'
+                       'echo "{username} ALL=(ALL) NOPASSWD: ALL" | '
+                       'sudo tee -a /etc/sudoers;'
+                       'echo "{pub_key_contents}" | '
+                       'sudo tee -a /home/{username}/.ssh/authorized_keys;'
+                       'sudo chmod 700 /home/{username}/.ssh;'
+                       'sudo chown {username}:{username} /home/{username}/.ssh;'
+                       'sudo chmod 600 /home/{username}/.ssh/authorized_keys;'
+                       'sudo chown {username}:{username} /home/{username}/.ssh/authorized_keys'
+                       ).format(username=username, pub_key_contents=pub_key_contents,
+                                password=password)
+                LOGGER.debug('cmd:', cmd)
+                results = vmrun.run_script_in_guest('/bin/sh', cmd, quiet=True)
+                LOGGER.debug('results:%s', results)
+                if results is None:
+                    print(colored.red("Did not add auth"))
+                else:
+                    print(colored.green("Added auth."))
+            else:
+                print(colored.green("Could not read contents of the pub_key"
+                                    " file:{}".format(pub_key)))
+        else:
+            print(colored.blue("Warning: Need a username and pub_key in auth."))
+    else:
+        print(colored.blue("No auth to add."))
 
 
-def provision_shell(vm, inline, path, args=[]):
-    tmp_path = vm.createTempfileInGuest()
+def ssh(instance, command, plain=None, extra=None):
+    """Run ssh command.
+       Note: May not really need the tempfile if self.use_psk==True.
+             Using the tempfile, there are options to not add host to the known_hosts files
+             which is useful, but could be MITM attacks. Not likely locally, but still
+             could be an issue.
+    """
+    LOGGER.debug('command:%s plain:%s extra:%s', command, plain, extra)
+    if instance.created:
+        config_ssh = instance.config_ssh()
+        temp_file = tempfile.NamedTemporaryFile(delete=False)
+        try:
+            temp_file.write(config_ssh_string(config_ssh).encode('utf-8'))
+            temp_file.close()
+
+            cmds = ['ssh']
+            if not plain:
+                cmds.extend(('-F', temp_file.name))
+            if extra:
+                cmds.extend(extra)
+            if not plain:
+                cmds.append(config_ssh['Host'])
+            if command:
+                cmds.extend(('--', command))
+
+            LOGGER.debug(
+                " ".join(
+                    "'{}'".format(
+                        c.replace(
+                            "'",
+                            "\\'")) if ' ' in c else c for c in cmds))
+
+            # if running a script
+            if command:
+                result = subprocess.run(cmds, capture_output=True)
+                stdout = result.stdout.decode('utf-8').strip()
+                stderr = result.stderr.decode('utf-8').strip()
+                return result.returncode, stdout, stderr
+            else:
+                # interactive
+                return subprocess.call(cmds), None, None
+        finally:
+            os.unlink(temp_file.name)
+
+
+def scp(instance, src, dst, dst_is_host, extra=None):
+    """Run scp command.
+       Note: May not really need the tempfile if self.use_psk==True.
+             Using the tempfile, there are options to not add host to the known_hosts files
+             which is useful, but could be MITM attacks. Not likely locally, but still
+             could be an issue.
+    """
+    if instance.created:
+
+        config_ssh = instance.config_ssh()
+        temp_file = tempfile.NamedTemporaryFile(delete=False)
+
+        try:
+            temp_file.write(config_ssh_string(config_ssh).encode())
+            temp_file.close()
+
+            cmds = ['scp']
+            cmds.extend(('-F', temp_file.name))
+            if extra:
+                cmds.extend(extra)
+
+            host = config_ssh['Host']
+            dst = '{}:{}'.format(host, dst) if dst_is_host else dst
+            src = '{}:{}'.format(host, src) if not dst_is_host else src
+            cmds.extend((src, dst))
+
+            LOGGER.debug(
+                " ".join(
+                    "'{}'".format(
+                        c.replace(
+                            "'",
+                            "\\'")) if ' ' in c else c for c in cmds))
+            return subprocess.run(cmds, capture_output=True)
+        finally:
+            os.unlink(temp_file.name)
+
+
+def del_user(instance, username):
+    """Delete a user in guest VM."""
+
+    if not instance:
+        sys.exit(colored.red("Need to provide an instance to del_user()."))
+
+    if instance.vmx is None:
+        sys.exit(colored.red("VM must be created."))
+
+    if instance.user is None:
+        sys.exit(colored.red("A user is required."))
+
+    print(colored.green('Removing username ({}) from instance:{}...'.format(username,
+                                                                            instance.name)))
+
+    cmd = 'sudo userdel -fr vagrant'
+    LOGGER.debug('cmd:', cmd)
+
+    if instance.use_psk:
+        ssh(instance, cmd)
+    else:
+        vmrun = VMrun(instance.vmx, user=instance.user,
+                      password=instance.password, use_psk=instance.use_psk)
+        # cannot run if vmware tools are not installed
+        if not vmrun.installed_tools():
+            sys.exit(colored.red("Cannot add del_user if VMware Tools are not installed."))
+        results = vmrun.run_script_in_guest('/bin/sh', cmd, quiet=True)
+        LOGGER.debug('results:%s', results)
+        if results is None:
+            print(colored.red("Failed running del_user()."))
+        else:
+            print(colored.green("Success running del_user()."))
+
+
+def provision(instance, show=False):
+    """Provision an instance.
+
+    Args:
+        instance (MechInstance): an instance
+        show (bool): just print the provisioning
+
+    Notes:
+        Valid provision types are:
+           file: copies files to instances
+           shell: executes scripts
+
+    """
+
+    if not instance:
+        sys.exit(colored.red("Need to provide an instance to provision()."))
+
+    if instance.vmx is None or instance.user is None:
+        sys.exit(colored.red("Need to provide vmx/user to provision()."))
+
+    print(colored.green('Provisioning instance:{}'.format(instance.name)))
+
+    vmrun = VMrun(instance.vmx, instance.user, instance.password)
+    # cannot run provisioning if vmware tools are not installed
+    if not vmrun.installed_tools():
+        sys.exit(colored.red("Cannot provision if VMware Tools are not installed."))
+
+    provisioned = 0
+    if instance.provision:
+        for i, pro in enumerate(instance.provision):
+            provision_type = pro.get('type')
+            if provision_type == 'file':
+                source = pro.get('source')
+                destination = pro.get('destination')
+                if show:
+                    print(colored.green("instance:{} provision_type:{} source:{} "
+                                        "destination:{}".format(instance.name, provision_type,
+                                                                source, destination)))
+                else:
+                    results = provision_file(vmrun, instance, source, destination)
+                    LOGGER.debug('results:%s', results)
+                    if results is None:
+                        print(colored.red("Not Provisioned"))
+                        return
+                provisioned += 1
+
+            elif provision_type == 'shell':
+                inline = pro.get('inline')
+                path = pro.get('path')
+
+                args = pro.get('args')
+                if not isinstance(args, list):
+                    args = [args]
+                if show:
+                    print(colored.green(" instance:{} provision_type:{} inline:{} path:{} "
+                                        "args:{}".format(instance.name, provision_type,
+                                                         inline, path, args)))
+                else:
+                    if provision_shell(vmrun, instance, inline, path, args) is None:
+                        print(colored.red("Not Provisioned"))
+                        return
+                provisioned += 1
+
+            else:
+                print(colored.red("Not Provisioned ({}".format(i)))
+                return
+        else:
+            print(colored.green("VM ({}) Provision {} "
+                                "entries".format(instance.name, provisioned)))
+    else:
+        print(colored.blue("Nothing to provision"))
+
+
+def provision_file(vmrun, instance, source, destination):
+    """Provision from file.
+
+    Args:
+        vmrun (VMrun): instance of the VMrun class
+        source (str): full path of a file to copy
+        source (str): full path where the file is to be copied to
+
+    Notes:
+       This function copies a file from host to guest.
+
+    """
+    print(colored.blue("Copying ({}) to ({})".format(source, destination)))
+    if instance.use_psk:
+        results = scp(instance, source, destination, True)
+    else:
+        results = vmrun.copy_file_from_host_to_guest(source, destination)
+    return results
+
+
+def create_tempfile_in_guest(instance):
+    """Create a tempfile in the guest."""
+    cmd = 'tmpfile=$(mktemp); echo $tmpfile'
+    _, stdout, _ = ssh(instance, cmd)
+    return stdout
+
+
+def provision_shell(vmrun, instance, inline, script_path, args=None):
+    """Provision from shell.
+
+    Args:
+        vmrun (VMrun): instance of the VMrun class
+        instance (MechInstance): instance of the MechInstance class
+        inline (bool): run the script inline
+        script_path (str): path to the script to run
+        args (list of str): arguments to the script
+
+    """
+    if args is None:
+        args = []
+    if instance.use_psk:
+        tmp_path = create_tempfile_in_guest(instance)
+    else:
+        tmp_path = vmrun.create_tempfile_in_guest()
+    LOGGER.debug('inline:%s script_path:%s args:%s tmp_path:%s',
+                 inline, script_path, args, tmp_path)
     if tmp_path is None:
+        print(colored.red("Warning: Could not create tempfile in guest."))
         return
 
     try:
-        if path and os.path.isfile(path):
-            puts_err(colored.blue("Configuring script {}...".format(path)))
-            if vm.copyFileFromHostToGuest(path, tmp_path) is None:
-                return
+        if script_path and os.path.isfile(script_path):
+            print(colored.blue("Configuring script {}...".format(script_path)))
+            if instance.use_psk:
+                results = scp(instance, script_path, tmp_path, True)
+                if results is None:
+                    print(colored.red("Warning: Could not copy file to guest."))
+                    return
+            else:
+                if vmrun.copy_file_from_host_to_guest(script_path, tmp_path) is None:
+                    print(colored.red("Warning: Could not copy file to guest."))
+                    return
         else:
-            if path:
-                if any(path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
-                    puts_err(colored.blue("Downloading {}...".format(path)))
+            if script_path:
+                if any(script_path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
+                    print(colored.blue("Downloading {}...".format(script_path)))
                     try:
-                        r = requests.get(path)
-                        r.raise_for_status()
-                        inline = r.read()
+                        response = requests.get(script_path)
+                        response.raise_for_status()
+                        inline = response.read()
                     except requests.HTTPError:
                         return
                     except requests.ConnectionError:
                         return
                 else:
-                    puts_err(colored.red("Cannot open {}".format(path)))
+                    print(colored.red("Cannot open {}".format(script_path)))
                     return
 
             if not inline:
-                puts_err(colored.red("No script to execute"))
+                print(colored.red("No script to execute"))
                 return
 
-            puts_err(colored.blue("Configuring script..."))
-            fp = tempfile.NamedTemporaryFile(delete=False)
+            print(colored.blue("Configuring script to run inline..."))
+            the_file = tempfile.NamedTemporaryFile(delete=False)
             try:
-                fp.write(inline)
-                fp.close()
-                if vm.copyFileFromHostToGuest(fp.name, tmp_path) is None:
-                    return
+                the_file.write(str.encode(inline))
+                the_file.close()
+                if instance.use_psk:
+                    scp(instance, the_file.name, tmp_path, True)
+                else:
+                    if vmrun.copy_file_from_host_to_guest(the_file.name, tmp_path) is None:
+                        return
             finally:
-                os.unlink(fp.name)
+                os.unlink(the_file.name)
 
-        puts_err(colored.blue("Configuring environment..."))
-        if vm.runScriptInGuest('/bin/sh', "chmod +x '{}'".format(tmp_path)) is None:
-            return
+        print(colored.blue("Configuring environment..."))
+        make_executable = "chmod +x '{}'".format(tmp_path)
+        LOGGER.debug('make_executable:%s', make_executable)
+        if instance.use_psk:
+            if ssh(instance, make_executable) is None:
+                print(colored.red("Warning: Could not configure script in the environment."))
+                return
+        else:
+            if vmrun.run_script_in_guest('/bin/sh', make_executable) is None:
+                print(colored.red("Warning: Could not configure script in the environment."))
+                return
 
-        puts_err(colored.blue("Executing program..."))
-        return vm.runProgramInGuest(tmp_path, args)
+        print(colored.blue("Executing program..."))
+        if instance.use_psk:
+            args_string = ' '.join([str(elem) for elem in args])
+            LOGGER.debug('args:%s args_string:%s', args, args_string)
+            return ssh(instance, tmp_path, args_string)
+        else:
+            return vmrun.run_program_in_guest(tmp_path, args)
 
     finally:
-        vm.deleteFileInGuest(tmp_path, quiet=True)
+        if instance.use_psk:
+            return ssh(instance, 'rm -f "{}"'.format(tmp_path))
+        else:
+            vmrun.delete_file_in_guest(tmp_path, quiet=True)
 
 
 def config_ssh_string(config_ssh):
-    ssh_config = "Host {}".format(config_ssh['Host']) + os.linesep
-    for k, v in config_ssh.items():
-        if k != 'Host':
-            ssh_config += "  {} {}".format(k, v) + os.linesep
+    """Build the ssh-config string from a dict holding the keys/values."""
+    ssh_config = "Host {}".format(config_ssh.get('Host', '')) + os.linesep
+    for key, value in config_ssh.items():
+        if key != 'Host':
+            ssh_config += "  {} {}".format(key, value) + os.linesep
     return ssh_config
+
+
+def share_folders(vmrun, inst):
+    """Share folders.
+    Args:
+        vmrun (VMrun): an instance of the VMrun class
+        inst (MechInstance): an instance of the MechInstance class (representing a vm)
+
+    """
+    print(colored.blue("Sharing folders..."))
+    vmrun.enable_shared_folders(quiet=False)
+    for share in inst.shared_folders:
+        share_name = share.get('share_name')
+        host_path = share.get('host_path')
+        print(colored.blue("share:{} host_path:{}".format(share_name, host_path)))
+        vmrun.add_shared_folder(share_name, host_path, quiet=True)
+
+
+def get_fallback_executable():
+    """Get a fallback executable for the command line tool 'vmrun'."""
+    if 'PATH' in os.environ:
+        LOGGER.debug("os.environ['PATH']:%s", os.environ['PATH'])
+        for path in os.environ['PATH'].split(os.pathsep):
+            vmrun = os.path.join(path, 'vmrun')
+            if os.path.exists(vmrun):
+                return vmrun
+            vmrun = os.path.join(path, 'vmrun.exe')
+            if os.path.exists(vmrun):
+                return vmrun
+    return None
+
+
+def get_darwin_executable():
+    """Get the full path for the 'vmrun' command on a mac host."""
+    vmrun = '/Applications/VMware Fusion.app/Contents/Library/vmrun'
+    if os.path.exists(vmrun):
+        return vmrun
+    return get_fallback_executable()
+
+
+def get_win32_executable():
+    """Get the full path for the 'vmrun' command on a Windows host."""
+    if PY3:
+        import winreg
+    else:
+        import _winreg as winreg
+    reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
+    try:
+        key = winreg.OpenKey(reg, 'SOFTWARE\\VMware, Inc.\\VMware Workstation')
+        try:
+            return os.path.join(winreg.QueryValueEx(key, 'InstallPath')[0], 'vmrun.exe')
+        finally:
+            winreg.CloseKey(key)
+    except WindowsError:
+        key = winreg.OpenKey(reg, 'SOFTWARE\\WOW6432Node\\VMware, Inc.\\VMware Workstation')
+        try:
+            return os.path.join(winreg.QueryValueEx(key, 'InstallPath')[0], 'vmrun.exe')
+        finally:
+            winreg.CloseKey(key)
+    finally:
+        reg.Close()
+    return get_fallback_executable()
+
+
+def get_provider(vmrun_executable):
+    """
+    Identifies the right hosttype for vmrun command (ws | fusion | player)
+    """
+
+    if sys.platform == 'darwin':
+        return 'fusion'
+
+    for provider in ['ws', 'player', 'fusion']:
+        # To determine the provider, try
+        # running the vmrun command to see which one works.
+        try:
+            startupinfo = None
+            if os.name == "nt":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
+            proc = subprocess.Popen([vmrun_executable,
+                                     '-T',
+                                     provider,
+                                     'list'],
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    startupinfo=startupinfo)
+        except OSError:
+            pass
+
+        map(b2s, proc.communicate())
+        if proc.returncode == 0:
+            return provider

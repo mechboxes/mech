@@ -1,6 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
+# Copyright (c) 2016-2017 Kevin Chung
 # Copyright (c) 2018 German Mendez Bravo (Kronuz)
 # Copyright (c) 2020 Mike Kinney
 #
@@ -22,7 +22,29 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
-"""Initialize mech with version info."""
+"""MechCommand class"""
 
-__version__ = '0.7.7'
-VERSION = "{} v{}".format(__name__, __version__)
+from __future__ import print_function, absolute_import
+
+import logging
+
+from . import utils
+from .command import Command
+
+LOGGER = logging.getLogger(__name__)
+
+
+class MechCommand(Command):
+    """Class for the mech commands from help doc (as python object)."""
+    mechfile = None
+
+    def activate_mechfile(self):
+        """Load the Mechfile."""
+        self.mechfile = utils.load_mechfile()
+        LOGGER.debug("loaded mechfile:%s", self.mechfile)
+
+    def instances(self):
+        """Returns a list of the instances from the Mechfile."""
+        if not self.mechfile:
+            self.activate_mechfile()
+        return list(self.mechfile)

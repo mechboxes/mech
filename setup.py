@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Setup mech"""
 
 try:
     from setuptools import setup
@@ -11,9 +12,10 @@ from mech import __version__
 
 
 def read(fname):
+    """Read in a file."""
     try:
-        with open(os.path.join(os.path.dirname(__file__), fname), "r") as fp:
-            return fp.read().strip()
+        with open(os.path.join(os.path.dirname(__file__), fname), "r") as a_file:
+            return a_file.read().strip()
     except IOError:
         return ''
 

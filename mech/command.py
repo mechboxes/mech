@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2018 German Mendez Bravo (Kronuz)
+# Copyright (c) 2020 Mike Kinney
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -20,6 +21,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+"""Handle the mech options using docopt."""
 
 from __future__ import absolute_import
 
@@ -33,27 +35,37 @@ from .compat import get_meth_func
 
 NBSP = '__'
 
+
 def cmd_usage(doc):
+    """Show the command usage."""
     return doc.replace(NBSP, ' ')
 
+
 docopt_extras_ref = docopt.extras
-def docopt_extras(help, version, options, doc):
-    return docopt_extras_ref(help, version, options, cmd_usage(doc))
+
+
+def docopt_extras(the_help, version, options, doc):
+    """Show the "Extra" help info."""
+    return docopt_extras_ref(the_help, version, options, cmd_usage(doc))
+
 
 def DocoptExit____init__(self, message=''):
+    """Constructor for docopt."""
     SystemExit.__init__(self, (message + '\n' + cmd_usage(self.usage)).strip())
+
 
 docopt.extras = docopt_extras
 docopt.DocoptExit.__init__ = DocoptExit____init__
 
 
 def spaced(name):
+    """Return the command name."""
     name = re.sub(r'[ _]+', r' ', name)
     name = re.sub(r'(?<=[^_])([A-Z])', r' \1', name).lower()
     return re.sub(r'^( *)(.*?)( *)$', r'\2', name)
 
 
-class Command(object):
+class Command():
     """
     Usage: command <subcommand> [<args>...]
     """
@@ -63,6 +75,7 @@ class Command(object):
 
     @staticmethod
     def docopt(doc, **kwargs):
+        """Parse comments for arguments."""
         name = kwargs.pop('name', "")
         name = spaced(name)
         doc = textwrap.dedent(doc).replace(name, name.replace(' ', NBSP))
@@ -73,6 +86,7 @@ class Command(object):
         self.arguments = arguments
 
     def __call__(self):
+        """Invoke the command with the arguments."""
         if self.subcommand_name in self.arguments:
             cmd = self.arguments[self.subcommand_name]
             cmd_attr = cmd.replace('-', '_')
@@ -83,7 +97,8 @@ class Command(object):
                     cmd = meth_func.__name__.replace('_', '-')
                 name = '{} {}'.format(self.__class__.__name__, cmd)
                 if klass.__doc__:
-                    arguments = self.docopt(klass.__doc__, argv=self.arguments.get(self.argv_name, []), name=name)
+                    arguments = self.docopt(klass.__doc__,
+                                            argv=self.arguments.get(self.argv_name, []), name=name)
                 else:
                     arguments = []
                 obj = klass(arguments)
@@ -96,4 +111,5 @@ class Command(object):
         return obj
 
     def run(self):
+        """Run the command."""
         raise docopt.DocoptExit()

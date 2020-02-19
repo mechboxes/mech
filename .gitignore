@@ -1,4 +1,6 @@
 .DS_Store
+cov_html/
+.coverage
 *.pyc
 .idea/
 build/
@@ -6,3 +8,5 @@ dist/
 mech.egg-info/
 .mech/
 Mechfile
+.*swp
+venv/

@@ -1,0 +1,2 @@
+# convenience script to run all tests (unit and integration)
+pytest -m"int or not int" -vv -l

@@ -1,0 +1,296 @@
+#compdef _mech mech
+
+# zsh for mech
+
+function _mech {
+  local line
+
+  _arguments -C \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    "1: :(box down global-status halt init ip list ls pause port provision ps reload resume scp snapshot ssh-config stop suspend up)" \
+    "*::arg:->args"
+
+  case $line[1] in
+    box) _mech_box;;
+    down) _mech_down ;;
+    global-status) _mech_global_status;;
+    halt) _mech_down;;
+    init) _mech_init;;
+    ip) _mech_ip ;;
+    list) _mech_list ;;
+    ls) _mech_list ;;
+    pause) _mech_pause;;
+    port) _mech_port ;;
+    provision) _mech_provision ;;
+    ps) _mech_ps;;
+    reload) _mech_reload;;
+    resume) _mech_resume ;;
+    scp) _mech_scp;;
+    snapshot) _mech_snapshot ;;
+    stop) _mech_down;;
+    ssh-config) _mech_ssh-config ;;
+    suspend) _mech_suspend ;;
+    up) _mech_up ;;
+  esac
+}
+
+__mech_box_list () {
+  _wanted application expl 'command' compadd $(command mech box list | \
+    awk '(NR > 1) { printf("%s ", $1) }')
+}
+
+function _mech_box_arguments {
+  _arguments \
+    "-h[Show help information]" \
+    "1: :(add delete list ls remove)"
+  }
+
+function _mech_box {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments -C \
+    "1: :(add delete list ls remove)" \
+    '*::options:->options'
+
+  case $state in
+    (options)
+      case $line[1] in
+        (delete|remove) _arguments ':feature:__mech_box_list' ;;
+      esac
+    ;;
+  esac
+}
+
+__mech_list () {
+  _wanted application expl 'command' compadd $(command mech list | \
+    awk '(NR > 1) { printf("%s ", $1) }')
+}
+
+function _mech_down {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments -C \
+    "-f[Force a hard stop]" \
+    "--force[Force a hard stop]" \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    '::options:->options'
+
+  case $state in
+    (options)
+      case $line[1] in
+        (*) _arguments ':feature:__mech_list' ;;
+      esac
+  esac
+}
+
+function _mech_global_status {
+  _arguments -C \
+    "-h[Show help information]" \
+    "--help[Show help information]"
+}
+
+function _mech_init {
+  _arguments \
+    "--box=[BOXNAME Name of the box (ex: bento/ubuntu-18.04)]" \
+    "--box-version=[VERSION Constrain version of the added box]" \
+    "-f[Overwrite exsting Mechfile]" \
+    "--force[Overwrite existing Mechfile]" \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    "--name=[NAME Name of the instance (ex: first)]"
+}
+
+function _mech_ip {
+  _arguments \
+    "-h[Show help information]" \
+    "--help[Show help information]"
+}
+
+function _mech_list {
+  _arguments \
+    "-d[Print detailed info]" \
+    "--detail[Print detailed info]" \
+    "-h[Show help information]" \
+    "--help[Show help information]"
+}
+
+function _mech_pause {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments -C \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    '::options:->options'
+
+  case $state in
+    (options)
+      case $line[1] in
+        (*) _arguments ':feature:__mech_list' ;;
+      esac
+  esac
+}
+
+function _mech_port {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments -C \
+    "--guest[PORT Output the host port that maps to the given guest port]" \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    '::options:->options'
+
+  case $state in
+    (options)
+      case $line[1] in
+        (*) _arguments ':feature:__mech_list' ;;
+      esac
+  esac
+}
+
+function _mech_provision {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments -C \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    "-s[Show the provisioning info (do not run)]" \
+    "--show[Show the provisioning info (do not run)]" \
+    '::options:->options'
+
+  case $state in
+    (options)
+      case $line[1] in
+        (*) _arguments ':feature:__mech_list' ;;
+      esac
+  esac
+}
+
+function _mech_ps {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments -C \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    '::options:->options'
+
+  case $state in
+    (options)
+      case $line[1] in
+        (*) _arguments ':feature:__mech_list' ;;
+      esac
+  esac
+}
+
+
+function _mech_reload {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments -C \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    '::options:->options'
+
+  case $state in
+    (options)
+      case $line[1] in
+        (*) _arguments ':feature:__mech_list' ;;
+      esac
+  esac
+}
+
+function _mech_resume {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments -C \
+    "--disable-shared-folders[Do not share folders with VM]" \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    '::options:->options'
+
+  case $state in
+    (options)
+      case $line[1] in
+        (*) _arguments ':feature:__mech_list' ;;
+      esac
+  esac
+}
+
+function _mech_scp {
+  _arguments \
+    "-h[Show help information]" \
+    "--help[Show help information]"
+}
+
+function _mech_ssh_config {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments -C \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    '::options:->options'
+
+  case $state in
+    (options)
+      case $line[1] in
+        (*) _arguments ':feature:__mech_list' ;;
+      esac
+  esac
+}
+
+function _mech_snapshot {
+  _arguments -C \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    "1: :(delete list ls remove save)"
+}
+
+function _mech_suspend {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments -C \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    '::options:->options'
+
+  case $state in
+    (options)
+      case $line[1] in
+        (*) _arguments ':feature:__mech_list' ;;
+      esac
+  esac
+}
+
+function _mech_up {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments -C \
+    "--disable-provisioning[Do not provision]" \
+    "--disable-shared-folders[Do not share folders with VM]" \
+    "--gui[Start GUI]" \
+    "-h[Show help information]" \
+    "--help[Show help information]" \
+    "--memsize=[SIZE Specify the size of memory for VM (ex: 1024)]" \
+    "--no-cache[Do not save the downloaded box]" \
+    "--no-nat[Do not use NAT network (i.e., bridged)]" \
+    "--numvcpus=[NUMBER Specify the number of vcpus for VM (ex: 2)]" \
+    '::options:->options'
+
+  case $state in
+    (options)
+        _arguments ':feature:__mech_list' ;;
+  esac
+}
+# vim: ft=zsh sw=2 ts=2 et
