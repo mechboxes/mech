@@ -273,7 +273,7 @@ def build_mechfile(descriptor, name=None, version=None, requests_kwargs={}):
             return mechfile
     else:
         try:
-            account, box, v = (descriptor.split('/', 2) + ['', ''])[:3]
+            account, box, v = (descriptor.split(os.path.sep, 2) + ['', ''])[:3]
             if not account or not box:
                 puts_err(colored.red("Provided box name is not valid"))
             if v:
