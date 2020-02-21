@@ -255,7 +255,7 @@ class MechBox(MechCommand):
         for root, dirnames, filenames in os.walk(path):
             for filename in fnmatch.filter(filenames, '*.box'):
                 directory = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
-                account, box, version = (directory.split('/', 2) + ['', ''])[:3]
+                account, box, version = (directory.split(os.path.sep, 2) + ['', ''])[:3]
                 print("{}\t{}".format(
                     "{}/{}".format(account, box).rjust(35),
                     version.rjust(12),
