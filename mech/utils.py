@@ -553,6 +553,8 @@ def provision_shell(vm, inline, path, args=[]):
             puts_err(colored.blue("Configuring script..."))
             fp = tempfile.NamedTemporaryFile(delete=False)
             try:
+                if isinstance(inline, str):
+                    inline = inline.encode('utf-8')
                 fp.write(inline)
                 fp.close()
                 if vm.copyFileFromHostToGuest(fp.name, tmp_path) is None:
