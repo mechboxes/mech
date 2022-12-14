@@ -144,7 +144,7 @@ def update_vmx(path):
         vmx["ethernet0.linkstatepropagation.enable"] = "FALSE"
         vmx["ethernet0.pcislotnumber"] = "32"
         vmx["ethernet0.present"] = "TRUE"
-        vmx["ethernet0.virtualdev"] = "e1000"
+        vmx["ethernet0.virtualdev"] = "e1000e"
         vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
         puts_err(colored.yellow("Added network interface to vmx file"))
         updated = True
